@@ -63,6 +63,14 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'image-annotator': () => import('@/components/tools/visual/ImageAnnotator'),
     'color-palette': () => import('@/components/tools/visual/ColorPalette'),
   },
+  image: {
+    'pdf-tools': () => import('@/components/tools/image/PdfTools'),
+    'pdf-image-converter': () => import('@/components/tools/image/PdfImageConverter'),
+    'image-converter': () => import('@/components/tools/image/ImageConverter'),
+    'image-resize': () => import('@/components/tools/image/ImageResize'),
+    'svg-tools': () => import('@/components/tools/image/SvgTools'),
+    'image-base64': () => import('@/components/tools/image/ImageBase64'),
+  },
 }
 
 interface ToolPageClientProps {
