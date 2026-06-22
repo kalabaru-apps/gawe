@@ -55,3 +55,13 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* Category accent colors exposed as CSS custom properties */
+:root {
+  --accent-encoding: oklch(0.585 0.233 277.1);
+  --accent-crypto: oklch(0.769 0.189 70.1);
+  --accent-dev: oklch(0.696 0.17 162.5);
+  --accent-image: oklch(0.656 0.241 14.5);
+  --accent-office: oklch(0.686 0.185 231.9);
+  --accent-visual: oklch(0.627 0.265 303.9);
+}
