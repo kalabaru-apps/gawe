@@ -36,14 +36,14 @@ export async function addHistory(entry: Omit<HistoryEntry, 'id'>): Promise<void>
   const db = await getDB()
   await db.add('history', { ...entry, timestamp: Date.now() })
   // Prune oldest entries if over limit
-  const tx = db.transaction('history', 'readwrite')
-  const index = tx.store.index('toolId')
-  const all = await index.getAllKeys(entry.toolId)
+  const all = await db.getAllFromIndex('history', 'toolId', entry.toolId)
   if (all.length > HISTORY_MAX_PER_TOOL) {
-    const toDelete = all.slice(0, all.length - HISTORY_MAX_PER_TOOL)
-    for (const key of toDelete) await tx.store.delete(key)
+    const sorted = all.sort((a, b) => a.timestamp - b.timestamp)
+    const toDelete = sorted.slice(0, all.length - HISTORY_MAX_PER_TOOL)
+    const tx = db.transaction('history', 'readwrite')
+    for (const old of toDelete) await tx.store.delete(old.id as number)
+    await tx.done
   }
-  await tx.done
 }
 
 export async function getHistory(toolId: string): Promise<HistoryEntry[]> {

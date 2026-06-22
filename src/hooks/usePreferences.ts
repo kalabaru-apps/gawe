@@ -8,10 +8,8 @@ export function usePreferences() {
   const [prefs, setPrefs] = useState<Preferences>(() => getPreferences())
 
   const update = useCallback((patch: Partial<Preferences>) => {
-    setPrefs((prev) => {
-      const next = setPreferences({ ...prev, ...patch })
-      return next
-    })
+    const next = setPreferences(patch)
+    setPrefs(next)
   }, [])
 
   const toggleFavorite = useCallback((toolId: string) => {
@@ -20,7 +18,7 @@ export function usePreferences() {
       const favorites = isFav
         ? prev.favorites.filter((id) => id !== toolId)
         : [...prev.favorites, toolId]
-      return setPreferences({ ...prev, favorites })
+      return setPreferences({ favorites })
     })
   }, [])
 
@@ -28,7 +26,7 @@ export function usePreferences() {
     setPrefs((prev) => {
       const filtered = prev.recentTools.filter((id) => id !== toolId)
       const recentTools = [toolId, ...filtered].slice(0, 10)
-      return setPreferences({ ...prev, recentTools })
+      return setPreferences({ recentTools })
     })
   }, [])
 
@@ -38,7 +36,7 @@ export function usePreferences() {
       const collapsedCategories = collapsed
         ? prev.collapsedCategories.filter((id) => id !== categoryId)
         : [...prev.collapsedCategories, categoryId]
-      return setPreferences({ ...prev, collapsedCategories })
+      return setPreferences({ collapsedCategories })
     })
   }, [])
 

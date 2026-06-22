@@ -20,5 +20,13 @@ export function useToolState(toolId: string) {
     })
   }, [toolId])
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [toolId])
+
   return { state, update }
 }
