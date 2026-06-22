@@ -44,6 +44,18 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'totp': () => import('@/components/tools/crypto/Totp'),
     'qr-code': () => import('@/components/tools/crypto/QrCode'),
   },
+  office: {
+    'pomodoro': () => import('@/components/tools/office/Pomodoro'),
+    'timezone-clock': () => import('@/components/tools/office/TimezoneClock'),
+    'unit-converter': () => import('@/components/tools/office/UnitConverter'),
+    'date-calculator': () => import('@/components/tools/office/DateCalculator'),
+    'calculator': () => import('@/components/tools/office/Calculator'),
+    'csv-editor': () => import('@/components/tools/office/CsvEditor'),
+    'word-counter': () => import('@/components/tools/office/WordCounter'),
+    'scratchpad': () => import('@/components/tools/office/Scratchpad'),
+    'meeting-cost': () => import('@/components/tools/office/MeetingCost'),
+    'pastebin': () => import('@/components/tools/office/Pastebin'),
+  },
 }
 
 interface ToolPageClientProps {
