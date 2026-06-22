@@ -21,7 +21,7 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
 
   const encode = () => {
     try {
-      const encoded = btoa(unescape(encodeURIComponent(input)))
+      const encoded = btoa(unescape(encodeURIComponent(input.trim())))
       setOutput(encoded)
       setError('')
       onOutput({ input, mode: 'encode' }, { output: encoded })
@@ -50,6 +50,9 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
       setOutput(base64)
       setError('')
       onOutput({ fileName: file.name, fileType: file.type }, { output: base64, dataUrl })
+    }
+    reader.onerror = () => {
+      setError('Failed to read file')
     }
     reader.readAsDataURL(file)
   }
