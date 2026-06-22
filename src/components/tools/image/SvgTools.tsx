@@ -30,13 +30,16 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
     setOptimizing(true)
     setSvgError(null)
     try {
-      const { optimize } = await import('svgo')
-      const result = optimize(input, {
-        multipass: true,
-        plugins: ['preset-default'],
+      const res = await fetch('/api/tools/svgo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ svg: input }),
       })
-      setOptimized(result.data)
-      onOutput({ originalSize: input.length }, { optimizedSize: result.data.length, saved: input.length - result.data.length })
+      const json = await res.json() as { data?: string; error?: string }
+      if (!res.ok || json.error) throw new Error(json.error ?? 'Optimization failed')
+      const data = json.data!
+      setOptimized(data)
+      onOutput({ originalSize: input.length }, { optimizedSize: data.length, saved: input.length - data.length })
     } catch (e) {
       setSvgError((e as Error).message)
     } finally {
