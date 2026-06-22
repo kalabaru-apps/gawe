@@ -56,6 +56,13 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'meeting-cost': () => import('@/components/tools/office/MeetingCost'),
     'pastebin': () => import('@/components/tools/office/Pastebin'),
   },
+  visual: {
+    'css-generators': () => import('@/components/tools/visual/CssGenerators'),
+    'whiteboard': () => import('@/components/tools/visual/Whiteboard'),
+    'mermaid': () => import('@/components/tools/visual/MermaidDiagram'),
+    'image-annotator': () => import('@/components/tools/visual/ImageAnnotator'),
+    'color-palette': () => import('@/components/tools/visual/ColorPalette'),
+  },
 }
 
 interface ToolPageClientProps {
