@@ -34,6 +34,16 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'lorem-ipsum': () => import('@/components/tools/dev/LoremIpsum'),
     'http-reference': () => import('@/components/tools/dev/HttpReference'),
   },
+  crypto: {
+    'hash-generator': () => import('@/components/tools/crypto/HashGenerator'),
+    'password-generator': () => import('@/components/tools/crypto/PasswordGenerator'),
+    'bcrypt': () => import('@/components/tools/crypto/Bcrypt'),
+    'aes-encrypt': () => import('@/components/tools/crypto/AesEncrypt'),
+    'jwt-decoder': () => import('@/components/tools/crypto/JwtDecoder'),
+    'uuid-ulid': () => import('@/components/tools/crypto/UuidUlid'),
+    'totp': () => import('@/components/tools/crypto/Totp'),
+    'qr-code': () => import('@/components/tools/crypto/QrCode'),
+  },
 }
 
 interface ToolPageClientProps {
