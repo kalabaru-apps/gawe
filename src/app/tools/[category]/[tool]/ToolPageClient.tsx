@@ -22,6 +22,18 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'line-tools': () => import('@/components/tools/encoding/LineTools'),
     'string-tools': () => import('@/components/tools/encoding/StringTools'),
   },
+  dev: {
+    'regex-tester': () => import('@/components/tools/dev/RegexTester'),
+    'cron-builder': () => import('@/components/tools/dev/CronBuilder'),
+    'timestamp-converter': () => import('@/components/tools/dev/TimestampConverter'),
+    'base-converter': () => import('@/components/tools/dev/BaseConverter'),
+    'color-converter': () => import('@/components/tools/dev/ColorConverter'),
+    'fake-data-generator': () => import('@/components/tools/dev/FakeDataGenerator'),
+    'text-diff': () => import('@/components/tools/dev/TextDiff'),
+    'markdown-converter': () => import('@/components/tools/dev/MarkdownConverter'),
+    'lorem-ipsum': () => import('@/components/tools/dev/LoremIpsum'),
+    'http-reference': () => import('@/components/tools/dev/HttpReference'),
+  },
 }
 
 interface ToolPageClientProps {
