@@ -37,7 +37,7 @@ export interface ToolProps {
 }
 
 export interface HistoryEntry {
-  id?: number
+  id?: number  // assigned by IndexedDB; always present on retrieved entries
   toolId: string
   inputs: Record<string, unknown>
   outputs: Record<string, unknown>

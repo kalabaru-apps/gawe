@@ -13,8 +13,10 @@ import { Button } from '@/components/ui/button'
 import type { CategoryId } from '@/types'
 
 export function Sidebar() {
-  const { sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen } = useAppStore()
-  const { prefs, toggleFavorite, toggleCategory } = usePreferences()
+  const { setCommandPaletteOpen } = useAppStore()
+  const { prefs, toggleFavorite, toggleCategory, update } = usePreferences()
+  const sidebarCollapsed = prefs.sidebarCollapsed
+  const setSidebarCollapsed = (collapsed: boolean) => update({ sidebarCollapsed: collapsed })
 
   const favTools = TOOLS.filter((t) => prefs.favorites.includes(t.id))
 

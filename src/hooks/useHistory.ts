@@ -22,12 +22,14 @@ export function useHistory(toolId: string) {
     await load()
   }, [toolId, load])
 
-  const label = useCallback(async (id: number, text: string) => {
+  const label = useCallback(async (id: number | undefined, text: string) => {
+    if (!id) return
     await labelHistory(id, text)
     await load()
   }, [load])
 
-  const remove = useCallback(async (id: number) => {
+  const remove = useCallback(async (id: number | undefined) => {
+    if (!id) return
     await deleteHistory(id)
     await load()
   }, [load])

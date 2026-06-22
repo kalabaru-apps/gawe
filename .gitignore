@@ -41,7 +41,10 @@ yarn-error.log*
 next-env.d.ts
 .superpowers/
 
-# PWA build artifacts (regenerated on each build)
-public/sw.js
-public/workbox-*.js
-public/swe-worker-*.js
+# PWA build artifacts — regenerated on every build, never commit
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/swe-worker-*.js
+/public/swe-worker-*.js.map
