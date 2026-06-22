@@ -1,8 +1,24 @@
 import { notFound } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import type { ComponentType } from 'react'
 import { getToolByRoute, getCategoryById } from '@/config/tools'
-import type { CategoryId } from '@/types'
-import { ToolHeader } from '@/components/shell/ToolHeader'
-import { ToolPlaceholder } from '@/components/shell/ToolPlaceholder'
+import { ToolPageClient } from './ToolPageClient'
+import type { ToolProps, CategoryId } from '@/types'
+
+type ToolLoader = () => Promise<{ default: ComponentType<ToolProps> }>
+
+const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
+  encoding: {
+    'json-formatter': () => import('@/components/tools/encoding/JsonFormatter'),
+    'json-converter': () => import('@/components/tools/encoding/DataConverter'),
+    'base64': () => import('@/components/tools/encoding/Base64'),
+    'url-html-encode': () => import('@/components/tools/encoding/UrlHtmlEncode'),
+    'code-beautifier': () => import('@/components/tools/encoding/CodeBeautifier'),
+    'case-converter': () => import('@/components/tools/encoding/CaseConverter'),
+    'line-tools': () => import('@/components/tools/encoding/LineTools'),
+    'string-tools': () => import('@/components/tools/encoding/StringTools'),
+  },
+}
 
 interface PageProps {
   params: Promise<{ category: string; tool: string }>
@@ -15,12 +31,24 @@ export default async function ToolPage({ params }: PageProps) {
 
   if (!toolDef || !categoryDef) notFound()
 
+  const loader = toolMap[category as CategoryId]?.[tool]
+
+  const ToolComponent = loader
+    ? dynamic(loader, {
+        ssr: false,
+        loading: () => (
+          <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+            Loading tool…
+          </div>
+        ),
+      })
+    : null
+
   return (
-    <div className="flex flex-col h-full">
-      <ToolHeader tool={toolDef} category={categoryDef} />
-      <div className="flex-1 overflow-auto p-6">
-        <ToolPlaceholder tool={toolDef} category={categoryDef} />
-      </div>
-    </div>
+    <ToolPageClient
+      tool={toolDef}
+      category={categoryDef}
+      ToolComponent={ToolComponent}
+    />
   )
 }
