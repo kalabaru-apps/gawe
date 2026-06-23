@@ -442,6 +442,15 @@ export const TOOLS: ToolDefinition[] = [
     keywords: ['paste', 'snippet', 'save', 'local', 'clipboard', 'text', 'store'],
   },
   {
+    id: 'task-tracker',
+    name: 'Task Tracker',
+    category: 'office',
+    description: 'Offline Kanban board — columns, cards, labels, checklists and due dates',
+    icon: 'KanbanSquare',
+    slug: 'task-tracker',
+    keywords: ['kanban', 'trello', 'task', 'board', 'project', 'card', 'todo', 'offline', 'column'],
+  },
+  {
     id: 'session-timer',
     name: 'Session Timer',
     category: 'office',

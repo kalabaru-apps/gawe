@@ -55,6 +55,7 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'scratchpad': () => import('@/components/tools/office/Scratchpad'),
     'meeting-cost': () => import('@/components/tools/office/MeetingCost'),
     'pastebin': () => import('@/components/tools/office/Pastebin'),
+    'task-tracker': () => import('@/components/tools/office/TaskTracker'),
     'session-timer': () => import('@/components/tools/office/SessionTimer'),
   },
   visual: {
