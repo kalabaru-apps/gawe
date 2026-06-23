@@ -8,9 +8,10 @@ interface FileDropzoneProps {
   accept: string
   onFile: (file: File) => void
   label?: string
+  compact?: boolean
 }
 
-export function FileDropzone({ accept, onFile, label = 'Drop file here or click to upload' }: FileDropzoneProps) {
+export function FileDropzone({ accept, onFile, label = 'Drop file here or click to upload', compact }: FileDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
@@ -33,7 +34,7 @@ export function FileDropzone({ accept, onFile, label = 'Drop file here or click 
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
       className={cn(
-        'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-sm text-muted-foreground transition-colors',
+        `flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed ${compact ? 'p-3' : 'p-6'} text-sm text-muted-foreground transition-colors`,
         dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/30'
       )}
     >
