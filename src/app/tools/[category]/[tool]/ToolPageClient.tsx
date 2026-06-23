@@ -31,6 +31,7 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'fake-data-generator': () => import('@/components/tools/dev/FakeDataGenerator'),
     'text-diff': () => import('@/components/tools/dev/TextDiff'),
     'markdown-converter': () => import('@/components/tools/dev/MarkdownConverter'),
+    'markdown-editor': () => import('@/components/tools/dev/MarkdownEditor'),
     'lorem-ipsum': () => import('@/components/tools/dev/LoremIpsum'),
     'http-reference': () => import('@/components/tools/dev/HttpReference'),
   },

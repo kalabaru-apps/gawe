@@ -190,7 +190,7 @@ export const TOOLS: ToolDefinition[] = [
     id: 'totp',
     name: 'TOTP / 2FA Generator',
     category: 'crypto',
-    description: 'Generate time-based one-time passwords for 2FA',
+    description: 'Generate time-based one-time passwords for 2FA for testing and app development purposes.',
     icon: 'Timer',
     slug: 'totp',
     keywords: ['totp', '2fa', 'otp', 'authenticator', 'mfa', 'one-time', 'password'],
@@ -294,6 +294,15 @@ export const TOOLS: ToolDefinition[] = [
     icon: 'Globe',
     slug: 'http-reference',
     keywords: ['http', 'status', 'code', 'mime', 'type', 'reference', '404', '200', '500'],
+  },
+  {
+    id: 'markdown-editor',
+    name: 'Markdown Editor',
+    category: 'dev',
+    description: 'Offline markdown editor — open, edit, and save .md files from your local disk',
+    icon: 'FileEdit',
+    slug: 'markdown-editor',
+    keywords: ['markdown', 'editor', 'md', 'write', 'local', 'file', 'offline', 'preview', 'save'],
   },
   // Image & Document
   {
