@@ -1,10 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
-import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
 import { PanelLeftClose, PanelLeftOpen, History, Settings } from 'lucide-react'
+import { LogoImage } from './LogoImage'
 import { cn } from '@/lib/utils'
 import { CATEGORIES, TOOLS } from '@/config/tools'
 import { useAppStore } from '@/store'
@@ -20,12 +18,6 @@ export function Sidebar() {
   const { prefs, toggleFavorite, toggleCategory, update } = usePreferences()
   const sidebarCollapsed = prefs.sidebarCollapsed
   const setSidebarCollapsed = (collapsed: boolean) => update({ sidebarCollapsed: collapsed })
-  const { resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  // Before mount, default to dark logo (matches dark default theme); after mount use resolved theme
-  const logoSrc = mounted && resolvedTheme === 'light' ? '/logo-dark.png' : '/logo-white.png'
-
   const favTools = TOOLS.filter((t) => prefs.favorites.includes(t.id))
 
   return (
@@ -39,11 +31,11 @@ export function Sidebar() {
       <div className="flex h-12 items-center justify-between px-3 border-b border-border shrink-0">
         {sidebarCollapsed ? (
           <Link href="/" className="mx-auto">
-            <Image src={logoSrc} alt="Gawe" width={26} height={26} />
+            <LogoImage size={26} />
           </Link>
         ) : (
           <Link href="/" className="flex items-center gap-2 min-w-0">
-            <Image src={logoSrc} alt="Gawe" width={24} height={24} className="shrink-0" />
+            <LogoImage size={24} className="shrink-0" />
             <span className="font-bold text-sm tracking-tight truncate">Gawe</span>
           </Link>
         )}
@@ -138,7 +130,7 @@ export function Sidebar() {
                 rel="noopener noreferrer"
                 className="underline underline-offset-2 hover:text-muted-foreground transition-colors"
               >
-                Kalabaru
+                KalaBaru
               </a>
               {' · '}
               <Link href="/about" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
