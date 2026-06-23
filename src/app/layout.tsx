@@ -20,11 +20,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
   title: {
-    default: 'Gawe App — Offline Developer Tools',
+    default: 'Gawe App — Offline Developer & Productivity Tools',
     template: '%s · Gawe App',
   },
   description:
-    '47 offline productivity and developer tools in one installable PWA. JSON formatter, UUID generator, QR code, regex tester, color palette, and more — no internet required.',
+    '47 offline productivity and developer tools in one installable PWA. JSON formatter, UUID generator, QR code, regex tester, color palette, and more.',
   keywords: [
     'developer tools', 'offline tools', 'PWA', 'JSON formatter', 'UUID generator',
     'QR code generator', 'regex tester', 'color palette', 'base64', 'hash generator',
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: SITE_URL,
     siteName: 'Gawe App',
-    title: 'Gawe App — Offline Developer Tools',
+    title: 'Gawe App — Offline Productivity Tools',
     description:
       '47 offline productivity and developer tools in one installable PWA. Works without internet. No account needed. Free forever.',
     images: [
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'Gawe App — 47 Offline Developer Tools',
+        alt: 'Gawe App — 47 Offline Productivity Tools',
         type: 'image/png',
       },
     ],
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@gaweapp',
     creator: '@gaweapp',
-    title: 'Gawe App — Offline Developer Tools',
+    title: 'Gawe App — Offline Productivity Tools',
     description:
       '47 offline productivity and developer tools in one installable PWA. Works without internet.',
     images: [OG_IMAGE],

@@ -1292,7 +1292,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'Gawe App : Offline Developer Tools',
+  title: 'Gawe App : Offline Productivity Tools',
   description: '47 offline productivity and developer tools in one installable PWA',
 }
 
@@ -2099,7 +2099,7 @@ Create `public/manifest.json`:
 
 ```json
 {
-  "name": "gawe.app : Offline Developer Tools",
+  "name": "gawe.app : Offline Productivity Tools",
   "short_name": "gawe.app",
   "description": "47 offline productivity and developer tools in one installable PWA",
   "start_url": "/",
@@ -2143,7 +2143,7 @@ In `src/app/layout.tsx`, update the `metadata` export and add a link tag:
 
 ```tsx
 export const metadata: Metadata = {
-  title: 'Gawe App : Offline Developer Tools',
+  title: 'Gawe App : Offline Productivity Tools',
   description: '47 offline productivity and developer tools in one installable PWA',
   manifest: '/manifest.json',
   themeColor: '#09090b',
