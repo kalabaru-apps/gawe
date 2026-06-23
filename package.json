@@ -85,6 +85,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "shadcn-ui": "^0.9.5",
+    "sharp": "^0.35.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
