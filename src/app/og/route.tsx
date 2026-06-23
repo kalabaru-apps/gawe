@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
             </div>
           </div>
           <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16, display: 'flex' }}>
-            by Kalabaru
+            by KalaBaru
           </div>
         </div>
       </div>
