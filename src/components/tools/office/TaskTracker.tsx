@@ -181,7 +181,7 @@ function KanbanColumn({ col, cards, activeId, onCardOpen, onAddCard, onColRename
   const [newTitle, setNewTitle] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [colTitle, setColTitle] = useState(col.title)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const { attributes, listeners, setNodeRef: setColRef, transform, transition } = useSortable({
     id: col.id,
@@ -238,7 +238,7 @@ function KanbanColumn({ col, cards, activeId, onCardOpen, onAddCard, onColRename
         <div className="px-2 pb-2 space-y-1.5">
           <textarea
             autoFocus
-            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            ref={inputRef}
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitAdd() } if (e.key === 'Escape') setAdding(false) }}
