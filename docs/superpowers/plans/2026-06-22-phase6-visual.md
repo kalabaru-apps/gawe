@@ -4,7 +4,7 @@
 
 **Goal:** Implement all 5 Visual & Design tools as real React components replacing ToolPlaceholder stubs.
 
-**Architecture:** Each tool is a `'use client'` React component. Heavy libs (tldraw, mermaid) are dynamically imported with `next/dynamic` inside the component files themselves (not in ToolPageClient — tool files are already loaded via ToolPageClient's dynamic loader, so internal dynamic imports work fine). The `visual` category entry is added to `toolMap` in Task 1.
+**Architecture:** Each tool is a `'use client'` React component. Heavy libs (tldraw, mermaid) are dynamically imported with `next/dynamic` inside the component files themselves (not in ToolPageClient : tool files are already loaded via ToolPageClient's dynamic loader, so internal dynamic imports work fine). The `visual` category entry is added to `toolMap` in Task 1.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript, tldraw, mermaid, chroma-js (from Phase 3 if already installed, else install here), Tailwind v4
 
@@ -16,7 +16,7 @@
 - All tool components: `export default function ComponentName({ onOutput, initialState }: ToolProps)`
 - ToolProps: `{ onOutput: (inputs, outputs) => void; initialState?: Record<string, unknown> }`
 - UI: use `ToolPanel`, `CopyButton`, `CodeEditor`, `ErrorAlert` from `@/components/tools/shared/`
-- Tailwind v4: complete literal class strings only — no dynamic assembly
+- Tailwind v4: complete literal class strings only : no dynamic assembly
 - Git commits end with: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 - Use `rtk git` prefix for all git commands
 - tldraw and mermaid: use dynamic import with `{ ssr: false }` INSIDE the component file (not in ToolPageClient)
@@ -26,7 +26,7 @@
 ## File Map
 
 ```
-[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  — add visual entries to toolMap
+[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  : add visual entries to toolMap
 [CREATE] src/components/tools/visual/CssGenerators.tsx
 [CREATE] src/components/tools/visual/Whiteboard.tsx
 [CREATE] src/components/tools/visual/MermaidDiagram.tsx
@@ -82,7 +82,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Create CssGenerators.tsx**
 
-Key logic: No external deps — pure CSS generation with sliders.
+Key logic: No external deps : pure CSS generation with sliders.
 - Two tabs: "Box Shadow" and "Gradient"
 - Box Shadow tab:
   - Sliders: X offset (-50 to 50), Y offset (-50 to 50), blur (0-100), spread (-50 to 50), opacity (0-100)
@@ -269,7 +269,7 @@ export default function CssGenerators({ onOutput, initialState: _initialState }:
 cd "D:\Kalabaru\source-codes\gawe-app"
 rtk tsc --noEmit 2>&1 | head -20
 rtk git add src/components/tools/visual/CssGenerators.tsx
-rtk git commit -m "feat(visual): CSS generators — box-shadow and gradient with live preview
+rtk git commit -m "feat(visual): CSS generators : box-shadow and gradient with live preview
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -282,7 +282,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/visual/Whiteboard.tsx`
 
 **Interfaces:**
-- Consumes: `tldraw` — `Tldraw` component (self-contained canvas)
+- Consumes: `tldraw` : `Tldraw` component (self-contained canvas)
 - tldraw handles its own persistence via `persistenceKey`
 
 - [ ] **Step 1: Create Whiteboard.tsx**
@@ -291,7 +291,7 @@ Key logic:
 - `tldraw` provides a full-featured drawing canvas
 - Must use dynamic import with `ssr: false` INSIDE this file
 - `Tldraw` accepts `persistenceKey` prop for localStorage auto-save
-- `onOutput` is not meaningful for whiteboard (it's a freeform canvas) — call once on mount
+- `onOutput` is not meaningful for whiteboard (it's a freeform canvas) : call once on mount
 - tldraw needs to be in a container with explicit height (100vh - header offset or a fixed min-height)
 
 ```tsx
@@ -301,7 +301,7 @@ import { useEffect, type ComponentType } from 'react'
 import dynamic from 'next/dynamic'
 import type { ToolProps } from '@/types'
 
-// tldraw imports CSS — we need to load it
+// tldraw imports CSS : we need to load it
 // tldraw's Tldraw component is SSR-incompatible
 const TldrawComponent = dynamic(
   async () => {
@@ -333,9 +333,9 @@ export default function Whiteboard({ onOutput, initialState: _initialState }: To
 }
 ```
 
-**Important note on tldraw CSS:** tldraw requires its CSS file. The import `tldraw/tldraw.css` may need to be done in a layout or globally. If the dynamic CSS import fails, add `import 'tldraw/tldraw.css'` to `src/app/globals.css` using `@import 'tldraw/tldraw.css'` — but this may cause SSR issues. The safest approach is to add a `<link>` tag dynamically or import in a `useEffect`. If tldraw CSS import via `import()` in useEffect doesn't work, add it to the component with a `<style>` import trick or use Next.js `<Script>` for the CSS.
+**Important note on tldraw CSS:** tldraw requires its CSS file. The import `tldraw/tldraw.css` may need to be done in a layout or globally. If the dynamic CSS import fails, add `import 'tldraw/tldraw.css'` to `src/app/globals.css` using `@import 'tldraw/tldraw.css'` : but this may cause SSR issues. The safest approach is to add a `<link>` tag dynamically or import in a `useEffect`. If tldraw CSS import via `import()` in useEffect doesn't work, add it to the component with a `<style>` import trick or use Next.js `<Script>` for the CSS.
 
-Alternative CSS approach that avoids SSR issues — add to `src/app/layout.tsx` or `src/app/globals.css`:
+Alternative CSS approach that avoids SSR issues : add to `src/app/layout.tsx` or `src/app/globals.css`:
 Actually, the simplest approach: add this line to `src/app/globals.css` at the top:
 
 ```css
@@ -377,7 +377,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/visual/MermaidDiagram.tsx`
 
 **Interfaces:**
-- Consumes: `mermaid` — `mermaid.initialize()` + `mermaid.render(id, definition)` → SVG string
+- Consumes: `mermaid` : `mermaid.initialize()` + `mermaid.render(id, definition)` → SVG string
 
 - [ ] **Step 1: Create MermaidDiagram.tsx**
 
@@ -386,10 +386,10 @@ Key logic:
 - Right panel: rendered SVG (inserted via `dangerouslySetInnerHTML`)
 - `import mermaid from 'mermaid'` inside the component
 - `mermaid.initialize({ startOnLoad: false, theme: 'dark' })`
-- `const { svg } = await mermaid.render('gawe-mermaid-' + Date.now(), definition)` — use unique ID each render
+- `const { svg } = await mermaid.render('gawe-mermaid-' + Date.now(), definition)` : use unique ID each render
 - Re-render on every input change (debounced 300ms)
 - Default example: a simple flowchart
-- Mermaid is large — wrap the import in a `useEffect` so it only loads client-side
+- Mermaid is large : wrap the import in a `useEffect` so it only loads client-side
 - Actually mermaid is ESM-compatible and the component is already 'use client', so direct import is fine
 
 ```tsx
@@ -483,7 +483,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/visual/ImageAnnotator.tsx`
 
 **Interfaces:**
-- Consumes: `tldraw` — `Tldraw` + `useEditor`, `AssetRecordType`, `createShapeId`, `TLAsset`, `getDefaultCDNBaseUrl`
+- Consumes: `tldraw` : `Tldraw` + `useEditor`, `AssetRecordType`, `createShapeId`, `TLAsset`, `getDefaultCDNBaseUrl`
 - FileDropzone for image upload
 
 - [ ] **Step 1: Create ImageAnnotator.tsx**
@@ -626,7 +626,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/visual/ColorPalette.tsx`
 
 **Interfaces:**
-- Consumes: `chroma-js` — `chroma.scale()`, `chroma.distance()`, complementary/analogous/triadic harmony
+- Consumes: `chroma-js` : `chroma.scale()`, `chroma.distance()`, complementary/analogous/triadic harmony
 
 - [ ] **Step 1: Create ColorPalette.tsx**
 
@@ -786,7 +786,7 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
 ```bash
 rtk tsc --noEmit 2>&1 | head -20
 rtk git add src/components/tools/visual/ColorPalette.tsx
-rtk git commit -m "feat(visual): color palette — tints/shades, harmonies, scale
+rtk git commit -m "feat(visual): color palette : tints/shades, harmonies, scale
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```

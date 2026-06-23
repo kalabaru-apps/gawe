@@ -158,7 +158,7 @@ function exportImage(colors: string[], harmony: Harmony, withTints: boolean) {
     })
   } else {
     // Tints: each color is a full-width row, stacked vertically
-    // The "500" shade (index 5) is the main/base — gets a taller bar + label callout
+    // The "500" shade (index 5) is the main/base : gets a taller bar + label callout
     const TILE_W  = 120   // 10 tiles × 120px = 1200px wide
     const BASE_H  = 140   // normal shade height
     const BUMP_H  = 36    // extra height for the main shade (makes it taller)
@@ -220,7 +220,7 @@ function exportImage(colors: string[], harmony: Harmony, withTints: boolean) {
           ctx.fillStyle = '#e4e4e7'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center'
           ctx.fillText(hex.toUpperCase(), tx + TILE_W / 2, labelY + 16)
           ctx.fillStyle = '#71717a'; ctx.font = '9px monospace'
-          ctx.fillText('500 — base', tx + TILE_W / 2, labelY + 30)
+          ctx.fillText('500 : base', tx + TILE_W / 2, labelY + 30)
         }
       })
     })
@@ -233,7 +233,7 @@ function exportImage(colors: string[], harmony: Harmony, withTints: boolean) {
 
 function exportDocument(colors: string[], harmony: Harmony, withTints: boolean) {
   const label = HARMONIES.find(h => h.id === harmony)?.label ?? harmony
-  const lines = [`Color Palette — ${label}`, '═'.repeat(44), '']
+  const lines = [`Color Palette : ${label}`, '═'.repeat(44), '']
   colors.forEach((c, i) => {
     const [ch, cs, cl] = chroma(c).hsl()
     const rgb = chroma(c).rgb().map(Math.round)

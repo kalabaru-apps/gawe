@@ -42,7 +42,7 @@ const marked = new Marked(
 )
 marked.setOptions({ gfm: true, breaks: true })
 
-// ─── recent file entry (handle can't be serialized — stored in memory) ───────
+// ─── recent file entry (handle can't be serialized : stored in memory) ───────
 interface RecentEntry { name: string; handle: FSFileHandle | null; content: string; savedAt: number }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -365,7 +365,7 @@ export default function MarkdownEditor({ onOutput }: ToolProps) {
   const activeFile = activeIdx !== null ? files[activeIdx] : null
 
   return (
-    <div className="flex h-full" style={{ height: 'calc(100vh - 160px)', minHeight: 500 }}>
+    <div className="flex h-full" style={{ height: 'calc(100vh - 120px)', minHeight: 500 }}>
       {/* Sidebar file list */}
       <FileList files={files} activeIdx={activeIdx} onSelect={selectFile} onNew={newFile} onDelete={deleteFile} />
 
@@ -443,7 +443,7 @@ export default function MarkdownEditor({ onOutput }: ToolProps) {
               <button onClick={newFile} className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors">New file</button>
               {FS_SUPPORTED && <button onClick={openFile} className="px-4 py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors">Open from disk</button>}
             </div>
-            {!FS_SUPPORTED && <p className="text-xs text-amber-400">File System Access API not supported — files will download on save</p>}
+            {!FS_SUPPORTED && <p className="text-xs text-amber-400">File System Access API not supported : files will download on save</p>}
           </div>
         ) : (
           /* Editor + Preview panes */

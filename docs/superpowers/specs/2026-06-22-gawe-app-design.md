@@ -5,7 +5,7 @@
 
 ## Overview
 
-gawe-app is a Next.js 15 PWA — a fully offline, installable browser-based toolkit of 47 developer and productivity tools across 6 categories. No backend, no auth, no cloud sync. All data stays in the browser.
+gawe-app is a Next.js 15 PWA : a fully offline, installable browser-based toolkit of 47 developer and productivity tools across 6 categories. No backend, no auth, no cloud sync. All data stays in the browser.
 
 ---
 
@@ -308,7 +308,7 @@ Button, Input, Textarea, Tabs, Drawer, Dialog, Tooltip, ScrollArea, Badge, Separ
 - Service worker caches all routes + static assets (offline-first)
 - `manifest.json`: standalone display mode, installable on desktop and mobile
 - Icons: 192×192, 512×512
-- Theme color: neutral dark (dynamic accent not in manifest — applied via CSS only)
+- Theme color: neutral dark (dynamic accent not in manifest : applied via CSS only)
 
 ---
 

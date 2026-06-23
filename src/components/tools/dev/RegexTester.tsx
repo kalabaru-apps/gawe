@@ -121,7 +121,7 @@ export default function RegexTester({ onOutput, initialState }: ToolProps) {
             dangerouslySetInnerHTML={{
               __html:
                 highlighted ||
-                '<span class="text-muted-foreground">Enter a pattern and test string — matches will be highlighted here</span>',
+                '<span class="text-muted-foreground">Enter a pattern and test string : matches will be highlighted here</span>',
             }}
           />
           {matches.length > 0 && (

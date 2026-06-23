@@ -112,7 +112,7 @@ export function ToolPageClient({ tool, category, toolSlug, categorySlug }: ToolP
         ),
       })
     : null,
-  // loader is derived from static toolMap + route params — stable per page
+  // loader is derived from static toolMap + route params : stable per page
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [toolSlug, categorySlug])
 

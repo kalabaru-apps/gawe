@@ -9,8 +9,8 @@
 
 Two parallel concerns:
 
-1. **Docker/Coolify deployment** — make gawe-app deployable as a Docker container, auto-deployed from GitHub via Coolify.
-2. **Tool implementation** — replace all 47 `ToolPlaceholder` stubs with real, working tool components across 6 category phases.
+1. **Docker/Coolify deployment** : make gawe-app deployable as a Docker container, auto-deployed from GitHub via Coolify.
+2. **Tool implementation** : replace all 47 `ToolPlaceholder` stubs with real, working tool components across 6 category phases.
 
 ---
 
@@ -119,7 +119,7 @@ export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
 }
 ```
 
-**Dynamic loader** — `/tools/[category]/[tool]/page.tsx` updated to lazy-load tool components:
+**Dynamic loader** : `/tools/[category]/[tool]/page.tsx` updated to lazy-load tool components:
 
 ```ts
 import dynamic from 'next/dynamic'
@@ -218,7 +218,7 @@ Dependencies: `date-fns`, `date-fns-tz`, `mathjs`, `papaparse`
 
 | Tool | Component | Input → Output |
 |---|---|---|
-| Pomodoro | `Pomodoro.tsx` | Timer UI — 25/5/15 min cycles with sound |
+| Pomodoro | `Pomodoro.tsx` | Timer UI : 25/5/15 min cycles with sound |
 | Timezone Converter | `TimezoneClock.tsx` | Time + timezone → conversions + live world clock |
 | Unit Converter | `UnitConverter.tsx` | Value + unit → converted values across all units |
 | Date Calculator | `DateCalculator.tsx` | Two dates → difference / date + offset → result |
@@ -236,7 +236,7 @@ Dependencies: `tldraw`, `mermaid`, `chroma-js`
 | Tool | Component | Input → Output |
 |---|---|---|
 | CSS Generators | `CssGenerators.tsx` | Sliders → box-shadow/gradient CSS + live preview |
-| Whiteboard | `Whiteboard.tsx` | Canvas (tldraw) — freeform drawing, auto-saves |
+| Whiteboard | `Whiteboard.tsx` | Canvas (tldraw) : freeform drawing, auto-saves |
 | Mermaid Diagrams | `MermaidDiagram.tsx` | Mermaid text → rendered diagram |
 | Image Annotator | `ImageAnnotator.tsx` | Uploaded image + tldraw canvas → annotated export |
 | Color Palette | `ColorPalette.tsx` | Base color → palette + wheel + harmony variants |

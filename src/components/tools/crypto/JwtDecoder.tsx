@@ -105,7 +105,7 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
           {!header && !error && (
             <p className="text-sm text-muted-foreground">Paste a JWT to decode its header and payload</p>
           )}
-          <p className="text-xs text-muted-foreground">Signature is not verified — this tool only decodes.</p>
+          <p className="text-xs text-muted-foreground">Signature is not verified : this tool only decodes.</p>
         </div>
       }
     />

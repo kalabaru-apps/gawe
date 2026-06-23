@@ -16,7 +16,7 @@
 - All tool components: `export default function ComponentName({ onOutput, initialState }: ToolProps)`
 - ToolProps: `{ onOutput: (inputs, outputs) => void; initialState?: Record<string, unknown> }`
 - UI: use `ToolPanel` (left/right), `CopyButton`, `CodeEditor`, `ErrorAlert` from `@/components/tools/shared/`
-- Tailwind v4: complete literal class strings only — no dynamic assembly
+- Tailwind v4: complete literal class strings only : no dynamic assembly
 - Git commits end with: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 - Use `rtk git` prefix for all git commands
 
@@ -25,7 +25,7 @@
 ## File Map
 
 ```
-[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  — add office entries to toolMap
+[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  : add office entries to toolMap
 [CREATE] src/components/tools/office/Pomodoro.tsx
 [CREATE] src/components/tools/office/TimezoneClock.tsx
 [CREATE] src/components/tools/office/UnitConverter.tsx
@@ -90,7 +90,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 Key logic:
 - Three modes: Work (25min), Short Break (5min), Long Break (15min)
 - State: `mode`, `secondsLeft`, `isRunning`, `completedPomodoros`
-- `useEffect` with `setInterval` when `isRunning` — decrement every 1s
+- `useEffect` with `setInterval` when `isRunning` : decrement every 1s
 - When reaches 0: auto-switch to break or work, play a simple beep using `AudioContext`
 - Beep: `const ctx = new AudioContext(); const osc = ctx.createOscillator(); osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.15);`
 - Display: large `MM:SS` clock, mode buttons, start/pause/reset buttons
@@ -239,7 +239,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/office/TimezoneClock.tsx`
 
 **Interfaces:**
-- Consumes: `date-fns-tz` — `formatInTimeZone(date, tz, formatStr)` and `toZonedTime`
+- Consumes: `date-fns-tz` : `formatInTimeZone(date, tz, formatStr)` and `toZonedTime`
 
 - [ ] **Step 1: Create TimezoneClock.tsx**
 
@@ -376,7 +376,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Create UnitConverter.tsx**
 
-Key logic: No external deps — conversion tables hardcoded.
+Key logic: No external deps : conversion tables hardcoded.
 - Categories: Length, Weight, Temperature, Data, Speed, Area
 - Length: m, km, cm, mm, mi, yd, ft, in
 - Weight: kg, g, mg, lb, oz, ton
@@ -553,7 +553,7 @@ useEffect(() => {
 }, [value, fromUnit, category])
 ```
 
-Remove the inline `onOutput` call from the JSX. Compute `results` derived from state (not from a function call in render — call `computeAll()` once and store in variable).
+Remove the inline `onOutput` call from the JSX. Compute `results` derived from state (not from a function call in render : call `computeAll()` once and store in variable).
 
 Complete, correct component structure:
 
@@ -607,7 +607,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
 }
 ```
 
-The implementer should write the complete, correct component (not use the placeholder JSX comment above — fill in the real JSX from the detailed version above, just with the `useEffect` fix applied).
+The implementer should write the complete, correct component (not use the placeholder JSX comment above : fill in the real JSX from the detailed version above, just with the `useEffect` fix applied).
 
 - [ ] **Step 2: Type check**
 
@@ -619,7 +619,7 @@ rtk tsc --noEmit 2>&1 | head -20
 
 ```bash
 rtk git add src/components/tools/office/UnitConverter.tsx
-rtk git commit -m "feat(office): unit converter — length/weight/temperature/data/speed
+rtk git commit -m "feat(office): unit converter : length/weight/temperature/data/speed
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -632,7 +632,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/office/DateCalculator.tsx`
 
 **Interfaces:**
-- Consumes: `date-fns` (already installed) — `differenceInDays`, `differenceInCalendarWeeks`, `differenceInMonths`, `differenceInYears`, `addDays`, `addMonths`, `addYears`, `format`, `isWeekend`
+- Consumes: `date-fns` (already installed) : `differenceInDays`, `differenceInCalendarWeeks`, `differenceInMonths`, `differenceInYears`, `addDays`, `addMonths`, `addYears`, `format`, `isWeekend`
 
 - [ ] **Step 1: Create DateCalculator.tsx**
 
@@ -799,7 +799,7 @@ rtk tsc --noEmit 2>&1 | head -20
 
 ```bash
 rtk git add src/components/tools/office/DateCalculator.tsx
-rtk git commit -m "feat(office): date calculator — difference and add/subtract
+rtk git commit -m "feat(office): date calculator : difference and add/subtract
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -812,7 +812,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/office/Calculator.tsx`
 
 **Interfaces:**
-- Consumes: `mathjs` — `math.evaluate(expression)` for arbitrary math expressions
+- Consumes: `mathjs` : `math.evaluate(expression)` for arbitrary math expressions
 
 - [ ] **Step 1: Create Calculator.tsx**
 
@@ -953,7 +953,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/office/CsvEditor.tsx`
 
 **Interfaces:**
-- Consumes: `papaparse` (already installed) — `Papa.parse(csv, { header: false })` and `Papa.unparse(data)`
+- Consumes: `papaparse` (already installed) : `Papa.parse(csv, { header: false })` and `Papa.unparse(data)`
 
 - [ ] **Step 1: Create CsvEditor.tsx**
 
@@ -1352,7 +1352,7 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
                 ))}
               </>
             )}
-            {todos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No tasks yet — add one above</p>}
+            {todos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No tasks yet : add one above</p>}
           </div>
         </div>
       )}
@@ -1651,7 +1651,7 @@ rtk tsc --noEmit 2>&1 | head -20
 
 ```bash
 rtk git add src/components/tools/office/Pastebin.tsx
-rtk git commit -m "feat(office): local pastebin — create/view/delete text snippets
+rtk git commit -m "feat(office): local pastebin : create/view/delete text snippets
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -1676,4 +1676,4 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 **Important notes:**
 - UnitConverter and DateCalculator: call `onOutput` in `useEffect`, NOT inline in render, to avoid infinite re-renders
 - Pomodoro: `setInterval` inside `useEffect` with cleanup; `beep()` wraps AudioContext in try/catch (may be unavailable in some environments)
-- TimezoneClock: `Intl.supportedValuesOf` may not exist in all browsers — fallback to DEFAULT_ZONES shown in code
+- TimezoneClock: `Intl.supportedValuesOf` may not exist in all browsers : fallback to DEFAULT_ZONES shown in code

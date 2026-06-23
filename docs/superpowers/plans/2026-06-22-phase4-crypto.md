@@ -16,7 +16,7 @@
 - All tool components: `export default function ComponentName({ onOutput, initialState }: ToolProps)`
 - ToolProps: `{ onOutput: (inputs, outputs) => void; initialState?: Record<string, unknown> }`
 - UI: use `ToolPanel` (left/right), `CopyButton`, `CodeEditor`, `ErrorAlert` from `@/components/tools/shared/`
-- Tailwind v4: complete literal class strings only — no dynamic assembly
+- Tailwind v4: complete literal class strings only : no dynamic assembly
 - Git commits end with: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 - Use `rtk git` prefix for all git commands
 - Reference Phase 2/3 tools for established patterns
@@ -26,7 +26,7 @@
 ## File Map
 
 ```
-[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  — add crypto entries to toolMap
+[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  : add crypto entries to toolMap
 [CREATE] src/components/tools/crypto/HashGenerator.tsx
 [CREATE] src/components/tools/crypto/PasswordGenerator.tsx
 [CREATE] src/components/tools/crypto/Bcrypt.tsx
@@ -86,7 +86,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/crypto/HashGenerator.tsx`
 
 **Interfaces:**
-- Consumes: `crypto-js` — `MD5`, `SHA1`, `SHA256`, `SHA512`, `HmacSHA256`
+- Consumes: `crypto-js` : `MD5`, `SHA1`, `SHA256`, `SHA512`, `HmacSHA256`
 - Produces: all hash variants simultaneously
 
 - [ ] **Step 1: Create HashGenerator.tsx**
@@ -200,7 +200,7 @@ rtk tsc --noEmit 2>&1 | head -20
 
 ```bash
 rtk git add src/components/tools/crypto/HashGenerator.tsx
-rtk git commit -m "feat(crypto): hash generator — MD5/SHA-1/SHA-256/SHA-512/HMAC
+rtk git commit -m "feat(crypto): hash generator : MD5/SHA-1/SHA-256/SHA-512/HMAC
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -218,7 +218,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - [ ] **Step 1: Create PasswordGenerator.tsx**
 
 Key logic:
-- No external deps — use `crypto.getRandomValues()` (Web Crypto API) for security
+- No external deps : use `crypto.getRandomValues()` (Web Crypto API) for security
 - Charset options: uppercase (A-Z), lowercase (a-z), numbers (0-9), symbols (!@#$%^&*...)
 - Length slider: 8-128, default 24
 - Live: generate on every config change + "Regenerate" button
@@ -379,7 +379,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/crypto/Bcrypt.tsx`
 
 **Interfaces:**
-- Consumes: `bcryptjs` — `bcrypt.hash(password, rounds)` and `bcrypt.compare(password, hash)`
+- Consumes: `bcryptjs` : `bcrypt.hash(password, rounds)` and `bcrypt.compare(password, hash)`
 - Note: bcryptjs operations are async; use `useState` + async handlers
 
 - [ ] **Step 1: Create Bcrypt.tsx**
@@ -540,7 +540,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/crypto/AesEncrypt.tsx`
 
 **Interfaces:**
-- Consumes: `crypto-js` — `CryptoJS.AES.encrypt(text, key).toString()` and `CryptoJS.AES.decrypt(cipher, key).toString(CryptoJS.enc.Utf8)`
+- Consumes: `crypto-js` : `CryptoJS.AES.encrypt(text, key).toString()` and `CryptoJS.AES.decrypt(cipher, key).toString(CryptoJS.enc.Utf8)`
 
 - [ ] **Step 1: Create AesEncrypt.tsx**
 
@@ -574,7 +574,7 @@ export default function AesEncrypt({ onOutput, initialState }: ToolProps) {
       } else {
         const bytes = CryptoJS.AES.decrypt(text, key)
         const decrypted = bytes.toString(CryptoJS.enc.Utf8)
-        if (!decrypted) throw new Error('Decryption failed — wrong key or invalid ciphertext')
+        if (!decrypted) throw new Error('Decryption failed : wrong key or invalid ciphertext')
         setResult(decrypted)
         onOutput({ mode, key: '[redacted]' }, { decrypted })
       }
@@ -653,14 +653,14 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/crypto/JwtDecoder.tsx`
 
 **Interfaces:**
-- Consumes: `jose` — `decodeJwt(token)` for payload, manual base64 decode for header
+- Consumes: `jose` : `decodeJwt(token)` for payload, manual base64 decode for header
 - Produces: header, payload, expiry status (expired/valid/no exp)
 
 - [ ] **Step 1: Create JwtDecoder.tsx**
 
 Key logic:
 - Input: JWT string textarea (paste in)
-- `import { decodeJwt } from 'jose'` — decodes payload without verification
+- `import { decodeJwt } from 'jose'` : decodes payload without verification
 - Header: manually decode `token.split('.')[0]` → base64url decode → JSON.parse
 - Payload: `decodeJwt(token)` returns the claims object
 - Check expiry: if `payload.exp` exists, compare with `Date.now() / 1000`
@@ -776,7 +776,7 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
           {!header && !error && (
             <p className="text-sm text-muted-foreground">Paste a JWT to decode its header and payload</p>
           )}
-          <p className="text-xs text-muted-foreground">Signature is not verified — this tool only decodes.</p>
+          <p className="text-xs text-muted-foreground">Signature is not verified : this tool only decodes.</p>
         </div>
       }
     />
@@ -794,7 +794,7 @@ rtk tsc --noEmit 2>&1 | head -20
 
 ```bash
 rtk git add src/components/tools/crypto/JwtDecoder.tsx
-rtk git commit -m "feat(crypto): JWT decoder — header, payload, expiry status
+rtk git commit -m "feat(crypto): JWT decoder : header, payload, expiry status
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -807,7 +807,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/crypto/UuidUlid.tsx`
 
 **Interfaces:**
-- Consumes: `uuid` — `v1()`, `v4()`, `v5(name, namespace)`, `NIL`, `validate(str)`, `version(str)`; `ulid` — `ulid()`
+- Consumes: `uuid` : `v1()`, `v4()`, `v5(name, namespace)`, `NIL`, `validate(str)`, `version(str)`; `ulid` : `ulid()`
 
 - [ ] **Step 1: Create UuidUlid.tsx**
 
@@ -972,7 +972,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/crypto/Totp.tsx`
 
 **Interfaces:**
-- Consumes: `otpauth` — `TOTP` class
+- Consumes: `otpauth` : `TOTP` class
 - Produces: live 6-digit code with countdown, refreshes every second
 
 - [ ] **Step 1: Create Totp.tsx**
@@ -1093,7 +1093,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/crypto/QrCode.tsx`
 
 **Interfaces:**
-- Consumes: `qrcode` — `QRCode.toCanvas(canvas, text, options)` for generation; `jsqr` — `jsQR(imageData, width, height)` for reading from uploaded image
+- Consumes: `qrcode` : `QRCode.toCanvas(canvas, text, options)` for generation; `jsqr` : `jsQR(imageData, width, height)` for reading from uploaded image
 
 - [ ] **Step 1: Create QrCode.tsx**
 

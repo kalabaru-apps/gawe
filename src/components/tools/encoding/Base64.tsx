@@ -26,7 +26,7 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
       setError('')
       onOutput({ input, mode: 'encode' }, { output: encoded })
     } catch {
-      setError('Encoding failed — input may contain unsupported characters')
+      setError('Encoding failed : input may contain unsupported characters')
     }
   }
 

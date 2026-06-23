@@ -2,20 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the complete foundation for gawe-app — dependencies, tool registry, persistence layer, zustand store, shell layout (sidebar + routing), command palette, history drawer, and dashboard — so any tool component can be dropped in without additional plumbing.
+**Goal:** Build the complete foundation for gawe-app : dependencies, tool registry, persistence layer, zustand store, shell layout (sidebar + routing), command palette, history drawer, and dashboard : so any tool component can be dropped in without additional plumbing.
 
-**Architecture:** Tool registry pattern — `src/config/tools.ts` is the single source of truth for all 47 tools. Sidebar, `⌘K` search, history, favorites, and routing all derive from it. Shell layout (`src/app/layout.tsx`) wraps all pages with a persistent sidebar. Dynamic route `/tools/[category]/[tool]/page.tsx` lazy-loads tool components by ID.
+**Architecture:** Tool registry pattern : `src/config/tools.ts` is the single source of truth for all 47 tools. Sidebar, `⌘K` search, history, favorites, and routing all derive from it. Shell layout (`src/app/layout.tsx`) wraps all pages with a persistent sidebar. Dynamic route `/tools/[category]/[tool]/page.tsx` lazy-loads tool components by ID.
 
 **Tech Stack:** Next.js 16 (App Router, Turbopack), TypeScript strict, Tailwind CSS v4, shadcn/ui, zustand, idb, @ducanh2912/next-pwa, pnpm
 
 ## Global Constraints
 
 - Working directory: `D:\Kalabaru\source-codes\gawe-app`
-- Next.js 16, React 19, TypeScript strict — `"strict": true` in tsconfig.json (already set by scaffold)
-- Tailwind CSS v4 — CSS-first config in `src/app/globals.css`, no `tailwind.config.js`
-- pnpm only — never npm or yarn
+- Next.js 16, React 19, TypeScript strict : `"strict": true` in tsconfig.json (already set by scaffold)
+- Tailwind CSS v4 : CSS-first config in `src/app/globals.css`, no `tailwind.config.js`
+- pnpm only : never npm or yarn
 - All `src/` imports use `@/` alias
-- No server-side code — everything runs in the browser (mark files with `"use client"` where needed)
+- No server-side code : everything runs in the browser (mark files with `"use client"` where needed)
 - shadcn/ui uses New York style, CSS variables enabled
 - All git commits use: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 
@@ -135,17 +135,17 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Produces:
-  - `CategoryId` — union type used by all tools and shell components
-  - `CategoryDefinition` — category metadata (label, accent classes)
-  - `ToolDefinition` — tool metadata (id, name, route, keywords)
-  - `ToolProps` — interface every tool component must implement
-  - `HistoryEntry` — shape stored in IndexedDB history store
-  - `SavedSession` — shape stored in IndexedDB saved store
-  - `Preferences` — shape stored in localStorage
-  - `CATEGORIES` — ordered array of `CategoryDefinition`
-  - `TOOLS` — flat array of `ToolDefinition`
-  - `getToolsByCategory(categoryId)` — returns tools for a category
-  - `getToolByRoute(category, tool)` — looks up a tool by URL segments
+  - `CategoryId` : union type used by all tools and shell components
+  - `CategoryDefinition` : category metadata (label, accent classes)
+  - `ToolDefinition` : tool metadata (id, name, route, keywords)
+  - `ToolProps` : interface every tool component must implement
+  - `HistoryEntry` : shape stored in IndexedDB history store
+  - `SavedSession` : shape stored in IndexedDB saved store
+  - `Preferences` : shape stored in localStorage
+  - `CATEGORIES` : ordered array of `CategoryDefinition`
+  - `TOOLS` : flat array of `ToolDefinition`
+  - `getToolsByCategory(categoryId)` : returns tools for a category
+  - `getToolByRoute(category, tool)` : looks up a tool by URL segments
 
 - [ ] **Step 1: Create types**
 
@@ -157,15 +157,15 @@ export type CategoryId = 'encoding' | 'crypto' | 'dev' | 'image' | 'office' | 'v
 export interface CategoryDefinition {
   id: CategoryId
   label: string
-  /** Tailwind bg class for accent — e.g. 'bg-indigo-500' */
+  /** Tailwind bg class for accent : e.g. 'bg-indigo-500' */
   accentBg: string
-  /** Tailwind text class for accent — e.g. 'text-indigo-400' */
+  /** Tailwind text class for accent : e.g. 'text-indigo-400' */
   accentText: string
-  /** Tailwind border class — e.g. 'border-indigo-500' */
+  /** Tailwind border class : e.g. 'border-indigo-500' */
   accentBorder: string
-  /** Tailwind subtle bg — e.g. 'bg-indigo-500/10' */
+  /** Tailwind subtle bg : e.g. 'bg-indigo-500/10' */
   accentSubtle: string
-  /** Tailwind ring class — e.g. 'ring-indigo-500/30' */
+  /** Tailwind ring class : e.g. 'ring-indigo-500/30' */
   accentRing: string
 }
 
@@ -174,9 +174,9 @@ export interface ToolDefinition {
   name: string
   category: CategoryId
   description: string
-  /** Lucide icon name — import from lucide-react */
+  /** Lucide icon name : import from lucide-react */
   icon: string
-  /** URL slug — used as /tools/[category]/[tool] */
+  /** URL slug : used as /tools/[category]/[tool] */
   slug: string
   /** Search keywords beyond name/description */
   keywords: string[]
@@ -184,7 +184,7 @@ export interface ToolDefinition {
 
 /** Every tool component must implement this interface */
 export interface ToolProps {
-  /** Fire when the tool produces output — shell saves to history automatically */
+  /** Fire when the tool produces output : shell saves to history automatically */
   onOutput: (inputs: Record<string, unknown>, outputs: Record<string, unknown>) => void
   /** Last session inputs restored from localStorage */
   initialState?: Record<string, unknown>
@@ -396,7 +396,7 @@ export const TOOLS: ToolDefinition[] = [
     id: 'jwt-decoder',
     name: 'JWT Decoder',
     category: 'crypto',
-    description: 'Decode and inspect JWT tokens — header, payload, expiry',
+    description: 'Decode and inspect JWT tokens : header, payload, expiry',
     icon: 'Fingerprint',
     slug: 'jwt-decoder',
     keywords: ['jwt', 'token', 'decode', 'auth', 'bearer', 'payload', 'header'],
@@ -660,7 +660,7 @@ export const TOOLS: ToolDefinition[] = [
     id: 'pastebin',
     name: 'Pastebin',
     category: 'office',
-    description: 'Local pastebin — save and retrieve text snippets by name',
+    description: 'Local pastebin : save and retrieve text snippets by name',
     icon: 'ClipboardList',
     slug: 'pastebin',
     keywords: ['paste', 'snippet', 'save', 'local', 'clipboard', 'text', 'store'],
@@ -759,23 +759,23 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 **Interfaces:**
 - Consumes: `HistoryEntry`, `SavedSession`, `Preferences` from `@/types`
 - Produces:
-  - `openDB()` — opens/upgrades the gawe-app IndexedDB
-  - `addHistory(entry)` — inserts history entry, prunes to 100 per tool
-  - `getHistory(toolId)` — returns entries newest-first
-  - `labelHistory(id, label)` — labels an entry
-  - `deleteHistory(id)` — removes one entry
-  - `clearHistory(toolId)` — clears all entries for a tool
-  - `addSaved(session)` — inserts saved session
-  - `getSaved(toolId)` — returns saved sessions for a tool
-  - `deleteSaved(id)` — removes one saved session
-  - `getPreferences()` — reads from localStorage
-  - `setPreferences(patch)` — merges patch into preferences
-  - `getToolState(toolId)` — reads per-tool last state
-  - `setToolState(toolId, state)` — writes per-tool last state (debounced externally)
-  - `useHistory(toolId)` — React hook wrapping history functions
-  - `useSaved(toolId)` — React hook wrapping saved functions
-  - `useToolState(toolId)` — React hook with debounced persistence
-  - `usePreferences()` — React hook with preferences + setters
+  - `openDB()` : opens/upgrades the gawe-app IndexedDB
+  - `addHistory(entry)` : inserts history entry, prunes to 100 per tool
+  - `getHistory(toolId)` : returns entries newest-first
+  - `labelHistory(id, label)` : labels an entry
+  - `deleteHistory(id)` : removes one entry
+  - `clearHistory(toolId)` : clears all entries for a tool
+  - `addSaved(session)` : inserts saved session
+  - `getSaved(toolId)` : returns saved sessions for a tool
+  - `deleteSaved(id)` : removes one saved session
+  - `getPreferences()` : reads from localStorage
+  - `setPreferences(patch)` : merges patch into preferences
+  - `getToolState(toolId)` : reads per-tool last state
+  - `setToolState(toolId, state)` : writes per-tool last state (debounced externally)
+  - `useHistory(toolId)` : React hook wrapping history functions
+  - `useSaved(toolId)` : React hook wrapping saved functions
+  - `useToolState(toolId)` : React hook with debounced persistence
+  - `usePreferences()` : React hook with preferences + setters
 
 - [ ] **Step 1: Create IndexedDB wrapper**
 
@@ -1109,7 +1109,7 @@ Expected: no errors.
 
 ```bash
 rtk git add src/lib/db.ts src/lib/preferences.ts src/hooks/
-rtk git commit -m "feat: persistence layer — IndexedDB history/saved + localStorage prefs
+rtk git commit -m "feat: persistence layer : IndexedDB history/saved + localStorage prefs
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -1123,7 +1123,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Produces:
-  - `useAppStore()` — zustand hook with:
+  - `useAppStore()` : zustand hook with:
     - `commandPaletteOpen: boolean`
     - `setCommandPaletteOpen(open: boolean): void`
     - `historyDrawerToolId: string | null`
@@ -1185,7 +1185,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/shell/ThemeToggle.tsx`
 - Create: `src/components/shell/AppShell.tsx`
 - Modify: `src/app/layout.tsx`
-- Modify: `src/app/globals.css` — category accent CSS variables
+- Modify: `src/app/globals.css` : category accent CSS variables
 
 **Interfaces:**
 - Consumes: `useAppStore` from `@/store`, `next-themes`
@@ -1292,7 +1292,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'Gawe App — Offline Developer Tools',
+  title: 'Gawe App : Offline Developer Tools',
   description: '47 offline productivity and developer tools in one installable PWA',
 }
 
@@ -1313,7 +1313,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 pnpm exec tsc --noEmit 2>&1 | head -20
 ```
 
-Note: `Sidebar`, `CommandPalette`, and `HistoryDrawer` don't exist yet — expect "Cannot find module" errors for those three. That's expected; they're created in Tasks 6–8.
+Note: `Sidebar`, `CommandPalette`, and `HistoryDrawer` don't exist yet : expect "Cannot find module" errors for those three. That's expected; they're created in Tasks 6–8.
 
 - [ ] **Step 6: Commit**
 
@@ -1335,7 +1335,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `CATEGORIES`, `TOOLS`, `getToolsByCategory` from `@/config/tools`; `useAppStore` from `@/store`; `usePreferences` from `@/hooks/usePreferences`; Next.js `usePathname`, `Link`
-- Produces: `<Sidebar />` — collapsible left sidebar with category sections and tool links
+- Produces: `<Sidebar />` : collapsible left sidebar with category sections and tool links
 
 - [ ] **Step 1: Create SidebarItem**
 
@@ -1591,7 +1591,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `TOOLS`, `CATEGORIES`, `getCategoryById` from `@/config/tools`; `useAppStore` from `@/store`; shadcn `Command` components
-- Produces: `<CommandPalette />` — `⌘K` overlay searching all tools by name/description/keywords
+- Produces: `<CommandPalette />` : `⌘K` overlay searching all tools by name/description/keywords
 
 - [ ] **Step 1: Create CommandPalette**
 
@@ -1670,7 +1670,7 @@ export function CommandPalette() {
 
 - [ ] **Step 2: Verify**
 
-Run dev server. Press `⌘K` (or `Ctrl+K` on Windows). Command palette should open. Type "json" — JSON tools should appear. Press Enter on a result — should navigate to that tool's route (404 for now, that's fine).
+Run dev server. Press `⌘K` (or `Ctrl+K` on Windows). Command palette should open. Type "json" : JSON tools should appear. Press Enter on a result : should navigate to that tool's route (404 for now, that's fine).
 
 - [ ] **Step 3: Commit**
 
@@ -1693,9 +1693,9 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 **Interfaces:**
 - Consumes: `useHistory`, `useSaved` hooks; `useAppStore`; `getToolByRoute`, `getCategoryById` from `@/config/tools`; shadcn `Sheet`, `Button`, `Badge`
 - Produces:
-  - `<ToolHeader tool category />` — name, description, star, history button
-  - `<HistoryDrawer />` — right sheet with entries for active tool
-  - `/tools/[category]/[tool]` — renders tool component or "coming soon" placeholder
+  - `<ToolHeader tool category />` : name, description, star, history button
+  - `<HistoryDrawer />` : right sheet with entries for active tool
+  - `/tools/[category]/[tool]` : renders tool component or "coming soon" placeholder
 
 - [ ] **Step 1: Create ToolHeader**
 
@@ -1791,7 +1791,7 @@ export function HistoryDrawer() {
         <SheetHeader className="px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-sm">
-              History — {tool?.name ?? ''}
+              History : {tool?.name ?? ''}
             </SheetTitle>
             <div className="flex gap-1">
               {entries.length > 0 && (
@@ -1932,7 +1932,7 @@ export function ToolPlaceholder({ tool, category }: ToolPlaceholderProps) {
 
 Run dev server. Navigate to `http://localhost:3000/tools/encoding/json-formatter`. You should see the ToolHeader with "JSON Formatter" and a placeholder card. Star and History buttons should work (no errors).
 
-Press `⌘K`, search "bcrypt", select it — should navigate to `/tools/crypto/bcrypt` with its header.
+Press `⌘K`, search "bcrypt", select it : should navigate to `/tools/crypto/bcrypt` with its header.
 
 - [ ] **Step 7: Commit**
 
@@ -2023,7 +2023,7 @@ export default function HomePage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">gawe.app</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          47 offline tools for developers and productivity — no internet required.
+          47 offline tools for developers and productivity : no internet required.
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2074,19 +2074,19 @@ mkdir -p public/icons
 Create `scripts/generate-icons.mjs`:
 
 ```js
-// Quick canvas-based icon generator — run once with: node scripts/generate-icons.mjs
+// Quick canvas-based icon generator : run once with: node scripts/generate-icons.mjs
 // Requires: pnpm add -D canvas (or replace with real icons from a designer)
 // Alternative: use any 192×192 and 512×512 PNG you have and place in public/icons/
 
 console.log('Place your icon-192.png and icon-512.png in public/icons/')
 console.log('Minimum requirements:')
-console.log('  public/icons/icon-192.png — 192×192 pixels')
-console.log('  public/icons/icon-512.png — 512×512 pixels')
+console.log('  public/icons/icon-192.png : 192×192 pixels')
+console.log('  public/icons/icon-512.png : 512×512 pixels')
 console.log('')
 console.log('For now, the PWA will work without icons (just without home screen icon).')
 ```
 
-For now, create a minimal SVG and convert it, or use any square PNG. The PWA will work without icons — add them later. Create a placeholder:
+For now, create a minimal SVG and convert it, or use any square PNG. The PWA will work without icons : add them later. Create a placeholder:
 
 ```bash
 # Copy the existing next.svg as a placeholder (replace with real icons)
@@ -2099,7 +2099,7 @@ Create `public/manifest.json`:
 
 ```json
 {
-  "name": "gawe.app — Offline Developer Tools",
+  "name": "gawe.app : Offline Developer Tools",
   "short_name": "gawe.app",
   "description": "47 offline productivity and developer tools in one installable PWA",
   "start_url": "/",
@@ -2143,7 +2143,7 @@ In `src/app/layout.tsx`, update the `metadata` export and add a link tag:
 
 ```tsx
 export const metadata: Metadata = {
-  title: 'Gawe App — Offline Developer Tools',
+  title: 'Gawe App : Offline Developer Tools',
   description: '47 offline productivity and developer tools in one installable PWA',
   manifest: '/manifest.json',
   themeColor: '#09090b',
@@ -2233,12 +2233,12 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 **Placeholder scan:** No TBDs. All steps contain real code or exact commands.
 
 **Type consistency check:**
-- `HistoryEntry.id` is `number | undefined` (IDB auto-increment) — HistoryDrawer guards with `entry.id &&` ✓
-- `historyDrawerToolId` is `string | null` — HistoryDrawer uses `?? ''` fallback ✓
-- `getToolByRoute(category, tool)` returns `ToolDefinition | undefined` — page calls `notFound()` ✓
-- `Preferences.collapsedCategories` is `CategoryId[]` — `toggleCategory` takes `CategoryId` ✓
+- `HistoryEntry.id` is `number | undefined` (IDB auto-increment) : HistoryDrawer guards with `entry.id &&` ✓
+- `historyDrawerToolId` is `string | null` : HistoryDrawer uses `?? ''` fallback ✓
+- `getToolByRoute(category, tool)` returns `ToolDefinition | undefined` : page calls `notFound()` ✓
+- `Preferences.collapsedCategories` is `CategoryId[]` : `toggleCategory` takes `CategoryId` ✓
 
-**Gap found:** `HistoryDrawer` imports `formatDistanceToNow` from `date-fns` — added `pnpm add date-fns` in Task 8 Step 3. ✓
+**Gap found:** `HistoryDrawer` imports `formatDistanceToNow` from `date-fns` : added `pnpm add date-fns` in Task 8 Step 3. ✓
 
 ---
 
@@ -2251,9 +2251,9 @@ After Task 10, the app has:
 - PWA installable offline
 
 **Next plans (one per category):**
-- `2026-06-22-gawe-app-encoding.md` — 8 tools
-- `2026-06-22-gawe-app-crypto.md` — 8 tools
-- `2026-06-22-gawe-app-dev.md` — 10 tools
-- `2026-06-22-gawe-app-image.md` — 6 tools
-- `2026-06-22-gawe-app-office.md` — 10 tools
-- `2026-06-22-gawe-app-visual.md` — 5 tools
+- `2026-06-22-gawe-app-encoding.md` : 8 tools
+- `2026-06-22-gawe-app-crypto.md` : 8 tools
+- `2026-06-22-gawe-app-dev.md` : 10 tools
+- `2026-06-22-gawe-app-image.md` : 6 tools
+- `2026-06-22-gawe-app-office.md` : 10 tools
+- `2026-06-22-gawe-app-visual.md` : 5 tools

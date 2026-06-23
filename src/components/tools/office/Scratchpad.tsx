@@ -101,7 +101,7 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
                 ))}
               </>
             )}
-            {todos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No tasks yet — add one above</p>}
+            {todos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No tasks yet : add one above</p>}
           </div>
         </div>
       )}

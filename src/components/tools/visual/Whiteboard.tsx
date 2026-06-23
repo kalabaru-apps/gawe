@@ -19,7 +19,7 @@ const TldrawComponent = dynamic(
 export default function Whiteboard({ onOutput, initialState: _initialState }: ToolProps) {
   useEffect(() => {
     onOutput({}, { message: 'whiteboard active' })
-  // onOutput intentionally excluded — stable via useCallback in ToolPageClient
+  // onOutput intentionally excluded : stable via useCallback in ToolPageClient
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

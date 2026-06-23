@@ -22,9 +22,9 @@
 ## File Map
 
 ```
-[MODIFY] next.config.ts              — add output: 'standalone'
-[CREATE] Dockerfile                  — multi-stage Alpine build
-[CREATE] .dockerignore               — exclude node_modules, .next, build artifacts
+[MODIFY] next.config.ts              : add output: 'standalone'
+[CREATE] Dockerfile                  : multi-stage Alpine build
+[CREATE] .dockerignore               : exclude node_modules, .next, build artifacts
 ```
 
 ---
@@ -193,7 +193,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ## Task 2: Push to GitHub
 
 **Files:**
-- No file changes — git remote setup only
+- No file changes : git remote setup only
 
 **Interfaces:**
 - Consumes: existing local git repo with all commits
@@ -233,10 +233,10 @@ Expected: all local commits visible on GitHub.
 
 ---
 
-## Task 3: Coolify Setup (Manual Steps — User Action Required)
+## Task 3: Coolify Setup (Manual Steps : User Action Required)
 
 **Files:**
-- None — Coolify configuration is done via Coolify UI
+- None : Coolify configuration is done via Coolify UI
 
 **Note:** These steps cannot be automated. The implementer must walk the user through them or document them for the user to complete.
 
@@ -262,7 +262,7 @@ In your Coolify instance:
 
 1. Set **Auto Deploy** to ON (deploys on every push to main)
 2. Click **Deploy** to trigger the first build
-3. Watch build logs — expect ~3-5 minutes for first Docker build
+3. Watch build logs : expect ~3-5 minutes for first Docker build
 4. Once deployed, visit the assigned domain to verify the app loads
 
 - [ ] **Step 4: Verify PWA works on deployed instance**
@@ -270,8 +270,8 @@ In your Coolify instance:
 1. Open the Coolify-assigned URL in Chrome
 2. Open DevTools → Application → Service Workers
 3. Confirm service worker is registered
-4. Refresh page — should load from cache (offline-first confirmed)
-5. Check Application → Manifest — should show gawe.app manifest
+4. Refresh page : should load from cache (offline-first confirmed)
+5. Check Application → Manifest : should show gawe.app manifest
 
 ---
 
@@ -287,6 +287,6 @@ In your Coolify instance:
 - ✅ GitHub repo creation via `gh` CLI
 - ✅ Coolify manual steps documented
 
-**Placeholder scan:** Clean — all steps contain actual commands or UI instructions.
+**Placeholder scan:** Clean : all steps contain actual commands or UI instructions.
 
-**Type consistency:** N/A — no TypeScript in this plan.
+**Type consistency:** N/A : no TypeScript in this plan.

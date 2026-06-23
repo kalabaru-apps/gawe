@@ -3,15 +3,15 @@ export type CategoryId = 'encoding' | 'crypto' | 'dev' | 'image' | 'office' | 'v
 export interface CategoryDefinition {
   id: CategoryId
   label: string
-  /** Tailwind bg class for accent — e.g. 'bg-indigo-500' */
+  /** Tailwind bg class for accent : e.g. 'bg-indigo-500' */
   accentBg: string
-  /** Tailwind text class for accent — e.g. 'text-indigo-400' */
+  /** Tailwind text class for accent : e.g. 'text-indigo-400' */
   accentText: string
-  /** Tailwind border class — e.g. 'border-indigo-500' */
+  /** Tailwind border class : e.g. 'border-indigo-500' */
   accentBorder: string
-  /** Tailwind subtle bg — e.g. 'bg-indigo-500/10' */
+  /** Tailwind subtle bg : e.g. 'bg-indigo-500/10' */
   accentSubtle: string
-  /** Tailwind ring class — e.g. 'ring-indigo-500/30' */
+  /** Tailwind ring class : e.g. 'ring-indigo-500/30' */
   accentRing: string
 }
 
@@ -20,9 +20,9 @@ export interface ToolDefinition {
   name: string
   category: CategoryId
   description: string
-  /** Lucide icon name — import from lucide-react */
+  /** Lucide icon name : import from lucide-react */
   icon: string
-  /** URL slug — used as /tools/[category]/[tool] */
+  /** URL slug : used as /tools/[category]/[tool] */
   slug: string
   /** Search keywords beyond name/description */
   keywords: string[]
@@ -30,7 +30,7 @@ export interface ToolDefinition {
 
 /** Every tool component must implement this interface */
 export interface ToolProps {
-  /** Fire when the tool produces output — shell saves to history automatically */
+  /** Fire when the tool produces output : shell saves to history automatically */
   onOutput: (inputs: Record<string, unknown>, outputs: Record<string, unknown>) => void
   /** Last session inputs restored from localStorage */
   initialState?: Record<string, unknown>

@@ -16,7 +16,7 @@
 - All tool components: `export default function ComponentName({ onOutput, initialState }: ToolProps)`
 - ToolProps: `{ onOutput: (inputs, outputs) => void; initialState?: Record<string, unknown> }`
 - UI: use `ToolPanel`, `CopyButton`, `FileDropzone`, `ErrorAlert` from `@/components/tools/shared/`
-- Tailwind v4: complete literal class strings only — no dynamic assembly
+- Tailwind v4: complete literal class strings only : no dynamic assembly
 - Git commits end with: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 - Use `rtk git` prefix for all git commands
 - pdfjs-dist: set workerSrc to CDN URL in useEffect to avoid bundling the worker
@@ -26,7 +26,7 @@
 ## File Map
 
 ```
-[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  — add image entries to toolMap
+[MODIFY] src/app/tools/[category]/[tool]/ToolPageClient.tsx  : add image entries to toolMap
 [CREATE] src/components/tools/image/PdfTools.tsx
 [CREATE] src/components/tools/image/PdfImageConverter.tsx
 [CREATE] src/components/tools/image/ImageConverter.tsx
@@ -79,7 +79,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/image/PdfTools.tsx`
 
 **Interfaces:**
-- Consumes: `pdf-lib` — `PDFDocument.load()`, `PDFDocument.create()`, `.copyPages()`, `.addPage()`, `.save()`
+- Consumes: `pdf-lib` : `PDFDocument.load()`, `PDFDocument.create()`, `.copyPages()`, `.addPage()`, `.save()`
 
 - [ ] **Step 1: Create PdfTools.tsx**
 
@@ -303,7 +303,7 @@ export default function PdfTools({ onOutput, initialState: _initialState }: Tool
 ```bash
 rtk tsc --noEmit 2>&1 | head -20
 rtk git add src/components/tools/image/PdfTools.tsx
-rtk git commit -m "feat(image): PDF tools — merge, split, and rotate
+rtk git commit -m "feat(image): PDF tools : merge, split, and rotate
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -519,7 +519,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/image/ImageConverter.tsx`
 
 **Interfaces:**
-- No external libs — uses Canvas API for format conversion
+- No external libs : uses Canvas API for format conversion
 - `canvas.toBlob(cb, mimeType, quality)` for conversion
 
 - [ ] **Step 1: Create ImageConverter.tsx**
@@ -847,7 +847,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/image/SvgTools.tsx`
 
 **Interfaces:**
-- Consumes: `svgo` — dynamic import, `optimize(svgString, { multipass: true })` → `{ data: string }`
+- Consumes: `svgo` : dynamic import, `optimize(svgString, { multipass: true })` → `{ data: string }`
 
 - [ ] **Step 1: Create SvgTools.tsx**
 
@@ -861,7 +861,7 @@ Key logic:
 - Favicon tab:
   - Upload PNG/SVG image → generate favicon package
   - Create multiple canvas sizes: 16×16, 32×32, 48×48, 64×64, 192×192, 512×512
-  - Download each individually (or as a zip — use simple multiple-file approach)
+  - Download each individually (or as a zip : use simple multiple-file approach)
   - Also generate `<link rel="icon">` HTML snippet
 
 ```tsx
@@ -1046,7 +1046,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 - Create: `src/components/tools/image/ImageBase64.tsx`
 
 **Interfaces:**
-- No external deps — uses FileReader.readAsDataURL
+- No external deps : uses FileReader.readAsDataURL
 
 - [ ] **Step 1: Create ImageBase64.tsx**
 

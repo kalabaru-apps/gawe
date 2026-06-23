@@ -11,7 +11,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Gawe App — Offline Developer Tools',
+  title: 'Gawe App : Offline Developer Tools',
   description: '47 offline productivity and developer tools in one installable PWA',
   manifest: '/manifest.json',
   appleWebApp: {

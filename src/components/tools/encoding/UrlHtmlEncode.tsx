@@ -51,7 +51,7 @@ export default function UrlHtmlEncode({ onOutput, initialState }: ToolProps) {
       setError('')
       onOutput({ input, type, mode: 'decode' }, { output: result })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Decoding failed — invalid input')
+      setError(e instanceof Error ? e.message : 'Decoding failed : invalid input')
     }
   }
 

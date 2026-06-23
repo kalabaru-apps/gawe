@@ -14,9 +14,9 @@
 - pnpm only
 - All tool components: `'use client'` at top, `export default function ToolName({ onOutput, initialState }: ToolProps)`
 - `ToolProps` from `@/types`: `{ onOutput: (inputs, outputs) => void; initialState?: Record<string, unknown> }`
-- Call `onOutput` every time the tool produces a result — shell saves history automatically
+- Call `onOutput` every time the tool produces a result : shell saves history automatically
 - Load `initialState` on mount to restore last session inputs
-- No tool manages its own persistence — shell handles it
+- No tool manages its own persistence : shell handles it
 - `next/dynamic` with `ssr: false` for all tool components in the loader
 - All imports use `@/` alias
 - All git commits end with: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
@@ -33,7 +33,7 @@
 [CREATE] src/components/tools/shared/FileDropzone.tsx
 [CREATE] src/components/tools/shared/CodeEditor.tsx
 [CREATE] src/components/tools/shared/ErrorAlert.tsx
-[MODIFY] src/app/tools/[category]/[tool]/page.tsx   — replace ToolPlaceholder with dynamic loader
+[MODIFY] src/app/tools/[category]/[tool]/page.tsx   : replace ToolPlaceholder with dynamic loader
 [CREATE] src/components/tools/encoding/JsonFormatter.tsx
 [CREATE] src/components/tools/encoding/DataConverter.tsx
 [CREATE] src/components/tools/encoding/Base64.tsx
@@ -112,11 +112,11 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Produces:
-  - `<ToolPanel left={ReactNode} right={ReactNode} />` — two-column split layout
-  - `<CopyButton value={string} />` — copy to clipboard with checkmark feedback
-  - `<FileDropzone accept={string} onFile={(file: File) => void} label={string} />` — drag-drop file input
-  - `<CodeEditor value={string} onChange={(v: string) => void} language?: string rows?: number />` — monospace textarea
-  - `<ErrorAlert message={string} />` — red error display
+  - `<ToolPanel left={ReactNode} right={ReactNode} />` : two-column split layout
+  - `<CopyButton value={string} />` : copy to clipboard with checkmark feedback
+  - `<FileDropzone accept={string} onFile={(file: File) => void} label={string} />` : drag-drop file input
+  - `<CodeEditor value={string} onChange={(v: string) => void} language?: string rows?: number />` : monospace textarea
+  - `<ErrorAlert message={string} />` : red error display
 
 - [ ] **Step 1: Create ToolPanel**
 
@@ -409,7 +409,7 @@ export default async function ToolPage({ params }: PageProps) {
 }
 ```
 
-Wait — `dynamic` cannot be called inside an async server component that also uses `notFound`. Split into a client wrapper:
+Wait : `dynamic` cannot be called inside an async server component that also uses `notFound`. Split into a client wrapper:
 
 Replace `src/app/tools/[category]/[tool]/page.tsx` with:
 
@@ -479,7 +479,7 @@ export default async function ToolPage({ params }: PageProps) {
 }
 ```
 
-Note: `onOutput` and `initialState` are passed as stubs here. The persistence integration (connecting `onOutput` to the history hook and `initialState` from localStorage) requires a client component wrapper — see Step 2.
+Note: `onOutput` and `initialState` are passed as stubs here. The persistence integration (connecting `onOutput` to the history hook and `initialState` from localStorage) requires a client component wrapper : see Step 2.
 
 - [ ] **Step 2: Create ToolPageClient wrapper for persistence**
 
@@ -740,7 +740,7 @@ export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
 pnpm run dev
 ```
 
-Navigate to `http://localhost:3000/tools/encoding/json-formatter`. Paste `{"a":1,"b":[1,2,3]}` and click Format. Should show formatted JSON. Paste invalid JSON — should show red error. Copy button copies output.
+Navigate to `http://localhost:3000/tools/encoding/json-formatter`. Paste `{"a":1,"b":[1,2,3]}` and click Format. Should show formatted JSON. Paste invalid JSON : should show red error. Copy button copies output.
 
 - [ ] **Step 3: Commit**
 
@@ -957,7 +957,7 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
       setError('')
       onOutput({ input, mode: 'encode' }, { output: encoded })
     } catch {
-      setError('Encoding failed — input may contain unsupported characters')
+      setError('Encoding failed : input may contain unsupported characters')
     }
   }
 
@@ -1116,7 +1116,7 @@ export default function UrlHtmlEncode({ onOutput, initialState }: ToolProps) {
       setError('')
       onOutput({ input, type, mode: 'decode' }, { output: result })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Decoding failed — invalid input')
+      setError(e instanceof Error ? e.message : 'Decoding failed : invalid input')
     }
   }
 
@@ -1523,7 +1523,7 @@ Navigate to `http://localhost:3000/tools/encoding/line-tools`. Paste several lin
 
 ```bash
 rtk git add src/components/tools/encoding/LineTools.tsx
-rtk git commit -m "feat(encoding): line tools — sort/dedupe/reverse/trim/shuffle
+rtk git commit -m "feat(encoding): line tools : sort/dedupe/reverse/trim/shuffle
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
@@ -1649,7 +1649,7 @@ Expected: 0 errors.
 
 ```bash
 rtk git add src/components/tools/encoding/StringTools.tsx
-rtk git commit -m "feat(encoding): string tools — slugify, JSON/regex/HTML escape
+rtk git commit -m "feat(encoding): string tools : slugify, JSON/regex/HTML escape
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```

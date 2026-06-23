@@ -27,7 +27,7 @@ export default function AesEncrypt({ onOutput, initialState }: ToolProps) {
       } else {
         const bytes = CryptoJS.AES.decrypt(text, key)
         const decrypted = bytes.toString(CryptoJS.enc.Utf8)
-        if (!decrypted) throw new Error('Decryption failed — wrong key or invalid ciphertext')
+        if (!decrypted) throw new Error('Decryption failed : wrong key or invalid ciphertext')
         setResult(decrypted)
         onOutput({ mode, key: '[redacted]' }, { decrypted })
       }

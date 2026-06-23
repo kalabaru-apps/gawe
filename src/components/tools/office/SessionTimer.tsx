@@ -10,7 +10,7 @@ interface TimerEntry {
   id: string
   label: string
   mode: TimerMode
-  target: number        // seconds — only used for countdown
+  target: number        // seconds : only used for countdown
   elapsed: number       // seconds accumulated
   running: boolean
   startedAt: number | null  // Date.now() when last started
@@ -355,7 +355,7 @@ export default function SessionTimer({ onOutput }: ToolProps) {
       const secs = displaySeconds(primary)
       const time = formatHMS(Math.abs(secs))
       const label = primary.label || 'Timer'
-      document.title = `${time} — ${label}`
+      document.title = `${time} : ${label}`
       setFavicon(true)
     }
 
@@ -468,7 +468,7 @@ export default function SessionTimer({ onOutput }: ToolProps) {
 
       {timers.length === 0 && !adding && (
         <p className="text-center text-xs text-muted-foreground pb-2">
-          Track billable hours across projects. Each timer counts independently — count up or set a target duration.
+          Track billable hours across projects. Each timer counts independently : count up or set a target duration.
         </p>
       )}
     </div>
