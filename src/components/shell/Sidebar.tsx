@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
 import { PanelLeftClose, PanelLeftOpen, History, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORIES, TOOLS } from '@/config/tools'
@@ -18,6 +20,11 @@ export function Sidebar() {
   const { prefs, toggleFavorite, toggleCategory, update } = usePreferences()
   const sidebarCollapsed = prefs.sidebarCollapsed
   const setSidebarCollapsed = (collapsed: boolean) => update({ sidebarCollapsed: collapsed })
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  // Before mount, default to dark logo (matches dark default theme); after mount use resolved theme
+  const logoSrc = mounted && resolvedTheme === 'light' ? '/logo-dark.png' : '/logo-white.png'
 
   const favTools = TOOLS.filter((t) => prefs.favorites.includes(t.id))
 
@@ -32,16 +39,12 @@ export function Sidebar() {
       <div className="flex h-12 items-center justify-between px-3 border-b border-border shrink-0">
         {sidebarCollapsed ? (
           <Link href="/" className="mx-auto">
-            <Image src="/logo-white.png" alt="Gawe" width={26} height={26} className="dark:block hidden" />
-            <Image src="/logo-dark.png" alt="Gawe" width={26} height={26} className="dark:hidden" />
+            <Image src={logoSrc} alt="Gawe" width={26} height={26} />
           </Link>
         ) : (
           <Link href="/" className="flex items-center gap-2 min-w-0">
-            <Image src="/logo-white.png" alt="Gawe" width={24} height={24} className="dark:block hidden shrink-0" />
-            <Image src="/logo-dark.png" alt="Gawe" width={24} height={24} className="dark:hidden shrink-0" />
-            <span className="font-bold text-sm tracking-tight truncate">
-              Gawe
-            </span>
+            <Image src={logoSrc} alt="Gawe" width={24} height={24} className="shrink-0" />
+            <span className="font-bold text-sm tracking-tight truncate">Gawe</span>
           </Link>
         )}
         <Button
