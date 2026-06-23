@@ -402,7 +402,7 @@ export default function MarkdownEditor({ onOutput }: ToolProps) {
               <TBtn title="Ordered list" onClick={() => insLine('1. ', 'list item')}>1.</TBtn>
               <TBtn title="Task list item" onClick={() => insLine('- [ ] ', 'task')}>☐</TBtn>
               <TBtn title="Horizontal rule" onClick={() => handleContentChange(content + '\n\n---\n\n')}>—</TBtn>
-              <TBtn title="Table template" onClick={() => ins('', '', '') || handleContentChange(content + '\n\n| Column 1 | Column 2 |\n|---|---|\n| Cell | Cell |\n\n')}>⊞</TBtn>
+              <TBtn title="Table template" onClick={() => handleContentChange(content + '\n\n| Column 1 | Column 2 |\n|---|---|\n| Cell | Cell |\n\n')}>⊞</TBtn>
             </div>
           )}
 
