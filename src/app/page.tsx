@@ -12,7 +12,9 @@ export default function HomePage() {
           <h1 className="text-2xl font-bold tracking-tight">Gawe</h1>
           <p className="text-muted-foreground mt-0.5 text-sm">
             47+ offline tools for developers and productivity — no internet required.
-            No data is sent to any server.
+          </p>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            No data is sent to any server. All tools and processing runs entirely in your browser, for free, forever.
           </p>
         </div>
       </div>

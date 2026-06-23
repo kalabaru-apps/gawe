@@ -87,9 +87,9 @@ export default function AboutPage() {
             rel="noopener noreferrer"
             className="text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors"
           >
-            Kalabaru
+            KalaBaru
           </a>
-          , a small indie studio from Indonesia. We build tools for developers and creators.
+          , a creative and IT studio from Indonesia. We build tools, apps, services, and all you need for developers and creators for more than 5 years.
         </p>
       </div>
 
