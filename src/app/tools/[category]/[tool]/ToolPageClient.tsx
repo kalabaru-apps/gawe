@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, type ComponentType } from 'react'
+import { useEffect, useMemo, useCallback, type ComponentType } from 'react'
 import dynamic from 'next/dynamic'
 import type { ToolProps, ToolDefinition, CategoryDefinition, CategoryId } from '@/types'
 import { useHistory } from '@/hooks/useHistory'
@@ -89,17 +89,17 @@ export function ToolPageClient({ tool, category, toolSlug, categorySlug }: ToolP
     addRecent(tool.id)
   }, [tool.id, addRecent])
 
-  const handleOutput = (
+  const handleOutput = useCallback((
     inputs: Record<string, unknown>,
     outputs: Record<string, unknown>
   ) => {
     addHistory(inputs, outputs)
     updateToolState(inputs)
-  }
+  }, [addHistory, updateToolState])
 
   const loader = toolMap[categorySlug as CategoryId]?.[toolSlug]
 
-  const ToolComponent = loader
+  const ToolComponent = useMemo(() => loader
     ? dynamic(loader, {
         ssr: false,
         loading: () => (
@@ -108,7 +108,10 @@ export function ToolPageClient({ tool, category, toolSlug, categorySlug }: ToolP
           </div>
         ),
       })
-    : null
+    : null,
+  // loader is derived from static toolMap + route params — stable per page
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [toolSlug, categorySlug])
 
   return (
     <div className="flex flex-col h-full">

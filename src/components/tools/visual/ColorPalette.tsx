@@ -72,7 +72,9 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
     } catch {
       setError('Invalid color format. Try: #6366f1, rgb(99,102,241), hsl(239,84%,67%)')
     }
-  }, [input, onOutput])
+  // onOutput intentionally excluded — stable via useCallback in ToolPageClient
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
 
   return (
     <div className="space-y-4">

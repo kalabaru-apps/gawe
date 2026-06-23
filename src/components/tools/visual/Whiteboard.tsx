@@ -1,16 +1,11 @@
 'use client'
 
-import { useEffect, type ComponentType } from 'react'
+import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import type { ToolProps } from '@/types'
 
-// tldraw imports CSS — we need to load it
-// tldraw's Tldraw component is SSR-incompatible
 const TldrawComponent = dynamic(
-  async () => {
-    const { Tldraw } = await import('tldraw')
-    return Tldraw
-  },
+  () => import('tldraw').then((m) => ({ default: m.Tldraw })),
   {
     ssr: false,
     loading: () => (
@@ -24,8 +19,8 @@ const TldrawComponent = dynamic(
 export default function Whiteboard({ onOutput, initialState: _initialState }: ToolProps) {
   useEffect(() => {
     onOutput({}, { message: 'whiteboard active' })
-    // Import tldraw CSS
-    import('tldraw/tldraw.css').catch(() => {})
+  // onOutput intentionally excluded — stable via useCallback in ToolPageClient
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

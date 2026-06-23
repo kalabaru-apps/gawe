@@ -40,7 +40,9 @@ export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
       }
     }, 400)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [input, onOutput])
+  // onOutput is intentionally excluded — it's stable via useCallback in ToolPageClient
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
 
   return (
     <ToolPanel
