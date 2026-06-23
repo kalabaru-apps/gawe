@@ -13,6 +13,7 @@ import {
 import { useAppStore } from '@/store'
 import { CATEGORIES, TOOLS } from '@/config/tools'
 import { cn } from '@/lib/utils'
+import { analytics } from '@/lib/analytics'
 
 export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen } = useAppStore()
@@ -29,8 +30,9 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', handler)
   }, [setCommandPaletteOpen])
 
-  const navigate = (href: string) => {
+  const navigate = (href: string, tool?: { category: string; slug: string }) => {
     setCommandPaletteOpen(false)
+    if (tool) analytics.toolSidebarClick(tool.category, tool.slug)
     router.push(href)
   }
 
@@ -47,7 +49,7 @@ export function CommandPalette() {
                 <CommandItem
                   key={tool.id}
                   value={`${tool.name} ${tool.description} ${tool.keywords.join(' ')}`}
-                  onSelect={() => navigate(`/tools/${tool.category}/${tool.slug}`)}
+                  onSelect={() => navigate(`/tools/${tool.category}/${tool.slug}`, { category: tool.category, slug: tool.slug })}
                 >
                   <span
                     className={cn('mr-2 h-2 w-2 rounded-full shrink-0', category.accentBg)}

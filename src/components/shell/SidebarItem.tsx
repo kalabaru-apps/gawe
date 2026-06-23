@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { analytics } from '@/lib/analytics'
 import type { ToolDefinition, CategoryDefinition } from '@/types'
 
 interface SidebarItemProps {
@@ -20,6 +21,7 @@ export function SidebarItem({ tool, category, collapsed }: SidebarItemProps) {
     <Link
       href={href}
       title={collapsed ? tool.name : undefined}
+      onClick={() => analytics.toolSidebarClick(tool.category, tool.slug)}
       className={cn(
         'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
         'hover:bg-accent hover:text-accent-foreground',

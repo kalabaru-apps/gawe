@@ -8,6 +8,7 @@ import { useToolState } from '@/hooks/useToolState'
 import { usePreferences } from '@/hooks/usePreferences'
 import { ToolHeader } from '@/components/shell/ToolHeader'
 import { ToolPlaceholder } from '@/components/shell/ToolPlaceholder'
+import { analytics } from '@/lib/analytics'
 
 type ToolLoader = () => Promise<{ default: ComponentType<ToolProps> }>
 
@@ -90,7 +91,8 @@ export function ToolPageClient({ tool, category, toolSlug, categorySlug }: ToolP
 
   useEffect(() => {
     addRecent(tool.id)
-  }, [tool.id, addRecent])
+    analytics.toolView(categorySlug, toolSlug)
+  }, [tool.id, addRecent, categorySlug, toolSlug])
 
   const handleOutput = useCallback((
     inputs: Record<string, unknown>,
@@ -98,7 +100,8 @@ export function ToolPageClient({ tool, category, toolSlug, categorySlug }: ToolP
   ) => {
     addHistory(inputs, outputs)
     updateToolState(inputs)
-  }, [addHistory, updateToolState])
+    analytics.toolUse(categorySlug, toolSlug)
+  }, [addHistory, updateToolState, categorySlug, toolSlug])
 
   const loader = toolMap[categorySlug as CategoryId]?.[toolSlug]
 
