@@ -296,10 +296,10 @@ function AddTimerForm({ onAdd, onCancel }: AddTimerFormProps) {
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Duration</label>
           <div className="flex items-center gap-2">
-            {[['h', hours, setHours, 23], ['m', mins, setMins, 59], ['s', secs, setSecs, 59]].map(([unit, val, set, max]) => (
-              <label key={unit as string} className="flex flex-col items-center gap-0.5 flex-1">
-                <input type="number" value={val as number} min={0} max={max as number}
-                  onChange={e => (set as (v: number) => void)(+e.target.value)}
+            {([['h', hours, setHours, 23], ['m', mins, setMins, 59], ['s', secs, setSecs, 59]] as [string, number, (v: number) => void, number][]).map(([unit, val, set, max]) => (
+              <label key={unit} className="flex flex-col items-center gap-0.5 flex-1">
+                <input type="number" value={val} min={0} max={max}
+                  onChange={e => set(+e.target.value)}
                   className="w-full text-center text-sm font-mono border border-input rounded-md px-2 py-1.5 bg-background outline-none focus:ring-1 focus:ring-ring" />
                 <span className="text-xs text-muted-foreground">{unit}</span>
               </label>
