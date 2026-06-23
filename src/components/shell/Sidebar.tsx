@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { PanelLeftClose, PanelLeftOpen, History, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORIES, TOOLS } from '@/config/tools'
@@ -29,15 +30,24 @@ export function Sidebar() {
     >
       {/* Header */}
       <div className="flex h-12 items-center justify-between px-3 border-b border-border shrink-0">
-        {!sidebarCollapsed && (
-          <Link href="/" className="font-bold text-sm tracking-tight">
-            gawe<span className="text-violet-400">.</span>app
+        {sidebarCollapsed ? (
+          <Link href="/" className="mx-auto">
+            <Image src="/logo-white.png" alt="Gawe" width={26} height={26} className="dark:block hidden" />
+            <Image src="/logo-dark.png" alt="Gawe" width={26} height={26} className="dark:hidden" />
+          </Link>
+        ) : (
+          <Link href="/" className="flex items-center gap-2 min-w-0">
+            <Image src="/logo-white.png" alt="Gawe" width={24} height={24} className="dark:block hidden shrink-0" />
+            <Image src="/logo-dark.png" alt="Gawe" width={24} height={24} className="dark:hidden shrink-0" />
+            <span className="font-bold text-sm tracking-tight truncate">
+              Gawe
+            </span>
           </Link>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="ml-auto h-7 w-7"
+          className="h-7 w-7 shrink-0"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         >
           {sidebarCollapsed ? (

@@ -11,12 +11,21 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Gawe App : Offline Developer Tools',
+  title: 'Gawe App — Offline Developer Tools',
   description: '47 offline productivity and developer tools in one installable PWA',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'gawe.app',
   },
 }
