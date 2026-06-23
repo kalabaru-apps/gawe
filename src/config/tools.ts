@@ -441,6 +441,15 @@ export const TOOLS: ToolDefinition[] = [
     slug: 'pastebin',
     keywords: ['paste', 'snippet', 'save', 'local', 'clipboard', 'text', 'store'],
   },
+  {
+    id: 'session-timer',
+    name: 'Session Timer',
+    category: 'office',
+    description: 'Multi-timer stopwatch for tracking billable hours across projects',
+    icon: 'Timer',
+    slug: 'session-timer',
+    keywords: ['timer', 'stopwatch', 'session', 'billable', 'hours', 'track', 'project', 'time'],
+  },
   // Visual & Design
   {
     id: 'css-generators',
