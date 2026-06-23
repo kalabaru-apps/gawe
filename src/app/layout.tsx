@@ -8,7 +8,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gawe.app'
-const OG_IMAGE = `${SITE_URL}/og`
+const OG_IMAGE = `${SITE_URL}/og-image.png`
 
 export const viewport: Viewport = {
   themeColor: '#09090b',

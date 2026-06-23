@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = toolDef.name
   const description = `${toolDef.description} — free offline tool, no account needed.`
-  const ogImage = `${SITE_URL}/og?title=${encodeURIComponent(toolDef.name)}&description=${encodeURIComponent(toolDef.description)}&category=${encodeURIComponent(category)}`
+  const ogImage = `${SITE_URL}/og-image.png`
   const url = `${SITE_URL}/tools/${category}/${tool}`
 
   return {
