@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import chroma from 'chroma-js'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 
@@ -140,35 +140,91 @@ function dlBlob(content: string, filename: string, mime: string) {
 
 // ─── Export functions ─────────────────────────────────────────────────────────
 function exportImage(colors: string[], harmony: Harmony, withTints: boolean) {
-  const swatchW = withTints ? 560 : 160
-  const swatchH = withTints ? 260 : 240
   const canvas = document.createElement('canvas')
-  canvas.width = swatchW * colors.length; canvas.height = swatchH
   const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, canvas.width, swatchH)
 
-  colors.forEach((c, i) => {
-    const ox = i * swatchW
-    if (withTints) {
-      const shades = generateShades(c)
-      const tileW = Math.floor(swatchW / 10)
-      shades.forEach(({ hex }, si) => {
-        ctx.fillStyle = hex
-        ctx.fillRect(ox + si * tileW, 0, tileW, 200)
-        ctx.fillStyle = chroma(hex).luminance() > 0.35 ? '#000' : '#fff'
-        ctx.font = '9px monospace'; ctx.textAlign = 'center'
-        ctx.fillText(SHADE_LABELS[si], ox + si * tileW + tileW / 2, 218)
-      })
-      ctx.fillStyle = '#a1a1aa'; ctx.font = '11px monospace'; ctx.textAlign = 'left'
-      ctx.fillText(`${colorLabel(i, harmony).toUpperCase()} — ${c.toUpperCase()}`, ox + 4, 238)
-    } else {
-      ctx.fillStyle = c; ctx.fillRect(ox + 8, 8, swatchW - 16, 180)
+  if (!withTints) {
+    // Simple: colors side by side horizontally
+    const SW = 160, SH = 240
+    canvas.width = SW * colors.length; canvas.height = SH
+    ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, canvas.width, SH)
+    colors.forEach((c, i) => {
+      const ox = i * SW
+      ctx.fillStyle = c; ctx.fillRect(ox + 8, 8, SW - 16, 180)
       ctx.fillStyle = '#fff'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center'
-      ctx.fillText(colorLabel(i, harmony), ox + swatchW / 2, 210)
+      ctx.fillText(colorLabel(i, harmony), ox + SW / 2, 210)
       ctx.fillStyle = '#a1a1aa'; ctx.font = '12px monospace'
-      ctx.fillText(c.toUpperCase(), ox + swatchW / 2, 228)
-    }
-  })
+      ctx.fillText(c.toUpperCase(), ox + SW / 2, 228)
+    })
+  } else {
+    // Tints: each color is a full-width row, stacked vertically
+    // The "500" shade (index 5) is the main/base — gets a taller bar + label callout
+    const TILE_W  = 120   // 10 tiles × 120px = 1200px wide
+    const BASE_H  = 140   // normal shade height
+    const BUMP_H  = 36    // extra height for the main shade (makes it taller)
+    const LABEL_H = 44    // row label area below
+    const ROW_H   = BASE_H + BUMP_H + LABEL_H
+    const MAIN_IDX = 5    // "500" shade is the base
+
+    canvas.width = TILE_W * 10
+    canvas.height = ROW_H * colors.length + 16
+    ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    colors.forEach((baseHex, colorIdx) => {
+      const shades = generateShades(baseHex)
+      const rowY = 8 + colorIdx * ROW_H
+
+      shades.forEach(({ hex }, si) => {
+        const tx = si * TILE_W
+        const isMain = si === MAIN_IDX
+        const tileH = isMain ? BASE_H + BUMP_H : BASE_H
+
+        // Shade swatch
+        ctx.fillStyle = hex
+        ctx.fillRect(tx, rowY, TILE_W, tileH)
+
+        // Shade number inside the tile
+        const lum = chroma(hex).luminance()
+        ctx.fillStyle = lum > 0.4 ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.55)'
+        ctx.font = isMain ? 'bold 13px monospace' : '11px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillText(SHADE_LABELS[si], tx + TILE_W / 2, rowY + BASE_H - 10)
+
+        // Main shade: white dot marker at base of the bump
+        if (isMain) {
+          ctx.beginPath()
+          ctx.arc(tx + TILE_W / 2, rowY + BASE_H + BUMP_H / 2, 5, 0, Math.PI * 2)
+          ctx.fillStyle = '#fff'
+          ctx.fill()
+        }
+      })
+
+      // Row label strip
+      const labelY = rowY + BASE_H + BUMP_H
+      ctx.fillStyle = '#27272a'
+      ctx.fillRect(0, labelY, canvas.width, LABEL_H)
+
+      // Left: color name
+      ctx.fillStyle = '#e4e4e7'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'left'
+      ctx.fillText(colorLabel(colorIdx, harmony).toUpperCase(), 12, labelY + 16)
+
+      // Left: base hex
+      ctx.fillStyle = '#a1a1aa'; ctx.font = '11px monospace'
+      ctx.fillText(baseHex.toUpperCase(), 12, labelY + 32)
+
+      // Shade hex labels under each tile at label strip
+      shades.forEach(({ hex }, si) => {
+        const tx = si * TILE_W
+        const isMain = si === MAIN_IDX
+        if (isMain) {
+          ctx.fillStyle = '#e4e4e7'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center'
+          ctx.fillText(hex.toUpperCase(), tx + TILE_W / 2, labelY + 16)
+          ctx.fillStyle = '#71717a'; ctx.font = '9px monospace'
+          ctx.fillText('500 — base', tx + TILE_W / 2, labelY + 30)
+        }
+      })
+    })
+  }
 
   const a = document.createElement('a')
   a.href = canvas.toDataURL('image/png')
@@ -253,48 +309,30 @@ function ShadeRow({ hex }: { hex: string }) {
   )
 }
 
-// ─── Export dropdown ──────────────────────────────────────────────────────────
-const EXPORT_OPTS = [
-  { label: 'Image (PNG)',            fn: (c: string[], h: Harmony) => exportImage(c, h, false) },
-  { label: 'Image with tints (PNG)', fn: (c: string[], h: Harmony) => exportImage(c, h, true)  },
-  { label: 'Document (.txt)',        fn: (c: string[], h: Harmony) => exportDocument(c, h, false) },
-  { label: 'Document with tints',    fn: (c: string[], h: Harmony) => exportDocument(c, h, true)  },
-  { label: 'Tailwind Config',        fn: (c: string[], h: Harmony) => exportTailwind(c, h, false) },
-  { label: 'Tailwind with tints',    fn: (c: string[], h: Harmony) => exportTailwind(c, h, true)  },
-  { label: 'Figma Tokens',           fn: (c: string[], h: Harmony) => exportFigma(c, h, false) },
-  { label: 'Figma with tints',       fn: (c: string[], h: Harmony) => exportFigma(c, h, true)  },
-]
-
-function ExportDropdown({ colors, harmony }: { colors: string[]; harmony: Harmony }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
+// ─── Export panel ─────────────────────────────────────────────────────────────
+function ExportPanel({ colors, harmony }: { colors: string[]; harmony: Harmony }) {
+  const [withTints, setWithTints] = useState(false)
+  const formats = [
+    { label: 'Image (PNG)',     fn: () => exportImage(colors, harmony, withTints) },
+    { label: 'Document (.txt)', fn: () => exportDocument(colors, harmony, withTints) },
+    { label: 'Tailwind CSS',    fn: () => exportTailwind(colors, harmony, withTints) },
+    { label: 'Figma Tokens',    fn: () => exportFigma(colors, harmony, withTints) },
+  ]
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors w-full justify-between">
-        Export
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute bottom-full mb-1 right-0 left-0 bg-popover border border-input rounded-md shadow-xl z-20 overflow-hidden">
-          {EXPORT_OPTS.map(({ label, fn }) => (
-            <button key={label} onClick={() => { fn(colors, harmony); setOpen(false) }}
-              className="w-full text-left px-3 py-2 text-xs hover:bg-muted/60 transition-colors border-b border-input/40 last:border-0">
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+        <input type="checkbox" checked={withTints} onChange={e => setWithTints(e.target.checked)}
+          className="rounded border-input" />
+        Include tints
+      </label>
+      <div className="grid grid-cols-2 gap-1.5">
+        {formats.map(({ label, fn }) => (
+          <button key={label} onClick={fn}
+            className="px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors text-center">
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -490,7 +528,7 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
 
           {/* Export */}
           <div className="pt-2">
-            <ExportDropdown colors={colors} harmony={harmony} />
+            <ExportPanel colors={colors} harmony={harmony} />
           </div>
         </div>
       </div>
