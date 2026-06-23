@@ -113,10 +113,25 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="shrink-0 border-t border-border px-2 py-2 flex items-center gap-1">
-        <ThemeToggle />
+      <div className="shrink-0 border-t border-border px-2 py-2 space-y-1">
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          {!sidebarCollapsed && (
+            <span className="text-xs text-muted-foreground ml-1">Theme</span>
+          )}
+        </div>
         {!sidebarCollapsed && (
-          <span className="text-xs text-muted-foreground ml-1">Theme</span>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs text-muted-foreground/60">by Kalabaru</span>
+            <a
+              href="https://saweria.co/vnctkevin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-amber-500 hover:text-amber-400 transition-colors"
+            >
+              ☕ Support
+            </a>
+          </div>
         )}
       </div>
     </aside>
