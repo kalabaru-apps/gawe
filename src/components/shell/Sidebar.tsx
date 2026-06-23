@@ -113,7 +113,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="shrink-0 border-t border-border px-2 py-2 space-y-1">
+      <div className="shrink-0 border-t border-border px-2 py-2 space-y-2">
         <div className="flex items-center gap-1">
           <ThemeToggle />
           {!sidebarCollapsed && (
@@ -121,17 +121,31 @@ export function Sidebar() {
           )}
         </div>
         {!sidebarCollapsed && (
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs text-muted-foreground/60">by Kalabaru</span>
+          <>
             <a
               href="https://saweria.co/vnctkevin"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-amber-500 hover:text-amber-400 transition-colors"
+              className="flex w-full items-center justify-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-black hover:bg-amber-400 transition-colors"
             >
-              ☕ Support
+              ☕ Support this app
             </a>
-          </div>
+            <p className="px-1 text-[10px] text-muted-foreground/50 leading-snug">
+              Free &amp; open source by{' '}
+              <a
+                href="https://kalabaru.id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-muted-foreground transition-colors"
+              >
+                Kalabaru
+              </a>
+              {' · '}
+              <Link href="/about" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
+                About
+              </Link>
+            </p>
+          </>
         )}
       </div>
     </aside>
