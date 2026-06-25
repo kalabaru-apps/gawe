@@ -1,6 +1,6 @@
 {
-  "name": "gawe.app : Offline Developer & Productivity Tools",
-  "short_name": "gawe.app",
+  "name": "Gawe — Offline Productivity Tools",
+  "short_name": "Gawe",
   "description": "50+ offline productivity and developer tools in one installable PWA",
   "start_url": "/",
   "display": "standalone",
@@ -12,16 +12,28 @@
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["productivity", "utilities", "developer tools"],
+  "categories": ["productivity", "utilities"],
   "shortcuts": [
     {
       "name": "JSON Formatter",
