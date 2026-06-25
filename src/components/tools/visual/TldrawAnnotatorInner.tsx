@@ -21,13 +21,13 @@ function ImageLoader({ imageUrl }: { imageUrl: string }) {
         props: { name: 'background', src: imageUrl, w: img.naturalWidth, h: img.naturalHeight, mimeType: 'image/png', isAnimated: false },
         meta: {},
       }])
-      editor.createShape({
+      editor.createShapes([{
         id: createShapeId(),
         type: 'image',
         x: 0, y: 0,
         isLocked: true,
         props: { assetId, w: img.naturalWidth, h: img.naturalHeight },
-      })
+      }])
       editor.zoomToFit()
     }
     img.src = imageUrl
@@ -38,7 +38,7 @@ function ImageLoader({ imageUrl }: { imageUrl: string }) {
 
 export default function TldrawAnnotatorInner({ imageUrl }: { imageUrl: string }) {
   return (
-    <Tldraw persistenceKey="gawe-annotator">
+    <Tldraw>
       <ImageLoader imageUrl={imageUrl} />
     </Tldraw>
   )
