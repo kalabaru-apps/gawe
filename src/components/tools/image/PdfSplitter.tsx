@@ -9,7 +9,7 @@ import type { ToolProps } from '@/types'
 // pdf-lib and pdfjs-dist are dynamically imported to avoid SSR issues
 
 function downloadPdf(bytes: Uint8Array, filename: string) {
-  const blob = new Blob([bytes], { type: 'application/pdf' })
+  const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -173,7 +173,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
 
       {mode === 'split' && (
         <div className="flex flex-col gap-4">
-          <FileDropzone onFiles={loadSplitPdf} accept=".pdf" label="Drop a PDF to split" />
+          <FileDropzone onFile={(f) => loadSplitPdf([f])} accept=".pdf" label="Drop a PDF to split" />
           {loading && <div className="text-sm text-muted-foreground">Loading pages…</div>}
           {thumbs.length > 0 && (
             <>
@@ -208,7 +208,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
 
       {mode === 'merge' && (
         <div className="flex flex-col gap-4">
-          <FileDropzone onFiles={addMergeFiles} accept=".pdf" label="Drop PDFs to merge (multiple allowed)" />
+          <FileDropzone onFile={(f) => addMergeFiles([f])} accept=".pdf" label="Drop PDFs to merge (multiple allowed)" />
           {mergeFiles.length > 0 && (
             <>
               <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
