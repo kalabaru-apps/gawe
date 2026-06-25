@@ -149,7 +149,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
         left={
           <div className="flex flex-col gap-4">
             <FileDropzone
-              onFiles={handleFiles}
+              onFile={(f) => handleFiles([f])}
               accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
               label="Drop a JPEG, PNG, or HEIC/HEIF image here"
             />
