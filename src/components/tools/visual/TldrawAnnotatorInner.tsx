@@ -57,7 +57,7 @@ function ImageLoader({ imageUrl }: { imageUrl: string }) {
 
 export default function TldrawAnnotatorInner({ imageUrl }: { imageUrl: string }) {
   return (
-    <Tldraw licenseKey="tldraw-2026-07-09/WyJfdVZ4VzV6dyIsWyIqIl0sMTYsIjIwMjYtMDctMDkiXQ.hPSXti6/GWkc8a4lm+1Ysds6Z7vfmYuQoPgPmGMekt7YMCG8xL9iXuxcWPSRNYWumHV7mTdGLtVkNMaXBT2ucQ">
+    <Tldraw licenseKey={process.env.NEXT_PUBLIC_TLDRAW_LICENSE_KEY}>
       <ImageLoader imageUrl={imageUrl} />
     </Tldraw>
   )
