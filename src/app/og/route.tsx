@@ -18,7 +18,7 @@ const ACCENTS: Record<string, string> = {
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const title       = searchParams.get('title')       ?? 'Gawe App'
-  const description = searchParams.get('description') ?? '47 offline developer tools. No internet required.'
+  const description = searchParams.get('description') ?? '50+ offline developer tools. No internet required.'
   const category    = searchParams.get('category')    ?? ''
   const accent      = ACCENTS[category] ?? '#6366f1'
 

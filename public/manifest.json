@@ -1,7 +1,7 @@
 {
   "name": "gawe.app : Offline Developer & Productivity Tools",
   "short_name": "gawe.app",
-  "description": "47 offline productivity and developer tools in one installable PWA",
+  "description": "50+ offline productivity and developer tools in one installable PWA",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",

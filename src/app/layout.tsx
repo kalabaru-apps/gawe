@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: '%s · Gawe App',
   },
   description:
-    '47 offline productivity and developer tools in one installable PWA. JSON formatter, UUID generator, QR code, regex tester, color palette, and more.',
+    '50+ offline productivity and developer tools in one installable PWA. JSON formatter, UUID generator, QR code, regex tester, color palette, and more.',
   keywords: [
     'developer tools', 'offline tools', 'PWA', 'JSON formatter', 'UUID generator',
     'QR code generator', 'regex tester', 'color palette', 'base64', 'hash generator',
@@ -51,13 +51,13 @@ export const metadata: Metadata = {
     siteName: 'Gawe App',
     title: 'Gawe App — Offline Productivity Tools',
     description:
-      '47 offline productivity and developer tools in one installable PWA. Works without internet. No account needed. Free forever.',
+      '50+ offline productivity and developer tools in one installable PWA. Works without internet. No account needed. Free forever.',
     images: [
       {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'Gawe App — 47 Offline Productivity Tools',
+        alt: 'Gawe App — 50+ Offline Productivity Tools',
         type: 'image/png',
       },
     ],
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     creator: '@gaweapp',
     title: 'Gawe App — Offline Productivity Tools',
     description:
-      '47 offline productivity and developer tools in one installable PWA. Works without internet.',
+      '50+ offline productivity and developer tools in one installable PWA. Works without internet.',
     images: [OG_IMAGE],
   },
 
