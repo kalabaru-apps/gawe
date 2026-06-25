@@ -66,7 +66,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
         canvas.width = Math.floor(viewport.width)
         canvas.height = Math.floor(viewport.height)
         const ctx = canvas.getContext('2d')!
-        await page.render({ canvasContext: ctx, viewport }).promise
+        await page.render({ canvasContext: ctx, canvas, viewport }).promise
         pages.push({ index: i - 1, dataUrl: canvas.toDataURL(), selected: true })
       }
       setThumbs(pages)
