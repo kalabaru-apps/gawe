@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { PanelLeftClose, PanelLeftOpen, History, Settings } from 'lucide-react'
 import { LogoImage } from './LogoImage'
@@ -14,9 +15,12 @@ import { Button } from '@/components/ui/button'
 import type { CategoryId } from '@/types'
 
 export function Sidebar() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const { setCommandPaletteOpen } = useAppStore()
   const { prefs, toggleFavorite, toggleCategory, update } = usePreferences()
-  const sidebarCollapsed = prefs.sidebarCollapsed
+  const sidebarCollapsed = mounted ? prefs.sidebarCollapsed : false
   const setSidebarCollapsed = (collapsed: boolean) => update({ sidebarCollapsed: collapsed })
   const favTools = TOOLS.filter((t) => prefs.favorites.includes(t.id))
 
