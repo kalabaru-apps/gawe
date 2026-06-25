@@ -22,6 +22,9 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'case-converter': () => import('@/components/tools/encoding/CaseConverter'),
     'line-tools': () => import('@/components/tools/encoding/LineTools'),
     'string-tools': () => import('@/components/tools/encoding/StringTools'),
+    'sql-formatter': () => import('@/components/tools/encoding/SqlFormatter'),
+    'schema-generator': () => import('@/components/tools/encoding/SchemaGenerator'),
+    'csv-merger': () => import('@/components/tools/encoding/CsvMerger'),
   },
   dev: {
     'regex-tester': () => import('@/components/tools/dev/RegexTester'),
@@ -35,6 +38,8 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'markdown-editor': () => import('@/components/tools/dev/MarkdownEditor'),
     'lorem-ipsum': () => import('@/components/tools/dev/LoremIpsum'),
     'http-reference': () => import('@/components/tools/dev/HttpReference'),
+    'curl-to-code': () => import('@/components/tools/dev/CurlToCode'),
+    'api-tester': () => import('@/components/tools/dev/ApiTester'),
   },
   crypto: {
     'hash-generator': () => import('@/components/tools/crypto/HashGenerator'),
@@ -59,6 +64,9 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'pastebin': () => import('@/components/tools/office/Pastebin'),
     'task-tracker': () => import('@/components/tools/office/TaskTracker'),
     'session-timer': () => import('@/components/tools/office/SessionTimer'),
+    'text-cleaner': () => import('@/components/tools/office/TextCleaner'),
+    'speech-timer': () => import('@/components/tools/office/SpeechTimer'),
+    'hours-calculator': () => import('@/components/tools/office/HoursCalculator'),
   },
   visual: {
     'css-generators': () => import('@/components/tools/visual/CssGenerators'),
@@ -74,6 +82,8 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'image-resize': () => import('@/components/tools/image/ImageResize'),
     'svg-tools': () => import('@/components/tools/image/SvgTools'),
     'image-base64': () => import('@/components/tools/image/ImageBase64'),
+    'exif-remover': () => import('@/components/tools/image/ExifRemover'),
+    'pdf-splitter': () => import('@/components/tools/image/PdfSplitter'),
   },
 }
 
