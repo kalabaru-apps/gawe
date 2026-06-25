@@ -408,10 +408,10 @@ export const TOOLS: ToolDefinition[] = [
     id: 'exif-remover',
     name: 'EXIF Remover',
     category: 'image',
-    description: 'Strip EXIF metadata (GPS, camera, dates) from images before sharing',
+    description: 'Strip EXIF metadata (GPS, camera, dates) from JPEG, PNG, and HEIC/HEVC images before sharing',
     icon: 'ShieldOff',
     slug: 'exif-remover',
-    keywords: ['exif', 'metadata', 'strip', 'remove', 'gps', 'location', 'privacy', 'image', 'photo', 'jpeg'],
+    keywords: ['exif', 'metadata', 'strip', 'remove', 'gps', 'location', 'privacy', 'image', 'photo', 'jpeg', 'heic', 'heif', 'hevc', 'iphone'],
   },
   {
     id: 'pdf-splitter',

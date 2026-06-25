@@ -8,18 +8,38 @@ import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import { FileDropzone } from '@/components/tools/shared/FileDropzone'
 import type { ToolProps } from '@/types'
 
+function isHeic(buf: ArrayBuffer): boolean {
+  // ISOBMFF: bytes 4–7 are 'ftyp', bytes 8–11 identify the brand
+  const bytes = new Uint8Array(buf, 0, Math.min(buf.byteLength, 16))
+  const ftyp = String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7])
+  if (ftyp !== 'ftyp') return false
+  const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11])
+  return ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand)
+}
+
 async function scanExif(file: File): Promise<string[]> {
   const buf = await file.arrayBuffer()
   const view = new DataView(buf)
   const found: string[] = []
-  if (view.getUint16(0) !== 0xffd8) return found
   const bytes = new Uint8Array(buf)
   const str = new TextDecoder('latin1').decode(bytes.slice(0, Math.min(bytes.length, 65536)))
+
+  // JPEG: starts with FFD8
+  const isJpeg = view.getUint16(0) === 0xffd8
+  const heic = isHeic(buf)
+
+  if (!isJpeg && !heic) return found
+
   if (str.includes('Exif')) found.push('EXIF data')
-  if (str.includes('GPS')) found.push('GPS location')
+  if (str.includes('GPS') || str.includes('GPSInfo')) found.push('GPS location')
   if (str.includes('Make') || str.includes('Model')) found.push('Camera info')
   if (str.includes('DateTime') || str.includes('DateTimeOriginal')) found.push('Date & time')
   if (str.includes('Software')) found.push('Software info')
+  if (str.includes('XMP') || str.includes('adobe.com')) found.push('XMP metadata')
+
+  // HEIC always embeds metadata
+  if (heic && found.length === 0) found.push('Container metadata')
+
   return found
 }
 
@@ -48,8 +68,11 @@ export default function ExifRemover({ onOutput }: ToolProps) {
   const handleFiles = useCallback(async (files: File[]) => {
     const file = files[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload a JPEG or PNG image.')
+    const type = file.type.toLowerCase()
+    const name = file.name.toLowerCase()
+    const isHeicFile = type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif')
+    if (!type.startsWith('image/') && !isHeicFile) {
+      setError('Please upload a JPEG, PNG, or HEIC/HEIF image.')
       return
     }
     setError('')
@@ -58,7 +81,22 @@ export default function ExifRemover({ onOutput }: ToolProps) {
     const objectUrl = URL.createObjectURL(file)
     const img = new Image()
     img.src = objectUrl
-    await new Promise<void>((res) => { img.onload = () => res() })
+
+    const loaded = await new Promise<boolean>((res) => {
+      img.onload = () => res(true)
+      img.onerror = () => res(false)
+    })
+
+    if (!loaded) {
+      // HEIC not supported in this browser — still show metadata scan
+      const exifTags = await scanExif(file)
+      setFileInfo({ file, width: 0, height: 0, exifTags, objectUrl })
+      if (isHeicFile) {
+        setError('HEIC preview not supported in this browser. Use Safari on macOS/iOS to strip & download, or convert to JPEG first on other browsers.')
+      }
+      return
+    }
+
     const exifTags = await scanExif(file)
     setFileInfo({ file, width: img.naturalWidth, height: img.naturalHeight, exifTags, objectUrl })
   }, [])
@@ -112,8 +150,8 @@ export default function ExifRemover({ onOutput }: ToolProps) {
           <div className="flex flex-col gap-4">
             <FileDropzone
               onFiles={handleFiles}
-              accept="image/jpeg,image/png"
-              label="Drop a JPEG or PNG image here"
+              accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
+              label="Drop a JPEG, PNG, or HEIC/HEIF image here"
             />
             {fileInfo && (
               <div className="flex flex-col gap-3">
