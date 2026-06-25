@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react'
 import Papa from 'papaparse'
-import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import { FileDropzone } from '@/components/tools/shared/FileDropzone'
@@ -20,18 +19,6 @@ function uniqueId(): string {
 }
 
 async function parseFile(file: File): Promise<{ rows: Record<string, string>[]; headers: string[] }> {
-  const ext = file.name.split('.').pop()?.toLowerCase()
-
-  if (ext === 'xlsx' || ext === 'xls') {
-    const buffer = await file.arrayBuffer()
-    const wb = XLSX.read(buffer, { type: 'array' })
-    const ws = wb.Sheets[wb.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
-    const headers = rows.length > 0 ? Object.keys(rows[0]) : []
-    return { rows, headers }
-  }
-
-  // CSV
   const text = await file.text()
   const result = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true })
   const headers = result.meta.fields ?? []
@@ -124,12 +111,12 @@ export default function CsvMerger({ onOutput }: ToolProps) {
     <div className="flex flex-col gap-4">
       {/* Drop zone for multiple files — we handle multiple via sequential adds */}
       <FileDropzone
-        accept=".csv,.xlsx,.xls"
+        accept=".csv"
         onFile={handleFile}
         label={
           loading
             ? 'Parsing file…'
-            : 'Drop CSV or Excel files here, or click to upload (add one at a time)'
+            : 'Drop CSV files here, or click to upload (add one at a time)'
         }
       />
 

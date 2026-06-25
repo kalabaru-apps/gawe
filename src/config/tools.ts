@@ -117,10 +117,10 @@ export const TOOLS: ToolDefinition[] = [
     id: 'csv-merger',
     name: 'CSV / Excel Merger',
     category: 'encoding',
-    description: 'Merge multiple CSV or Excel files with matching columns into one download',
+    description: 'Merge multiple CSV files with matching columns into one download',
     icon: 'TableProperties',
     slug: 'csv-merger',
-    keywords: ['csv', 'excel', 'xlsx', 'merge', 'join', 'combine', 'rows', 'files'],
+    keywords: ['csv', 'merge', 'join', 'combine', 'rows', 'files', 'tabular'],
   },
   {
     id: 'code-beautifier',
