@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { TOOLS, CATEGORIES } from '@/config/tools'
 
@@ -40,16 +41,26 @@ export default function AboutPage() {
             },
             {
               title: 'Works offline',
-              body: 'Install Gawe as a PWA and it works without any internet connection. Your tools are always available.',
+              body: 'Install Gawe as a PWA and it works without any internet connection. Your tools are always available anytime, anywhere.',
+              image: '/images/works-offline.png',
             },
             {
               title: 'No account needed',
               body: 'Open the app and start working. No sign-up, no email, no OAuth.',
             },
-          ].map(({ title, body }) => (
+          ].map(({ title, body, image }) => (
             <div key={title} className="rounded-lg border border-border bg-card px-4 py-3 space-y-1">
               <p className="text-sm font-medium">{title}</p>
               <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+              {image && (
+                <Image
+                  src={image}
+                  alt={`How to install Gawe as a PWA`}
+                  width={600}
+                  height={400}
+                  className="mt-2 rounded-md border border-border w-full h-auto"
+                />
+              )}
             </div>
           ))}
         </div>
