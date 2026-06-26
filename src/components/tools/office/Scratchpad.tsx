@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 interface TodoItem { id: string; text: string; done: boolean }
 
 type Tab = 'notes' | 'todo'
 
 export default function Scratchpad({ onOutput: _onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('notes')
   const [notes, setNotes] = useState('')
   const [todos, setTodos] = useState<TodoItem[]>([])
@@ -56,21 +58,21 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
     <div className="space-y-4 h-full flex flex-col">
       <div className="flex items-center gap-2">
         <div className="flex gap-1 border border-input rounded-md p-0.5">
-          {(['notes', 'todo'] as Tab[]).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded text-sm transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-              {t === 'notes' ? 'Notes' : `To-Do ${todos.length > 0 ? `(${doneCount}/${todos.length})` : ''}`}
+          {(['notes', 'todo'] as Tab[]).map((tabItem) => (
+            <button key={tabItem} onClick={() => setTab(tabItem)}
+              className={`px-4 py-1.5 rounded text-sm transition-colors ${tab === tabItem ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
+              {tabItem === 'notes' ? t('office.note_placeholder', 'Notes') : `${t('office.task_title', 'To-Do')} ${todos.length > 0 ? `(${doneCount}/${todos.length})` : ''}`}
             </button>
           ))}
         </div>
-        <span className="text-xs text-muted-foreground ml-auto">Auto-saved locally</span>
+        <span className="text-xs text-muted-foreground ml-auto">{t('action.save', 'Auto-saved')} locally</span>
       </div>
       {tab === 'notes' ? (
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="flex-1 min-h-[500px] text-sm border border-input rounded-md p-4 bg-background resize-none outline-none focus:ring-1 focus:ring-ring leading-relaxed"
-          placeholder="Start typing your notes... Everything is saved automatically."
+          placeholder={t('office.note_placeholder', 'Start typing your notes... Everything is saved automatically.')}
         />
       ) : (
         <div className="space-y-3 flex-1">

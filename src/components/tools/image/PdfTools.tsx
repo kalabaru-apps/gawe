@@ -4,12 +4,14 @@ import { useState, useCallback } from 'react'
 import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 type Tab = 'merge' | 'split' | 'rotate'
 
 interface PdfFile { name: string; file: File; pageCount?: number }
 
 export default function PdfTools({ onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('merge')
   const [files, setFiles] = useState<PdfFile[]>([])
   const [splitRange, setSplitRange] = useState('1-3')
@@ -134,17 +136,17 @@ export default function PdfTools({ onOutput, initialState: _initialState }: Tool
   return (
     <div className="space-y-4">
       <div className="flex gap-1 border border-input rounded-md p-0.5 w-fit">
-        {(['merge', 'split', 'rotate'] as Tab[]).map((t) => (
-          <button key={t} onClick={() => { setTab(t); setFiles([]); setError(null) }}
-            className={`px-3 py-1.5 rounded text-sm capitalize transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-            {t}
+        {(['merge', 'split', 'rotate'] as Tab[]).map((tabKey) => (
+          <button key={tabKey} onClick={() => { setTab(tabKey); setFiles([]); setError(null) }}
+            className={`px-3 py-1.5 rounded text-sm capitalize transition-colors ${tab === tabKey ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
+            {tabKey === 'merge' ? t('image.merge', 'Merge') : tabKey === 'split' ? t('image.split', 'Split') : t('image.rotate', 'Rotate')}
           </button>
         ))}
       </div>
       <FileDropzone
         accept="application/pdf"
         onFile={(f) => handleFiles([f])}
-        label={tab === 'merge' ? 'Drop PDF files to merge' : 'Drop a PDF file'}
+        label={tab === 'merge' ? t('image.drop_pdfs', 'Drop PDF files to merge') : t('image.drop_pdf', 'Drop a PDF file')}
       />
       {files.length > 0 && (
         <div className="space-y-1">
@@ -160,7 +162,7 @@ export default function PdfTools({ onOutput, initialState: _initialState }: Tool
       {tab === 'split' && files.length > 0 && (
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">
-            Page Range (e.g. 1-3,5,7-10 of {files[0].pageCount ?? '?'} pages)
+            {t('image.page_range', 'Page Range')} (e.g. 1-3,5,7-10 of {files[0].pageCount ?? '?'} {t('image.pages', 'pages')})
           </label>
           <input value={splitRange} onChange={(e) => setSplitRange(e.target.value)}
             className="w-full font-mono text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
@@ -169,7 +171,7 @@ export default function PdfTools({ onOutput, initialState: _initialState }: Tool
       {tab === 'rotate' && files.length > 0 && (
         <div className="flex gap-4 flex-wrap">
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Angle</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t('image.rotate', 'Angle')}</p>
             <div className="flex gap-2">
               {([90, 180, 270] as const).map((a) => (
                 <button key={a} onClick={() => setRotateAngle(a)}
@@ -180,12 +182,12 @@ export default function PdfTools({ onOutput, initialState: _initialState }: Tool
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Pages</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t('image.pages', 'Pages')}</p>
             <div className="flex gap-2">
-              {(['all', 'odd', 'even'] as const).map((t) => (
-                <button key={t} onClick={() => setRotateTarget(t)}
-                  className={`px-3 py-1.5 rounded-md border text-sm capitalize transition-colors ${rotateTarget === t ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'}`}>
-                  {t}
+              {(['all', 'odd', 'even'] as const).map((pg) => (
+                <button key={pg} onClick={() => setRotateTarget(pg)}
+                  className={`px-3 py-1.5 rounded-md border text-sm capitalize transition-colors ${rotateTarget === pg ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'}`}>
+                  {pg === 'all' ? t('image.all_pages', 'All') : pg === 'odd' ? t('image.odd_pages', 'Odd') : t('image.even_pages', 'Even')}
                 </button>
               ))}
             </div>
@@ -197,7 +199,7 @@ export default function PdfTools({ onOutput, initialState: _initialState }: Tool
         onClick={tab === 'merge' ? merge : tab === 'split' ? split : rotate}
         disabled={loading || (tab === 'merge' ? files.length < 2 : files.length === 0)}
         className="px-6 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-        {loading ? 'Processing…' : tab === 'merge' ? `Merge ${files.length} PDFs` : tab === 'split' ? 'Extract Pages' : 'Rotate & Download'}
+        {loading ? t('common.processing', 'Processing…') : tab === 'merge' ? `${t('image.merge', 'Merge')} ${files.length} PDFs` : tab === 'split' ? t('image.extract', 'Extract Pages') : `${t('image.rotate', 'Rotate')} & ${t('common.download', 'Download')}`}
       </button>
     </div>
   )

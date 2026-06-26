@@ -7,12 +7,14 @@ import { CopyButton } from '../shared/CopyButton'
 import { FileDropzone } from '../shared/FileDropzone'
 import { CodeEditor } from '../shared/CodeEditor'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 type Tab = 'optimize' | 'favicon'
 
 const FAVICON_SIZES = [16, 32, 48, 64, 96, 128, 192, 512]
 
 export default function SvgTools({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('optimize')
   // Optimize tab
   const [svgInput, setSvgInput] = useState((initialState?.svgInput as string) ?? '')
@@ -88,10 +90,10 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
   return (
     <div className="space-y-4">
       <div className="flex gap-1 border border-input rounded-md p-0.5 w-fit">
-        {(['optimize', 'favicon'] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-3 py-1.5 rounded text-sm transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-            {t === 'optimize' ? 'Optimize SVG' : 'Favicon Generator'}
+        {(['optimize', 'favicon'] as Tab[]).map((tabKey) => (
+          <button key={tabKey} onClick={() => setTab(tabKey)}
+            className={`px-3 py-1.5 rounded text-sm transition-colors ${tab === tabKey ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
+            {tabKey === 'optimize' ? t('image.optimize', 'Optimize SVG') : t('common.mode', 'Favicon Generator')}
           </button>
         ))}
       </div>
@@ -99,11 +101,11 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
         <ToolPanel
           left={
             <div className="space-y-3">
-              <FileDropzone accept=".svg,image/svg+xml" onFile={handleSvgFile} label="Drop an SVG file or paste code below" />
+              <FileDropzone accept=".svg,image/svg+xml" onFile={handleSvgFile} label={t('image.drop_svg', 'Drop an SVG file or paste code below')} />
               <CodeEditor value={svgInput} onChange={setSvgInput} language="svg" />
               <button onClick={optimizeSvg} disabled={optimizing || !svgInput.trim()}
                 className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-                {optimizing ? 'Optimizing…' : 'Optimize SVG'}
+                {optimizing ? t('image.converting', 'Optimizing…') : t('image.optimize', 'Optimize SVG')}
               </button>
               {svgError && <ErrorAlert message={svgError} />}
             </div>
@@ -113,7 +115,7 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
               {optimized && (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-emerald-400 font-medium">Saved {savings}% ({svgInput.length - optimized.length} bytes)</span>
+                    <span className="text-sm text-emerald-400 font-medium">{t('image.optimized', 'Saved')} {savings}% ({svgInput.length - optimized.length} bytes)</span>
                     <CopyButton value={optimized} />
                   </div>
                   <CodeEditor value={optimized} onChange={() => {}} language="svg" readOnly />
@@ -123,13 +125,13 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
                   </div>
                 </>
               )}
-              {!optimized && <p className="text-sm text-muted-foreground">Optimized SVG will appear here</p>}
+              {!optimized && <p className="text-sm text-muted-foreground">{t('common.preview', 'Optimized SVG will appear here')}</p>}
             </div>
           }
         />
       ) : (
         <div className="space-y-4">
-          <FileDropzone accept="image/*" onFile={handleFaviconFile} label="Drop an image (PNG, SVG, JPG) to generate favicons" />
+          <FileDropzone accept="image/*" onFile={handleFaviconFile} label={t('image.drop_image', 'Drop an image (PNG, SVG, JPG) to generate favicons')} />
           {faviconError && <ErrorAlert message={faviconError} />}
           {faviconPreviews.length > 0 && (
             <>
@@ -149,7 +151,7 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
               {htmlSnippet && (
                 <div className="rounded-md border border-input p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground">HTML Snippet</span>
+                    <span className="text-xs text-muted-foreground">{t('common.preview', 'HTML Snippet')}</span>
                     <CopyButton value={htmlSnippet} />
                   </div>
                   <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap">{htmlSnippet}</pre>

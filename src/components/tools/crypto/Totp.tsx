@@ -5,8 +5,10 @@ import * as OTPAuth from 'otpauth'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 export default function Totp({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [secret, setSecret] = useState((initialState?.secret as string) ?? 'JBSWY3DPEHPK3PXP')
   const [code, setCode] = useState('')
   const [remaining, setRemaining] = useState(30)
@@ -29,7 +31,7 @@ export default function Totp({ onOutput, initialState }: ToolProps) {
       onOutput({ secret: '[redacted]' }, { code: current })
     } catch {
       setCode('')
-      setError('Invalid Base32 secret. Example: JBSWY3DPEHPK3PXP')
+      setError(t('crypto.totp_secret', 'Invalid Base32 secret. Example: JBSWY3DPEHPK3PXP'))
     }
   }
 
@@ -45,11 +47,11 @@ export default function Totp({ onOutput, initialState }: ToolProps) {
   return (
     <div className="max-w-md mx-auto space-y-6">
       <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Base32 Secret</label>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.totp_secret', 'Base32 Secret')}</label>
         <input value={secret} onChange={(e) => setSecret(e.target.value)}
           className="w-full font-mono text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring uppercase"
           placeholder="JBSWY3DPEHPK3PXP" spellCheck={false} />
-        <p className="text-xs text-muted-foreground mt-1">The Base32 secret from your 2FA setup (from authenticator app or QR code)</p>
+        <p className="text-xs text-muted-foreground mt-1">{t('crypto.totp_secret', 'The Base32 secret from your 2FA setup (from authenticator app or QR code)')}</p>
       </div>
       {error && <ErrorAlert message={error} />}
       {code && (
@@ -62,7 +64,7 @@ export default function Totp({ onOutput, initialState }: ToolProps) {
           </div>
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Refreshes in</span>
+              <span>{t('crypto.totp_expires', 'Refreshes in')}</span>
               <span className={`font-mono font-medium ${urgentColor}`}>{remaining}s</span>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">

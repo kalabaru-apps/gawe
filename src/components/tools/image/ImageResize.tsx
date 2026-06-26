@@ -5,8 +5,10 @@ import imageCompression from 'browser-image-compression'
 import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 export default function ImageResize({ onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [preview, setPreview] = useState<string | null>(null)
   const [originalName, setOriginalName] = useState('')
   const [origW, setOrigW] = useState(0)
@@ -88,40 +90,40 @@ export default function ImageResize({ onOutput, initialState: _initialState }: T
 
   return (
     <div className="space-y-4">
-      <FileDropzone accept="image/*" onFile={handleFile} label="Drop an image to resize" />
+      <FileDropzone accept="image/*" onFile={handleFile} label={t('image.drop_image', 'Drop an image to resize')} />
       {preview && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Width (px)</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('image.width', 'Width')} (px)</label>
                 <input type="number" min={1} value={targetW} onChange={(e) => handleWidthChange(Number(e.target.value))}
                   className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring font-mono" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Height (px)</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('image.height', 'Height')} (px)</label>
                 <input type="number" min={1} value={targetH} onChange={(e) => handleHeightChange(Number(e.target.value))}
                   className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring font-mono" />
               </div>
             </div>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={lockAspect} onChange={(e) => setLockAspect(e.target.checked)} className="rounded" />
-              Lock aspect ratio
+              {t('image.keep_ratio', 'Lock aspect ratio')}
             </label>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Max file size</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.size', 'Max file size')}</label>
               <select value={maxSizeMB} onChange={(e) => setMaxSizeMB(Number(e.target.value))}
                 className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none">
                 {[0.25, 0.5, 1, 2, 5, 10].map((v) => <option key={v} value={v}>{v < 1 ? `${v * 1000}KB` : `${v}MB`}</option>)}
               </select>
             </div>
             <div className="text-xs text-muted-foreground space-y-0.5">
-              <p>Original: {origW}×{origH} · {formatBytes(origSize)}</p>
-              <p>Output: {targetW}×{targetH} (target)</p>
+              <p>{t('common.original', 'Original')}: {origW}×{origH} · {formatBytes(origSize)}</p>
+              <p>{t('common.output_format', 'Output')}: {targetW}×{targetH} (target)</p>
             </div>
             <button onClick={resize} disabled={loading}
               className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-              {loading ? 'Resizing…' : 'Resize & Download'}
+              {loading ? t('image.converting', 'Resizing…') : `${t('image.resize', 'Resize')} & ${t('common.download', 'Download')}`}
             </button>
             {error && <ErrorAlert message={error} />}
           </div>

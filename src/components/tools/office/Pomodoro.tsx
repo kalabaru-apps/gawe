@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 type Mode = 'work' | 'short' | 'long'
 const DURATIONS: Record<Mode, number> = { work: 25 * 60, short: 5 * 60, long: 15 * 60 }
-const LABELS: Record<Mode, string> = { work: 'Focus', short: 'Short Break', long: 'Long Break' }
 
 function beep() {
   try {
@@ -27,6 +27,8 @@ function formatTime(s: number) {
 }
 
 export default function Pomodoro({ onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
+  const LABELS: Record<Mode, string> = { work: t('office.focus', 'Focus'), short: t('office.short_break', 'Short Break'), long: t('office.long_break', 'Long Break') }
   const [mode, setMode] = useState<Mode>('work')
   const [secondsLeft, setSecondsLeft] = useState(DURATIONS.work)
   const [isRunning, setIsRunning] = useState(false)
@@ -92,22 +94,22 @@ export default function Pomodoro({ onOutput, initialState: _initialState }: Tool
       <div className="flex gap-3">
         <button onClick={() => setIsRunning((r) => !r)}
           className="px-8 py-3 rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
-          {isRunning ? 'Pause' : 'Start'}
+          {isRunning ? t('common.pause', 'Pause') : t('common.start', 'Start')}
         </button>
         <button onClick={() => { setSecondsLeft(DURATIONS[mode]); setIsRunning(false) }}
           className="px-6 py-3 rounded-full border border-input hover:bg-muted/50 transition-colors text-sm">
-          Reset
+          {t('office.timer_reset', 'Reset')}
         </button>
       </div>
       {completed > 0 && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Completed today:</span>
+          <span>{t('office.completed_today', 'Completed today')}:</span>
           <div className="flex gap-1">
             {Array.from({ length: completed }).map((_, i) => (
               <span key={i} className="w-3 h-3 rounded-full bg-primary" />
             ))}
           </div>
-          <span className="font-medium text-foreground">{completed} pomodoro{completed !== 1 ? 's' : ''}</span>
+          <span className="font-medium text-foreground">{completed} {completed !== 1 ? t('office.pomodoros', 'pomodoros') : t('office.pomodoro', 'pomodoro')}</span>
         </div>
       )}
     </div>

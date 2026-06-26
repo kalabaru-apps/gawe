@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 type EncodeType = 'url' | 'html'
 
@@ -26,6 +27,7 @@ function decodeHtml(str: string): string {
 }
 
 export default function UrlHtmlEncode({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [type, setType] = useState<EncodeType>((initialState?.type as EncodeType) ?? 'url')
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [output, setOutput] = useState('')
@@ -64,16 +66,16 @@ export default function UrlHtmlEncode({ onOutput, initialState }: ToolProps) {
             <TabsTrigger value="html">HTML entities</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button size="sm" onClick={encode}>Encode →</Button>
-        <Button size="sm" variant="outline" onClick={decode}>← Decode</Button>
+        <Button size="sm" onClick={encode}>{t('common.encode', 'Encode →')}</Button>
+        <Button size="sm" variant="outline" onClick={decode}>{t('common.decode', '← Decode')}</Button>
       </div>
       {error && <ErrorAlert message={error} />}
       <ToolPanel
-        left={<CodeEditor value={input} onChange={setInput} language="Input" rows={12} placeholder={type === 'url' ? 'https://example.com/search?q=hello world' : '<p>Hello & "world"</p>'} />}
+        left={<CodeEditor value={input} onChange={setInput} language={t('action.input', 'Input')} rows={12} placeholder={type === 'url' ? 'https://example.com/search?q=hello world' : '<p>Hello & "world"</p>'} />}
         right={
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Output</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
               <CopyButton value={output} />
             </div>
             <CodeEditor value={output} onChange={() => {}} readOnly rows={12} />

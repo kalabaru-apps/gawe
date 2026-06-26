@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 const STOP_WORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'was', 'are', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'it', 'its', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'we', 'they'])
 
 export default function WordCounter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [text, setText] = useState((initialState?.text as string) ?? '')
 
   const stats = useMemo(() => {
@@ -32,24 +34,24 @@ export default function WordCounter({ onOutput, initialState }: ToolProps) {
   }, [stats.wordCount, stats.charCount])
 
   const STAT_ROWS = [
-    { label: 'Words', value: stats.wordCount.toLocaleString() },
-    { label: 'Characters', value: stats.charCount.toLocaleString() },
-    { label: 'Characters (no spaces)', value: stats.charNoSpace.toLocaleString() },
-    { label: 'Sentences', value: stats.sentences.toLocaleString() },
-    { label: 'Paragraphs', value: stats.paragraphs.toLocaleString() },
-    { label: 'Reading time', value: `~${stats.readMin} min` },
-    { label: 'Speaking time', value: `~${stats.speakMin} min` },
+    { label: t('office.words', 'Words'), value: stats.wordCount.toLocaleString() },
+    { label: t('office.characters', 'Characters'), value: stats.charCount.toLocaleString() },
+    { label: t('office.chars_no_spaces', 'Characters (no spaces)'), value: stats.charNoSpace.toLocaleString() },
+    { label: t('office.sentences', 'Sentences'), value: stats.sentences.toLocaleString() },
+    { label: t('office.paragraphs', 'Paragraphs'), value: stats.paragraphs.toLocaleString() },
+    { label: t('office.reading_time', 'Reading time'), value: `~${stats.readMin} min` },
+    { label: t('office.speaking_time', 'Speaking time'), value: `~${stats.speakMin} min` },
   ]
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Text</label>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.text', 'Text')}</label>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="w-full min-h-[400px] text-sm border border-input rounded-md p-3 bg-background resize-y outline-none focus:ring-1 focus:ring-ring leading-relaxed"
-          placeholder="Paste or type your text here..."
+          placeholder={t('office.paste_text', 'Paste or type your text here...')}
         />
       </div>
       <div className="space-y-4">
@@ -63,7 +65,7 @@ export default function WordCounter({ onOutput, initialState }: ToolProps) {
         </div>
         {stats.topWords.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Top Words</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t('office.top_words', 'Top Words')}</p>
             <div className="space-y-1">
               {stats.topWords.map(([word, count]) => (
                 <div key={word} className="flex items-center gap-2">

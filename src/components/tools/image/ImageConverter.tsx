@@ -4,11 +4,13 @@ import { useState, useCallback, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 type Format = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/avif'
 const FORMAT_EXT: Record<Format, string> = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/avif': '.avif' }
 
 export default function ImageConverter({ onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [preview, setPreview] = useState<string | null>(null)
   const [originalName, setOriginalName] = useState('')
   const [originalSize, setOriginalSize] = useState(0)
@@ -26,7 +28,7 @@ export default function ImageConverter({ onOutput, initialState: _initialState }
     const url = URL.createObjectURL(file)
     const img = new Image()
     img.onload = () => { imgRef.current = img; setPreview(url) }
-    img.onerror = () => setError('Failed to load image')
+    img.onerror = () => setError(t('image.failed_load', 'Failed to load image'))
     img.src = url
   }, [])
 
@@ -40,7 +42,7 @@ export default function ImageConverter({ onOutput, initialState: _initialState }
     canvas.height = img.naturalHeight
     canvas.getContext('2d')!.drawImage(img, 0, 0)
     canvas.toBlob((blob) => {
-      if (!blob) { setError('Conversion failed'); setLoading(false); return }
+      if (!blob) { setError(t('image.failed_convert', 'Conversion failed')); setLoading(false); return }
       setOutputSize(blob.size)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -68,13 +70,13 @@ export default function ImageConverter({ onOutput, initialState: _initialState }
 
   return (
     <div className="space-y-4">
-      <FileDropzone accept="image/*" onFile={handleFile} label="Drop an image to convert" />
+      <FileDropzone accept="image/*" onFile={handleFile} label={t('image.drop_image', 'Drop an image to convert')} />
       {preview && (
         <>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">Output Format</label>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('common.output_format', 'Output Format')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {FORMATS.map((f) => (
                     <button key={f.value} onClick={() => setOutputFormat(f.value)}
@@ -87,7 +89,7 @@ export default function ImageConverter({ onOutput, initialState: _initialState }
               {outputFormat !== 'image/png' && (
                 <div>
                   <div className="flex justify-between mb-1">
-                    <label className="text-xs font-medium text-muted-foreground">Quality</label>
+                    <label className="text-xs font-medium text-muted-foreground">{t('common.quality', 'Quality')}</label>
                     <span className="text-xs font-mono text-muted-foreground">{quality}%</span>
                   </div>
                   <input type="range" min={1} max={100} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="w-full" />
@@ -95,18 +97,18 @@ export default function ImageConverter({ onOutput, initialState: _initialState }
               )}
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Original size</span>
+                  <span className="text-muted-foreground">{t('common.original_size', 'Original size')}</span>
                   <span className="font-mono">{formatBytes(originalSize)}</span>
                 </div>
                 {outputSize !== null && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Output size</span>
+                    <span className="text-muted-foreground">{t('common.output_size', 'Output size')}</span>
                     <span className="font-mono">{formatBytes(outputSize)}</span>
                   </div>
                 )}
                 {outputSize !== null && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Saved</span>
+                    <span className="text-muted-foreground">{t('common.saved', 'Saved')}</span>
                     <span className={`font-mono ${outputSize < originalSize ? 'text-emerald-400' : 'text-amber-400'}`}>
                       {outputSize < originalSize ? '-' : '+'}{Math.abs(Math.round((1 - outputSize / originalSize) * 100))}%
                     </span>
@@ -115,7 +117,7 @@ export default function ImageConverter({ onOutput, initialState: _initialState }
               </div>
               <button onClick={convert} disabled={loading}
                 className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-                {loading ? 'Converting…' : `Convert to ${FORMATS.find((f) => f.value === outputFormat)?.label}`}
+                {loading ? t('image.converting', 'Converting…') : `${t('common.convert', 'Convert to')} ${FORMATS.find((f) => f.value === outputFormat)?.label}`}
               </button>
             </div>
             <div className="border border-input rounded-md overflow-hidden">

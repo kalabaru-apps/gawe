@@ -4,10 +4,12 @@ import { useState, useCallback } from 'react'
 import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 type Tab = 'pdf-to-img' | 'img-to-pdf'
 
 export default function PdfImageConverter({ onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('pdf-to-img')
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState('')
@@ -111,25 +113,25 @@ export default function PdfImageConverter({ onOutput, initialState: _initialStat
   return (
     <div className="space-y-4">
       <div className="flex gap-1 border border-input rounded-md p-0.5 w-fit">
-        {(['pdf-to-img', 'img-to-pdf'] as Tab[]).map((t) => (
-          <button key={t} onClick={() => { setTab(t); setPreviews([]); setImages([]); setError(null) }}
-            className={`px-4 py-1.5 rounded text-sm transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-            {t === 'pdf-to-img' ? 'PDF → Images' : 'Images → PDF'}
+        {(['pdf-to-img', 'img-to-pdf'] as Tab[]).map((tabKey) => (
+          <button key={tabKey} onClick={() => { setTab(tabKey); setPreviews([]); setImages([]); setError(null) }}
+            className={`px-4 py-1.5 rounded text-sm transition-colors ${tab === tabKey ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
+            {tabKey === 'pdf-to-img' ? 'PDF → Images' : 'Images → PDF'}
           </button>
         ))}
       </div>
       {tab === 'pdf-to-img' ? (
         <div className="space-y-4">
-          <FileDropzone accept="application/pdf" onFile={handlePdf} label="Drop a PDF to convert to images" />
-          {loading && <p className="text-sm text-muted-foreground">{progress || 'Processing…'}</p>}
+          <FileDropzone accept="application/pdf" onFile={handlePdf} label={t('image.drop_pdf', 'Drop a PDF to convert to images')} />
+          {loading && <p className="text-sm text-muted-foreground">{progress || t('common.processing', 'Processing…')}</p>}
           {error && <ErrorAlert message={error} />}
           {previews.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-muted-foreground">{previews.length} pages rendered</p>
+                <p className="text-sm text-muted-foreground">{previews.length} {t('image.pdf_pages', 'pages rendered')}</p>
                 <button onClick={() => previews.forEach((url, i) => downloadPage(url, i))}
                   className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors">
-                  Download All
+                  {t('image.download_all', 'Download All')}
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -150,7 +152,7 @@ export default function PdfImageConverter({ onOutput, initialState: _initialStat
         </div>
       ) : (
         <div className="space-y-4">
-          <FileDropzone accept="image/*" onFile={handleImage} label="Drop images to combine into a PDF" />
+          <FileDropzone accept="image/*" onFile={handleImage} label={t('common.drop_files', 'Drop images to combine into a PDF')} />
           {images.length > 0 && (
             <div className="space-y-2">
               {images.map((f, i) => (
@@ -161,7 +163,7 @@ export default function PdfImageConverter({ onOutput, initialState: _initialStat
               ))}
               <button onClick={imagesToPdf} disabled={loading}
                 className="px-6 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">
-                {loading ? 'Creating PDF…' : `Create PDF (${images.length} images)`}
+                {loading ? t('image.converting', 'Creating PDF…') : `${t('common.convert', 'Create PDF')} (${images.length} images)`}
               </button>
             </div>
           )}

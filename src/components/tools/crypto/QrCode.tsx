@@ -6,6 +6,7 @@ import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 type Tab = 'generate' | 'read'
 type DotShape = 'square' | 'dots' | 'rounded' | 'classy' | 'classy-rounded' | 'extra-rounded'
@@ -100,6 +101,7 @@ function ShapeSelect<T extends string>({
 
 // ─── main component ────────────────────────────────────────────────────────────
 export default function QrCode({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('generate')
   const [input, setInput] = useState((initialState?.input as string) ?? 'https://example.com')
   const [opts, setOpts] = useState<QrOptions>(DEFAULT_OPTS)
@@ -199,10 +201,10 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
     <div className="space-y-4">
       {/* Tabs */}
       <div className="flex gap-1 border border-input rounded-md p-0.5 w-fit">
-        {(['generate', 'read'] as Tab[]).map((t) => (
-          <button key={t} onClick={() => { setTab(t); setDecoded(''); setReadError(null) }}
-            className={`px-4 py-1.5 rounded text-sm capitalize transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-            {t === 'generate' ? 'Generate QR' : 'Read QR'}
+        {(['generate', 'read'] as Tab[]).map((tabOpt) => (
+          <button key={tabOpt} onClick={() => { setTab(tabOpt); setDecoded(''); setReadError(null) }}
+            className={`px-4 py-1.5 rounded text-sm capitalize transition-colors ${tab === tabOpt ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
+            {tabOpt === 'generate' ? t('crypto.uuid_generate', 'Generate QR') : t('action.input', 'Read QR')}
           </button>
         ))}
       </div>
@@ -213,7 +215,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
           <div className="space-y-5">
             {/* Content */}
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Content</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.qr_content', 'Content')}</label>
               <textarea value={input} onChange={e => setInput(e.target.value)}
                 className="w-full min-h-[80px] text-sm border border-input rounded-md p-3 bg-background resize-y outline-none focus:ring-1 focus:ring-ring"
                 placeholder="https://example.com" spellCheck={false} />
@@ -221,7 +223,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
 
             {/* Dot style */}
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Module shape</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t('common.mode', 'Module shape')}</label>
               <ShapeSelect options={DOT_SHAPES} value={opts.dotShape} onChange={v => set('dotShape', v)} />
             </div>
 
@@ -239,7 +241,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
 
             {/* Colors */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground block">Colors</label>
+              <label className="text-xs font-medium text-muted-foreground block">{t('common.options', 'Colors')}</label>
               <ColorInput label="Modules" value={opts.dotColor} onChange={v => set('dotColor', v)} />
               <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                 <span className="w-24 shrink-0">Background</span>
@@ -270,7 +272,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
 
             {/* Logo */}
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Logo (optional)</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t('common.options', 'Logo (optional)')}</label>
               {opts.logoDataUrl ? (
                 <div className="flex items-center gap-3">
                   <img src={opts.logoDataUrl} alt="logo" className="h-10 w-10 object-contain rounded border border-input" />
@@ -282,7 +284,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
                   </div>
                   <button onClick={() => set('logoDataUrl', '')}
                     className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded border border-rose-400/30">
-                    Remove
+                    {t('action.remove', 'Remove')}
                   </button>
                 </div>
               ) : (
@@ -296,13 +298,13 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
             {/* Settings row */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Size (px)</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.qr_size', 'Size')} (px)</label>
                 <input type="number" value={opts.size} min={100} max={1000} step={50}
                   onChange={e => set('size', +e.target.value)}
                   className="w-full text-sm border border-input rounded-md px-3 py-1.5 bg-background outline-none focus:ring-1 focus:ring-ring" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Margin</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.size', 'Margin')}</label>
                 <input type="number" value={opts.margin} min={0} max={10}
                   onChange={e => set('margin', +e.target.value)}
                   className="w-full text-sm border border-input rounded-md px-3 py-1.5 bg-background outline-none focus:ring-1 focus:ring-ring" />

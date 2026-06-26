@@ -7,6 +7,7 @@ import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import { FileDropzone } from '@/components/tools/shared/FileDropzone'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 function isHeic(buf: ArrayBuffer): boolean {
   // ISOBMFF: bytes 4–7 are 'ftyp', bytes 8–11 identify the brand
@@ -58,6 +59,7 @@ interface FileInfo {
 }
 
 export default function ExifRemover({ onOutput }: ToolProps) {
+  const { t } = useTranslation()
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null)
   const [outputFormat, setOutputFormat] = useState<'jpeg' | 'png'>('jpeg')
   const [quality, setQuality] = useState(0.9)
@@ -151,7 +153,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
             <FileDropzone
               onFile={(f) => handleFiles([f])}
               accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
-              label="Drop a JPEG, PNG, or HEIC/HEIF image here"
+              label={t('image.drop_image', 'Drop a JPEG, PNG, or HEIC/HEIF image here')}
             />
             {fileInfo && (
               <div className="flex flex-col gap-3">
@@ -160,9 +162,9 @@ export default function ExifRemover({ onOutput }: ToolProps) {
                   <div className="text-muted-foreground">{formatBytes(fileInfo.file.size)} · {fileInfo.width}×{fileInfo.height}px</div>
                 </div>
                 <div className="rounded-lg border border-border p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Detected metadata</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('image.exif_removed', 'Detected metadata')}</div>
                   {fileInfo.exifTags.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">No EXIF metadata detected</div>
+                    <div className="text-sm text-muted-foreground">{t('image.no_exif', 'No EXIF metadata detected')}</div>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
                       {fileInfo.exifTags.map((tag) => (

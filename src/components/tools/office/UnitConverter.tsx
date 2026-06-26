@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
+import { useTranslation } from '@/lib/i18n'
 
 interface Unit {
   label: string
@@ -74,6 +75,7 @@ function formatNum(n: number): string {
 }
 
 export default function UnitConverter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [category, setCategory] = useState((initialState?.category as string) ?? 'length')
   const [fromUnit, setFromUnit] = useState(() => {
     const cat = initialState?.category as string ?? 'length'
@@ -137,7 +139,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              Value
+              {t('office.unit_value', 'Value')}
             </label>
             <input
               type="number"
@@ -148,7 +150,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              From Unit
+              {t('office.unit_from', 'From Unit')}
             </label>
             <select
               value={fromUnit}

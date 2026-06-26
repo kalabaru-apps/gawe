@@ -6,6 +6,7 @@ import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 interface ColorOutput {
   label: string
@@ -13,6 +14,7 @@ interface ColorOutput {
 }
 
 export default function ColorConverter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '#3b82f6')
   const [pickerValue, setPickerValue] = useState('#3b82f6')
   const [outputs, setOutputs] = useState<ColorOutput[]>([])
@@ -67,7 +69,7 @@ export default function ColorConverter({ onOutput, initialState }: ToolProps) {
             style={{ backgroundColor: swatchBg }}
           />
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Color Value</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.color_input', 'Color Value')}</label>
             <div className="flex gap-2">
               <input
                 type="color"
@@ -120,7 +122,7 @@ export default function ColorConverter({ onOutput, initialState }: ToolProps) {
             </div>
           )}
           {outputs.length === 0 && !error && (
-            <p className="text-sm text-muted-foreground">Enter a color value to convert it across all formats</p>
+            <p className="text-sm text-muted-foreground">{t('dev.color_input', 'Enter a color value to convert it across all formats')}</p>
           )}
         </div>
       }

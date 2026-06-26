@@ -5,10 +5,12 @@ import Papa from 'papaparse'
 import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 type Tab = 'paste' | 'upload' | 'table'
 
 export default function CsvEditor({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('paste')
   const [rawCsv, setRawCsv] = useState((initialState?.rawCsv as string) ?? '')
   const [data, setData] = useState<string[][]>([])
@@ -67,18 +69,18 @@ export default function CsvEditor({ onOutput, initialState }: ToolProps) {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <div className="flex gap-1 border border-input rounded-md p-0.5">
-          {(['paste', 'upload', 'table'] as Tab[]).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-3 py-1.5 rounded text-sm capitalize transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-              {t === 'paste' ? 'Paste CSV' : t === 'upload' ? 'Upload' : `Table ${data.length > 0 ? `(${data.length}×${data[0]?.length ?? 0})` : ''}`}
+          {(['paste', 'upload', 'table'] as Tab[]).map((tabItem) => (
+            <button key={tabItem} onClick={() => setTab(tabItem)}
+              className={`px-3 py-1.5 rounded text-sm capitalize transition-colors ${tab === tabItem ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
+              {tabItem === 'paste' ? t('office.paste_text', 'Paste CSV') : tabItem === 'upload' ? t('common.upload', 'Upload') : `${t('common.preview', 'Table')} ${data.length > 0 ? `(${data.length}×${data[0]?.length ?? 0})` : ''}`}
             </button>
           ))}
         </div>
         {data.length > 0 && (
           <div className="ml-auto flex gap-2">
-            <button onClick={addRow} className="px-3 py-1.5 rounded-md border border-input text-xs hover:bg-muted/50 transition-colors">+ Row</button>
-            <button onClick={addCol} className="px-3 py-1.5 rounded-md border border-input text-xs hover:bg-muted/50 transition-colors">+ Col</button>
-            <button onClick={downloadCsv} className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors">Export CSV</button>
+            <button onClick={addRow} className="px-3 py-1.5 rounded-md border border-input text-xs hover:bg-muted/50 transition-colors">+ {t('office.csv_add_row', 'Row')}</button>
+            <button onClick={addCol} className="px-3 py-1.5 rounded-md border border-input text-xs hover:bg-muted/50 transition-colors">+ {t('office.csv_add_col', 'Col')}</button>
+            <button onClick={downloadCsv} className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors">{t('action.export', 'Export')} CSV</button>
           </div>
         )}
       </div>
@@ -90,7 +92,7 @@ export default function CsvEditor({ onOutput, initialState }: ToolProps) {
             placeholder="name,email,age&#10;Alice,alice@example.com,30&#10;Bob,bob@example.com,25" spellCheck={false} />
           <button onClick={() => parseCsv(rawCsv)} disabled={!rawCsv.trim()}
             className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">
-            Parse CSV
+            {t('action.import', 'Parse')} CSV
           </button>
         </div>
       )}
@@ -119,7 +121,7 @@ export default function CsvEditor({ onOutput, initialState }: ToolProps) {
             </table>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Paste or upload a CSV to start editing</p>
+          <p className="text-sm text-muted-foreground">{t('office.paste_text', 'Paste')} or {t('common.upload', 'upload')} a CSV to start editing</p>
         )
       )}
     </div>

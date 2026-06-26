@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 type Language = 'javascript' | 'css' | 'html' | 'sql'
 const LANGUAGES: Language[] = ['javascript', 'css', 'html', 'sql']
@@ -47,6 +48,7 @@ function minify(code: string, lang: Language): string {
 }
 
 export default function CodeBeautifier({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [lang, setLang] = useState<Language>((initialState?.lang as Language) ?? 'javascript')
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [output, setOutput] = useState('')
@@ -95,9 +97,9 @@ export default function CodeBeautifier({ onOutput, initialState }: ToolProps) {
           ))}
         </div>
         <Button size="sm" onClick={handleBeautify} disabled={loading}>
-          {loading ? 'Formatting…' : 'Beautify'}
+          {loading ? t('common.format', 'Formatting…') : t('common.format', 'Beautify')}
         </Button>
-        <Button size="sm" variant="outline" onClick={handleMinify}>Minify</Button>
+        <Button size="sm" variant="outline" onClick={handleMinify}>{t('common.minify', 'Minify')}</Button>
       </div>
       {error && <ErrorAlert message={error} />}
       <ToolPanel
@@ -105,7 +107,7 @@ export default function CodeBeautifier({ onOutput, initialState }: ToolProps) {
         right={
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Output</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
               <CopyButton value={output} />
             </div>
             <CodeEditor value={output} onChange={() => {}} readOnly rows={16} />

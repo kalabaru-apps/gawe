@@ -6,6 +6,7 @@ import { ToolPanel } from '@/components/tools/shared/ToolPanel'
 import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 type Operation = 'sort-asc' | 'sort-desc' | 'dedupe' | 'reverse' | 'trim' | 'remove-empty' | 'shuffle'
 
@@ -39,6 +40,7 @@ function applyOperation(lines: string[], op: Operation): string[] {
 }
 
 export default function LineTools({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [output, setOutput] = useState('')
 
@@ -66,7 +68,7 @@ export default function LineTools({ onOutput, initialState }: ToolProps) {
         left={
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Input</span>
+              <span>{t('action.input', 'Input')}</span>
               <span>{inputLines} lines</span>
             </div>
             <CodeEditor value={input} onChange={setInput} rows={16} placeholder={'line 1\nline 2\nline 3'} />
@@ -78,7 +80,7 @@ export default function LineTools({ onOutput, initialState }: ToolProps) {
               <span>{outputLines} lines</span>
               <CopyButton value={output} />
             </div>
-            <CodeEditor value={output} onChange={() => {}} readOnly rows={16} placeholder="Result appears here…" />
+            <CodeEditor value={output} onChange={() => {}} readOnly rows={16} placeholder={t('action.result', 'Result appears here…')} />
           </div>
         }
       />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
@@ -15,6 +16,7 @@ const SAMPLE = `flowchart TD
     E --> B`
 
 export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? SAMPLE)
   const [svg, setSvg] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +50,7 @@ export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
     <ToolPanel
       left={
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground block">Diagram Definition</label>
+          <label className="text-xs font-medium text-muted-foreground block">{t('visual.mermaid_code', 'Diagram Definition')}</label>
           <CodeEditor value={input} onChange={setInput} language="mermaid" />
           {error && <ErrorAlert message={error} />}
         </div>
@@ -62,7 +64,7 @@ export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
             {svg ? (
               <div dangerouslySetInnerHTML={{ __html: svg }} className="max-w-full" />
             ) : (
-              <p className="text-sm text-muted-foreground">Diagram will render here</p>
+              <p className="text-sm text-muted-foreground">{t('visual.mermaid_preview', 'Diagram will render here')}</p>
             )}
           </div>
         </div>

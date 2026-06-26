@@ -6,10 +6,12 @@ import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 type Mode = 'hash' | 'verify'
 
 export default function Bcrypt({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<Mode>((initialState?.mode as Mode) ?? 'hash')
   const [password, setPassword] = useState('')
   const [rounds, setRounds] = useState(12)
@@ -58,27 +60,27 @@ export default function Bcrypt({ onOutput, initialState }: ToolProps) {
             {(['hash', 'verify'] as Mode[]).map((m) => (
               <button key={m} onClick={() => { setMode(m); setResult(''); setMatch(null); setError(null) }}
                 className={`flex-1 py-2 rounded-md text-sm border capitalize transition-colors ${mode === m ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'}`}>
-                {m === 'hash' ? 'Hash Password' : 'Verify Password'}
+                {m === 'hash' ? t('crypto.bcrypt_hash', 'Hash Password') : t('crypto.bcrypt_verify', 'Verify Password')}
               </button>
             ))}
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Password</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.passphrase', 'Password')}</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
               className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-              placeholder="Enter password..." />
+              placeholder={t('crypto.passphrase', 'Enter password...')} />
           </div>
           {mode === 'hash' ? (
             <div>
               <div className="flex justify-between mb-1">
-                <label className="text-xs font-medium text-muted-foreground">Cost Rounds</label>
+                <label className="text-xs font-medium text-muted-foreground">{t('crypto.bcrypt_rounds', 'Cost Rounds')}</label>
                 <span className="text-xs font-mono text-muted-foreground">{rounds} (~{Math.round(2 ** rounds / 1000)}ms)</span>
               </div>
               <input type="range" min={8} max={14} value={rounds} onChange={(e) => setRounds(Number(e.target.value))} className="w-full" />
             </div>
           ) : (
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Bcrypt Hash</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.bcrypt_hash', 'Bcrypt Hash')}</label>
               <input value={hashInput} onChange={(e) => setHashInput(e.target.value)}
                 className="w-full font-mono text-xs border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
                 placeholder="$2b$12$..." spellCheck={false} />
@@ -86,7 +88,7 @@ export default function Bcrypt({ onOutput, initialState }: ToolProps) {
           )}
           <button onClick={mode === 'hash' ? handleHash : handleVerify} disabled={loading || !password}
             className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-            {loading ? 'Computing…' : mode === 'hash' ? 'Generate Hash' : 'Verify'}
+            {loading ? t('action.result', 'Computing…') : mode === 'hash' ? t('action.generate', 'Generate Hash') : t('crypto.bcrypt_verify', 'Verify')}
           </button>
           {error && <ErrorAlert message={error} />}
         </div>
@@ -96,7 +98,7 @@ export default function Bcrypt({ onOutput, initialState }: ToolProps) {
           {mode === 'hash' && result && (
             <div className="rounded-md border border-input p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">Bcrypt Hash</span>
+                <span className="text-xs text-muted-foreground">{t('crypto.bcrypt_hash', 'Bcrypt Hash')}</span>
                 <CopyButton value={result} />
               </div>
               <p className="font-mono text-xs break-all">{result}</p>
@@ -105,22 +107,22 @@ export default function Bcrypt({ onOutput, initialState }: ToolProps) {
           {mode === 'verify' && match !== null && (
             <div className={`rounded-md border p-6 text-center ${match ? 'border-emerald-500 bg-emerald-500/10' : 'border-rose-500 bg-rose-500/10'}`}>
               <p className={`text-2xl font-bold mb-1 ${match ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {match ? '✓ Match' : '✗ No Match'}
+                {match ? `✓ ${t('crypto.bcrypt_match', 'Match')}` : `✗ ${t('crypto.bcrypt_no_match', 'No Match')}`}
               </p>
               <p className="text-sm text-muted-foreground">
-                {match ? 'The password matches the hash' : 'The password does not match the hash'}
+                {match ? t('crypto.bcrypt_match', 'The password matches the hash') : t('crypto.bcrypt_no_match', 'The password does not match the hash')}
               </p>
             </div>
           )}
           {!result && match === null && !loading && (
             <p className="text-sm text-muted-foreground">
-              {mode === 'hash' ? 'Enter a password and click Generate Hash' : 'Enter a password and hash to verify'}
+              {mode === 'hash' ? t('crypto.empty_prompt', 'Enter a password and click Generate Hash') : t('crypto.bcrypt_verify', 'Enter a password and hash to verify')}
             </p>
           )}
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Computing bcrypt hash (this takes a moment)…
+              {t('crypto.bcrypt_hash', 'Computing bcrypt hash (this takes a moment)…')}
             </div>
           )}
         </div>

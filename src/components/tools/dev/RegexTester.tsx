@@ -5,10 +5,12 @@ import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
 
 const FLAG_OPTIONS = ['g', 'i', 'm', 's', 'u'] as const
 
 export default function RegexTester({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [pattern, setPattern] = useState((initialState?.pattern as string) ?? '')
   const [flags, setFlags] = useState((initialState?.flags as string) ?? 'g')
   const [testString, setTestString] = useState((initialState?.testString as string) ?? '')
@@ -59,7 +61,7 @@ export default function RegexTester({ onOutput, initialState }: ToolProps) {
       left={
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Pattern</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.pattern', 'Pattern')}</label>
             <div className="flex items-center gap-1 border border-input rounded-md px-3 py-2 bg-background font-mono text-sm focus-within:ring-1 focus-within:ring-ring">
               <span className="text-muted-foreground select-none">/</span>
               <input
@@ -93,15 +95,15 @@ export default function RegexTester({ onOutput, initialState }: ToolProps) {
                 {f}
               </button>
             ))}
-            <span className="text-xs text-muted-foreground self-center ml-1">flags</span>
+            <span className="text-xs text-muted-foreground self-center ml-1">{t('dev.flags', 'flags')}</span>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Test String</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.test_string', 'Test String')}</label>
             <textarea
               value={testString}
               onChange={(e) => setTestString(e.target.value)}
               className="w-full min-h-[200px] font-mono text-sm border border-input rounded-md p-3 bg-background resize-y outline-none focus:ring-1 focus:ring-ring"
-              placeholder="Enter text to test against the pattern..."
+              placeholder={t('dev.test_placeholder', 'Enter text to test against the pattern...')}
               spellCheck={false}
             />
           </div>
@@ -112,7 +114,7 @@ export default function RegexTester({ onOutput, initialState }: ToolProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">
-              {matches.length} match{matches.length !== 1 ? 'es' : ''}
+              {matches.length} {matches.length !== 1 ? t('dev.matches', 'matches') : t('dev.match', 'match')}
             </span>
             <CopyButton value={matches.join('\n')} />
           </div>
@@ -121,12 +123,12 @@ export default function RegexTester({ onOutput, initialState }: ToolProps) {
             dangerouslySetInnerHTML={{
               __html:
                 highlighted ||
-                '<span class="text-muted-foreground">Enter a pattern and test string : matches will be highlighted here</span>',
+                `<span class="text-muted-foreground">${t('dev.match_prompt', 'Enter a pattern and test string : matches will be highlighted here')}</span>`,
             }}
           />
           {matches.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Captures (first 20)</p>
+              <p className="text-xs font-medium text-muted-foreground">{t('dev.captures', 'Captures')} (first 20)</p>
               <div className="space-y-1 max-h-48 overflow-auto">
                 {matches.slice(0, 20).map((m, i) => (
                   <div key={i} className="font-mono text-xs bg-muted/50 rounded px-2 py-1 flex gap-2">

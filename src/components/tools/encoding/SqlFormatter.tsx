@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 type Dialect = 'sql' | 'mysql' | 'postgresql' | 'sqlite' | 'tsql' | 'plsql'
 
@@ -29,6 +30,7 @@ function minifySql(sql: string): string {
 }
 
 export default function SqlFormatter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [output, setOutput] = useState('')
   const [dialect, setDialect] = useState<Dialect>((initialState?.dialect as Dialect) ?? 'sql')
@@ -87,10 +89,10 @@ export default function SqlFormatter({ onOutput, initialState }: ToolProps) {
           ))}
         </select>
         <Button size="sm" onClick={handleFormat} disabled={!input.trim()}>
-          Format
+          {t('common.format', 'Format')}
         </Button>
         <Button size="sm" variant="outline" onClick={handleMinify} disabled={!input.trim()}>
-          Minify
+          {t('common.minify', 'Minify')}
         </Button>
       </div>
 
@@ -100,7 +102,7 @@ export default function SqlFormatter({ onOutput, initialState }: ToolProps) {
         left={
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Input SQL</span>
+              <span>{t('encoding.json_input', 'Input SQL')}</span>
               <span>{inputLines} lines</span>
             </div>
             <CodeEditor
@@ -108,7 +110,7 @@ export default function SqlFormatter({ onOutput, initialState }: ToolProps) {
               onChange={setInput}
               language="sql"
               rows={18}
-              placeholder="Paste your SQL here…"
+              placeholder={t('common.input_placeholder', 'Paste your SQL here…')}
             />
           </div>
         }
@@ -124,7 +126,7 @@ export default function SqlFormatter({ onOutput, initialState }: ToolProps) {
               language="sql"
               rows={18}
               readOnly
-              placeholder="Formatted SQL appears here…"
+              placeholder={t('encoding.formatted', 'Formatted SQL appears here…')}
             />
           </div>
         }

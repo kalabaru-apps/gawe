@@ -306,7 +306,7 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: 'markdown-converter',
-    name: 'Markdown Converter',
+    name: 'Markdown ↔ HTML',
     category: 'dev',
     description: 'Convert Markdown to HTML and back with live preview',
     icon: 'FileText',

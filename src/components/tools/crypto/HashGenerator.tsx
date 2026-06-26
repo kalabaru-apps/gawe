@@ -5,6 +5,7 @@ import CryptoJS from 'crypto-js'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
+import { useTranslation } from '@/lib/i18n'
 
 interface HashRow {
   label: string
@@ -12,6 +13,7 @@ interface HashRow {
 }
 
 export default function HashGenerator({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [hmacKey, setHmacKey] = useState((initialState?.hmacKey as string) ?? '')
   const [uppercase, setUppercase] = useState(false)
@@ -39,28 +41,28 @@ export default function HashGenerator({ onOutput, initialState }: ToolProps) {
       left={
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Input Text</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.input_text', 'Input Text')}</label>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="w-full min-h-[120px] font-mono text-sm border border-input rounded-md p-3 bg-background resize-y outline-none focus:ring-1 focus:ring-ring"
-              placeholder="Enter text to hash..."
+              placeholder={t('crypto.input_placeholder', 'Enter text to hash...')}
               spellCheck={false}
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">HMAC Key (optional)</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.hmac_key', 'HMAC Key (optional)')}</label>
             <input
               value={hmacKey}
               onChange={(e) => setHmacKey(e.target.value)}
               className="w-full font-mono text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-              placeholder="Secret key for HMAC..."
+              placeholder={t('crypto.hmac_placeholder', 'Secret key for HMAC...')}
               spellCheck={false}
             />
           </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={uppercase} onChange={(e) => setUppercase(e.target.checked)} className="rounded" />
-            Uppercase output
+            {t('crypto.uppercase_output', 'Uppercase output')}
           </label>
         </div>
       }
@@ -77,7 +79,7 @@ export default function HashGenerator({ onOutput, initialState }: ToolProps) {
               </div>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">Enter text to compute hashes</p>
+            <p className="text-sm text-muted-foreground">{t('crypto.empty_prompt', 'Enter text to compute hashes')}</p>
           )}
         </div>
       }
