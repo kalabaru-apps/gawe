@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
@@ -35,6 +36,7 @@ export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
         const { svg: renderedSvg } = await mermaid.render(id, input.trim())
         setSvg(renderedSvg)
         setError(null)
+        analytics.buttonClick('mermaid', 'render')
         onOutput({ definition: input }, { rendered: true })
       } catch (e) {
         setError((e as Error).message)

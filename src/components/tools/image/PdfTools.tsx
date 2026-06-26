@@ -5,6 +5,7 @@ import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Tab = 'merge' | 'split' | 'rotate'
 
@@ -196,7 +197,7 @@ export default function PdfTools({ onOutput, initialState: _initialState }: Tool
       )}
       {error && <ErrorAlert message={error} />}
       <button
-        onClick={tab === 'merge' ? merge : tab === 'split' ? split : rotate}
+        onClick={() => { analytics.buttonClick('pdf-tools', tab); void (tab === 'merge' ? merge() : tab === 'split' ? split() : rotate()) }}
         disabled={loading || (tab === 'merge' ? files.length < 2 : files.length === 0)}
         className="px-6 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
         {loading ? t('common.processing', 'Processing…') : tab === 'merge' ? `${t('image.merge', 'Merge')} ${files.length} PDFs` : tab === 'split' ? t('image.extract', 'Extract Pages') : `${t('image.rotate', 'Rotate')} & ${t('common.download', 'Download')}`}

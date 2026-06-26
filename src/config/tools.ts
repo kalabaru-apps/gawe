@@ -679,7 +679,7 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: 'gpa-calculator',
-    name: 'IPK Calculator',
+    name: 'GPA Calculator',
     category: 'education',
     description: 'Calculate GPA / IPK using the Indonesian SKS credit system',
     icon: 'GraduationCap',

@@ -148,7 +148,7 @@ export const id = {
   'citation.copy': 'Salin Sitasi',
   'citation.result': 'Hasil Sitasi',
 
-  // GPA / IPK Calculator
+  // GPA / GPA Calculator
   'gpa.scale': 'Skala IPK',
   'gpa.scale_4': 'Skala 4,00',
   'gpa.scale_433': 'Skala 4,33',

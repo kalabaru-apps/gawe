@@ -9,6 +9,7 @@ import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type EncodeType = 'url' | 'html'
 
@@ -66,8 +67,8 @@ export default function UrlHtmlEncode({ onOutput, initialState }: ToolProps) {
             <TabsTrigger value="html">HTML entities</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button size="sm" onClick={encode}>{t('common.encode', 'Encode →')}</Button>
-        <Button size="sm" variant="outline" onClick={decode}>{t('common.decode', '← Decode')}</Button>
+        <Button size="sm" onClick={() => { analytics.buttonClick('url-html-encode', 'encode'); encode() }}>{t('common.encode', 'Encode →')}</Button>
+        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('url-html-encode', 'decode'); decode() }}>{t('common.decode', '← Decode')}</Button>
       </div>
       {error && <ErrorAlert message={error} />}
       <ToolPanel

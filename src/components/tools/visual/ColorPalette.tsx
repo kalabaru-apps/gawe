@@ -6,6 +6,7 @@ import { ChevronRight } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Harmony =
@@ -374,6 +375,7 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
   }, [hue, sv, val, harmony, canvasSize])
 
   useEffect(() => {
+    analytics.buttonClick('color-palette', 'generate')
     onOutput({ hue, sv, val, harmony }, { colors: buildColors(hue, sv, val, harmony) })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hue, sv, val, harmony])

@@ -8,6 +8,7 @@ import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 function decodeBase64Url(str: string): string {
   const padded = str.replace(/-/g, '+').replace(/_/g, '/').padEnd(str.length + (4 - (str.length % 4)) % 4, '=')
@@ -43,6 +44,7 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
         setExpDate(null)
       }
       setError(null)
+      analytics.buttonClick('jwt-decoder', 'decode')
       onOutput({ token: '[redacted]' }, { alg: headerObj.alg, expired: expStatus === 'expired' })
     } catch (e) {
       setError((e as Error).message)

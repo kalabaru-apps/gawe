@@ -6,6 +6,8 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 // ---------------------------------------------------------------------------
 // curl parser
@@ -324,6 +326,7 @@ function generateCode(parsed: ParsedCurl, lang: LangKey): string {
 // ---------------------------------------------------------------------------
 
 export default function CurlToCode({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [curlInput, setCurlInput] = useState((initialState?.curlInput as string) ?? '')
   const [activeLang, setActiveLang] = useState<LangKey>((initialState?.activeLang as LangKey) ?? 'fetch')
   const [error, setError] = useState<string | null>(null)
@@ -363,8 +366,8 @@ export default function CurlToCode({ onOutput, initialState }: ToolProps) {
       {/* Input */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-muted-foreground">cURL command</label>
-          <Button size="sm" onClick={handleConvert}>Convert</Button>
+          <label className="text-xs font-medium text-muted-foreground">{t('dev.curl_input', 'cURL command')}</label>
+          <Button size="sm" onClick={() => { analytics.buttonClick('curl-to-code', 'convert'); handleConvert() }}>{t('common.convert', 'Convert')}</Button>
         </div>
         <textarea
           value={curlInput}
@@ -406,7 +409,7 @@ export default function CurlToCode({ onOutput, initialState }: ToolProps) {
           readOnly
           language={LANGS.find((l) => l.key === activeLang)?.language}
           rows={18}
-          placeholder="Converted code will appear here after you click Convert…"
+          placeholder={t('action.result', 'Converted code will appear here after you click Convert…')}
         />
       </div>
     </div>

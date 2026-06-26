@@ -6,6 +6,8 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -105,6 +107,7 @@ function isCorsError(message: string): boolean {
 // ---------------------------------------------------------------------------
 
 export default function ApiTester({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [method, setMethod] = useState<HttpMethod>((initialState?.method as HttpMethod) ?? 'GET')
   const [url, setUrl] = useState<string>((initialState?.url as string) ?? '')
   const [activeTab, setActiveTab] = useState<RequestTab>('headers')
@@ -269,8 +272,8 @@ export default function ApiTester({ onOutput, initialState }: ToolProps) {
           spellCheck={false}
           className="flex-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50"
         />
-        <Button onClick={() => void send()} disabled={loading || !url.trim()} className="shrink-0">
-          {loading ? 'Sending…' : 'Send'}
+        <Button onClick={() => { analytics.buttonClick('api-tester', 'send'); void send() }} disabled={loading || !url.trim()} className="shrink-0">
+          {loading ? '…' : t('dev.api_send', 'Send')}
         </Button>
       </div>
 
@@ -287,7 +290,7 @@ export default function ApiTester({ onOutput, initialState }: ToolProps) {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {tab === 'templates' ? 'Webhook Templates' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'templates' ? 'Webhook Templates' : tab === 'headers' ? t('dev.api_headers', 'Headers') : t('dev.api_body', 'Body')}
             </button>
           ))}
         </div>
@@ -328,7 +331,7 @@ export default function ApiTester({ onOutput, initialState }: ToolProps) {
                 </div>
               ))}
               <Button variant="outline" size="sm" onClick={addHeaderRow} className="self-start mt-1">
-                + Add header
+                + {t('action.add', 'Add header')}
               </Button>
             </div>
           )}
@@ -415,7 +418,7 @@ export default function ApiTester({ onOutput, initialState }: ToolProps) {
             >
               {response.status} {response.statusText}
             </span>
-            <span className="text-xs text-muted-foreground">{response.time} ms</span>
+            <span className="text-xs text-muted-foreground">{t('dev.api_time', 'Time')}: {response.time} ms</span>
           </div>
 
           {/* Response headers (collapsible) */}
@@ -425,7 +428,7 @@ export default function ApiTester({ onOutput, initialState }: ToolProps) {
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <span className={`inline-block transition-transform ${headersOpen ? 'rotate-90' : ''}`}>▶</span>
-              Response headers ({Object.keys(response.headers).length})
+              {t('dev.api_headers', 'Headers')} ({Object.keys(response.headers).length})
             </button>
             {headersOpen && (
               <div className="mt-2 rounded border border-border bg-muted/30 p-3 font-mono text-xs space-y-1 max-h-48 overflow-auto">
@@ -442,7 +445,7 @@ export default function ApiTester({ onOutput, initialState }: ToolProps) {
           {/* Response body */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Response body</span>
+              <span className="text-xs text-muted-foreground">{t('dev.api_response', 'Response body')}</span>
               <CopyButton value={response.body} />
             </div>
             <CodeEditor

@@ -148,7 +148,7 @@ export const en = {
   'citation.copy': 'Copy Citation',
   'citation.result': 'Citation Result',
 
-  // GPA / IPK Calculator
+  // GPA / GPA Calculator
   'gpa.scale': 'GPA Scale',
   'gpa.scale_4': '4.00 Scale',
   'gpa.scale_433': '4.33 Scale',

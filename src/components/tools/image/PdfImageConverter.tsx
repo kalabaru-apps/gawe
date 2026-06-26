@@ -5,6 +5,7 @@ import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Tab = 'pdf-to-img' | 'img-to-pdf'
 
@@ -31,7 +32,7 @@ export default function PdfImageConverter({ onOutput, initialState: _initialStat
       const urls: string[] = []
 
       for (let i = 1; i <= pageCount; i++) {
-        setProgress(`Rendering page ${i} of ${pageCount}…`)
+        setProgress(t('image.processing', `Rendering page ${i} of ${pageCount}…`))
         const page = await pdf.getPage(i)
         const viewport = page.getViewport({ scale: 2 })
         const canvas = document.createElement('canvas')
@@ -142,7 +143,7 @@ export default function PdfImageConverter({ onOutput, initialState: _initialStat
                     </div>
                     <button onClick={() => downloadPage(url, i)}
                       className="w-full text-xs py-1.5 rounded-md border border-input hover:bg-muted/50 transition-colors">
-                      Page {i + 1}
+                      {t('image.pages', 'Page')} {i + 1}
                     </button>
                   </div>
                 ))}
@@ -161,7 +162,7 @@ export default function PdfImageConverter({ onOutput, initialState: _initialStat
                   <button onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))} className="text-xs text-muted-foreground hover:text-rose-400">✕</button>
                 </div>
               ))}
-              <button onClick={imagesToPdf} disabled={loading}
+              <button onClick={() => { analytics.buttonClick('pdf-image-converter', 'convert'); void imagesToPdf() }} disabled={loading}
                 className="px-6 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">
                 {loading ? t('image.converting', 'Creating PDF…') : `${t('common.convert', 'Create PDF')} (${images.length} images)`}
               </button>

@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const STOP_WORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'was', 'are', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'it', 'its', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'we', 'they'])
 
 export default function WordCounter({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [text, setText] = useState((initialState?.text as string) ?? '')
+  const firedRef = useRef(false)
 
   const stats = useMemo(() => {
     const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean) : []
@@ -29,6 +31,7 @@ export default function WordCounter({ onOutput, initialState }: ToolProps) {
 
   useEffect(() => {
     if (stats.wordCount > 0) {
+      if (!firedRef.current) { analytics.buttonClick('word-counter', 'count'); firedRef.current = true }
       onOutput({ text: text.slice(0, 100) }, { wordCount: stats.wordCount, charCount: stats.charCount })
     }
   }, [stats.wordCount, stats.charCount])

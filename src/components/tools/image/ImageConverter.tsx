@@ -5,6 +5,7 @@ import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Format = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/avif'
 const FORMAT_EXT: Record<Format, string> = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/avif': '.avif' }
@@ -115,7 +116,7 @@ export default function ImageConverter({ onOutput, initialState: _initialState }
                   </div>
                 )}
               </div>
-              <button onClick={convert} disabled={loading}
+              <button onClick={() => { analytics.buttonClick('image-converter', 'convert'); void convert() }} disabled={loading}
                 className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
                 {loading ? t('image.converting', 'Converting…') : `${t('common.convert', 'Convert to')} ${FORMATS.find((f) => f.value === outputFormat)?.label}`}
               </button>

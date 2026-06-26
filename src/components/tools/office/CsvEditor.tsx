@@ -6,6 +6,7 @@ import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Tab = 'paste' | 'upload' | 'table'
 
@@ -90,7 +91,7 @@ export default function CsvEditor({ onOutput, initialState }: ToolProps) {
           <textarea value={rawCsv} onChange={(e) => setRawCsv(e.target.value)}
             className="w-full min-h-[200px] font-mono text-xs border border-input rounded-md p-3 bg-background resize-y outline-none focus:ring-1 focus:ring-ring"
             placeholder="name,email,age&#10;Alice,alice@example.com,30&#10;Bob,bob@example.com,25" spellCheck={false} />
-          <button onClick={() => parseCsv(rawCsv)} disabled={!rawCsv.trim()}
+          <button onClick={() => { analytics.buttonClick('csv-editor', 'import'); parseCsv(rawCsv) }} disabled={!rawCsv.trim()}
             className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">
             {t('action.import', 'Parse')} CSV
           </button>

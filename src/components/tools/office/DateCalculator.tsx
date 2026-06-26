@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 import {
   differenceInDays, differenceInCalendarWeeks, differenceInMonths, differenceInYears,
   addDays, addWeeks, addMonths, addYears, format, eachDayOfInterval, isWeekend,
@@ -26,6 +27,7 @@ export default function DateCalculator({ onOutput, initialState }: ToolProps) {
   const [addAmount, setAddAmount] = useState(30)
   const [addUnit, setAddUnit] = useState<AddUnit>('days')
   const [addDir, setAddDir] = useState<1 | -1>(1)
+  const firedRef = useRef(false)
 
   function computeDiff() {
     const d1 = new Date(date1)
@@ -57,8 +59,14 @@ export default function DateCalculator({ onOutput, initialState }: ToolProps) {
   const added = tab === 'add' ? computeAdd() : null
 
   useEffect(() => {
-    if (diff) onOutput({ date1, date2 }, { days: diff.days, businessDays: diff.businessDays })
-    if (added) onOutput({ baseDate, addAmount, addUnit, addDir }, { result: added.result })
+    if (diff) {
+      if (!firedRef.current) { analytics.buttonClick('date-calculator', 'calculate'); firedRef.current = true }
+      onOutput({ date1, date2 }, { days: diff.days, businessDays: diff.businessDays })
+    }
+    if (added) {
+      if (!firedRef.current) { analytics.buttonClick('date-calculator', 'calculate'); firedRef.current = true }
+      onOutput({ baseDate, addAmount, addUnit, addDir }, { result: added.result })
+    }
   }, [tab, date1, date2, baseDate, addAmount, addUnit, addDir, diff, added, onOutput])
 
   const DIFF_ROWS = diff ? [

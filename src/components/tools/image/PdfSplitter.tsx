@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import { FileDropzone } from '@/components/tools/shared/FileDropzone'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 // pdf-lib and pdfjs-dist are dynamically imported to avoid SSR issues
 
@@ -32,6 +34,7 @@ interface MergeFile {
 type Mode = 'split' | 'merge'
 
 export default function PdfSplitter({ onOutput }: ToolProps) {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<Mode>('split')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -71,7 +74,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
       }
       setThumbs(pages)
     } catch (e) {
-      setError(`Failed to load PDF: ${e instanceof Error ? e.message : String(e)}`)
+      setError(`${t('image.failed_load', 'Failed to load PDF')}: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
     }
@@ -87,7 +90,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
   const extractPages = useCallback(async () => {
     if (!splitBuffer) return
     const selected = thumbs.filter((t) => t.selected).map((t) => t.index)
-    if (selected.length === 0) { setError('Select at least one page.'); return }
+    if (selected.length === 0) { setError(t('image.invalid_range', 'Select at least one page.')); return }
     setError('')
     setLoading(true)
     try {
@@ -100,7 +103,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
       downloadPdf(bytes, splitFileName.replace(/\.pdf$/i, '') + `-extracted.pdf`)
       onOutput({ mode: 'split', pages: selected }, { pageCount: selected.length })
     } catch (e) {
-      setError(`Failed to extract pages: ${e instanceof Error ? e.message : String(e)}`)
+      setError(`${t('image.failed_convert', 'Failed to extract pages')}: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
     }
@@ -128,7 +131,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
   }
 
   const mergeAll = useCallback(async () => {
-    if (mergeFiles.length === 0) { setError('Add at least one PDF.'); return }
+    if (mergeFiles.length === 0) { setError(t('image.invalid_range', 'Add at least one PDF.')); return }
     setError('')
     setLoading(true)
     try {
@@ -144,7 +147,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
       downloadPdf(bytes, 'merged.pdf')
       onOutput({ mode: 'merge', files: mergeFiles.map((f) => f.file.name) }, { pageCount: merged.getPageCount() })
     } catch (e) {
-      setError(`Failed to merge PDFs: ${e instanceof Error ? e.message : String(e)}`)
+      setError(`${t('image.failed_convert', 'Failed to merge PDFs')}: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
     }
@@ -164,7 +167,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {m === 'split' ? 'Split' : 'Merge'}
+            {m === 'split' ? t('image.split', 'Split') : t('image.merge', 'Merge')}
           </button>
         ))}
       </div>
@@ -173,15 +176,15 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
 
       {mode === 'split' && (
         <div className="flex flex-col gap-4">
-          <FileDropzone onFile={(f) => loadSplitPdf([f])} accept=".pdf" label="Drop a PDF to split" />
-          {loading && <div className="text-sm text-muted-foreground">Loading pages…</div>}
+          <FileDropzone onFile={(f) => loadSplitPdf([f])} accept=".pdf" label={t('image.drop_pdf', 'Drop a PDF to split')} />
+          {loading && <div className="text-sm text-muted-foreground">{t('common.processing', 'Loading pages…')}</div>}
           {thumbs.length > 0 && (
             <>
               <div className="flex gap-2 flex-wrap items-center">
-                <Button size="sm" variant="outline" onClick={selectAll}>Select all</Button>
-                <Button size="sm" variant="outline" onClick={deselectAll}>Deselect all</Button>
+                <Button size="sm" variant="outline" onClick={selectAll}>{t('common.all', 'Select all')}</Button>
+                <Button size="sm" variant="outline" onClick={deselectAll}>{t('action.clear', 'Deselect all')}</Button>
                 <span className="text-xs text-muted-foreground ml-auto">
-                  {thumbs.filter((t) => t.selected).length} / {thumbs.length} pages selected
+                  {thumbs.filter((th) => th.selected).length} / {thumbs.length} {t('image.pages', 'pages selected')}
                 </span>
               </div>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[400px] overflow-y-auto pr-1">
@@ -198,8 +201,8 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
                   </button>
                 ))}
               </div>
-              <Button onClick={extractPages} disabled={loading} className="w-full">
-                Extract selected pages
+              <Button onClick={() => { analytics.buttonClick('pdf-splitter', 'split'); void extractPages() }} disabled={loading} className="w-full">
+                {t('image.extract', 'Extract selected pages')}
               </Button>
             </>
           )}
@@ -208,7 +211,7 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
 
       {mode === 'merge' && (
         <div className="flex flex-col gap-4">
-          <FileDropzone onFile={(f) => addMergeFiles([f])} accept=".pdf" label="Drop PDFs to merge (multiple allowed)" />
+          <FileDropzone onFile={(f) => addMergeFiles([f])} accept=".pdf" label={t('image.drop_pdfs', 'Drop PDFs to merge (multiple allowed)')} />
           {mergeFiles.length > 0 && (
             <>
               <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
@@ -241,8 +244,8 @@ export default function PdfSplitter({ onOutput }: ToolProps) {
                   </div>
                 ))}
               </div>
-              <Button onClick={mergeAll} disabled={loading} className="w-full">
-                {loading ? 'Merging…' : `Merge ${mergeFiles.length} PDF${mergeFiles.length > 1 ? 's' : ''}`}
+              <Button onClick={() => { analytics.buttonClick('pdf-splitter', 'merge'); void mergeAll() }} disabled={loading} className="w-full">
+                {loading ? t('common.processing', 'Merging…') : `${t('image.merge', 'Merge')} ${mergeFiles.length} PDF${mergeFiles.length > 1 ? 's' : ''}`}
               </Button>
             </>
           )}

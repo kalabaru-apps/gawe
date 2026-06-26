@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Operation =
   | 'slugify'
@@ -68,7 +69,7 @@ export default function StringTools({ onOutput, initialState }: ToolProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-2">
         {OPERATIONS.map((op) => (
-          <Button key={op.key} size="sm" variant="outline" onClick={() => apply(op.key)}>
+          <Button key={op.key} size="sm" variant="outline" onClick={() => { analytics.buttonClick('string-tools', 'apply'); apply(op.key) }}>
             {op.label}
           </Button>
         ))}

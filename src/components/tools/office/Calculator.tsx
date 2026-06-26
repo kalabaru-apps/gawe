@@ -6,6 +6,7 @@ import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface HistoryItem { expr: string; result: string }
 
@@ -26,6 +27,7 @@ export default function Calculator({ onOutput, initialState }: ToolProps) {
 
   function compute(expression: string) {
     if (!expression.trim()) return
+    analytics.buttonClick('calculator', 'calculate')
     try {
       const res = String(evaluate(expression))
       setResult(res)

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface TimeEntry {
   id: string
@@ -67,6 +69,7 @@ function saveEntries(entries: TimeEntry[]) {
 }
 
 export default function HoursCalculator({ onOutput }: ToolProps) {
+  const { t } = useTranslation()
   const [entries, setEntries] = useState<TimeEntry[]>([])
   const [standardHours, setStandardHours] = useState(8)
 
@@ -132,9 +135,9 @@ export default function HoursCalculator({ onOutput }: ToolProps) {
     <div className="flex flex-col gap-4">
       {/* Top controls */}
       <div className="flex flex-wrap gap-3 items-center">
-        <Button size="sm" onClick={addRow}>+ Add Row</Button>
+        <Button size="sm" onClick={() => { analytics.buttonClick('hours-calculator', 'calculate'); addRow() }}>+ {t('action.add', 'Add')} Row</Button>
         <div className="flex items-center gap-2 text-sm">
-          <label className="text-muted-foreground">Standard hours/day:</label>
+          <label className="text-muted-foreground">{t('office.hours', 'Standard hours')}/{t('office.days', 'day')}:</label>
           <input
             type="number"
             min={1}
@@ -145,26 +148,26 @@ export default function HoursCalculator({ onOutput }: ToolProps) {
           />
         </div>
         <Button size="sm" variant="outline" onClick={clearAll} className="ml-auto text-destructive border-destructive/40 hover:bg-destructive/10">
-          Clear all
+          {t('action.clear', 'Clear')} {t('common.all', 'all')}
         </Button>
       </div>
 
       {/* Table */}
       {entries.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground text-sm">
-          No entries yet. Click "+ Add Row" to start.
+          {t('common.history_empty', 'No entries yet.')} {t('action.add', 'Click')} "+ Add Row" to start.
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="text-left py-2 px-1 font-medium">Date</th>
-                <th className="text-left py-2 px-1 font-medium">Label</th>
-                <th className="text-left py-2 px-1 font-medium">Start</th>
-                <th className="text-left py-2 px-1 font-medium">End</th>
-                <th className="text-left py-2 px-1 font-medium">Break (min)</th>
-                <th className="text-right py-2 px-1 font-medium">Hours</th>
+                <th className="text-left py-2 px-1 font-medium">{t('office.date_from', 'Date')}</th>
+                <th className="text-left py-2 px-1 font-medium">{t('common.name', 'Label')}</th>
+                <th className="text-left py-2 px-1 font-medium">{t('common.start', 'Start')}</th>
+                <th className="text-left py-2 px-1 font-medium">{t('common.stop', 'End')}</th>
+                <th className="text-left py-2 px-1 font-medium">{t('office.minutes', 'Break')} (min)</th>
+                <th className="text-right py-2 px-1 font-medium">{t('office.hours', 'Hours')}</th>
                 <th className="text-center py-2 px-1 font-medium">On</th>
                 <th className="py-2 px-1"></th>
               </tr>
@@ -188,7 +191,7 @@ export default function HoursCalculator({ onOutput }: ToolProps) {
                         type="text"
                         value={entry.label}
                         onChange={(e) => patchEntry(entry.id, { label: e.target.value })}
-                        placeholder="Label"
+                        placeholder={t('common.name', 'Label')}
                         className="w-28 rounded border border-border bg-background text-foreground text-xs px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring"
                       />
                     </td>
@@ -249,10 +252,10 @@ export default function HoursCalculator({ onOutput }: ToolProps) {
       {totalDays > 0 && (
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SummaryCard label="Total days" value={String(totalDays)} />
-            <SummaryCard label="Total hours" value={`${totalHours.toFixed(2)}h`} sub={decimalToHHMM(totalHours)} />
-            <SummaryCard label="Average / day" value={`${avgHours.toFixed(2)}h`} />
-            <SummaryCard label="Overtime" value={`${overtimeHours.toFixed(2)}h`} warn={overtimeHours > 0} />
+            <SummaryCard label={`${t('office.total', 'Total')} ${t('office.days', 'days')}`} value={String(totalDays)} />
+            <SummaryCard label={`${t('office.total', 'Total')} ${t('office.hours', 'hours')}`} value={`${totalHours.toFixed(2)}h`} sub={decimalToHHMM(totalHours)} />
+            <SummaryCard label={`${t('office.rate', 'Average')} / ${t('office.days', 'day')}`} value={`${avgHours.toFixed(2)}h`} />
+            <SummaryCard label={t('office.total', 'Overtime')} value={`${overtimeHours.toFixed(2)}h`} warn={overtimeHours > 0} />
           </div>
           <div className="flex justify-end">
             <CopyButton value={summaryText} />

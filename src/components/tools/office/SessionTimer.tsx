@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type TimerMode = 'countup' | 'countdown'
@@ -128,6 +130,7 @@ interface TimerCardProps {
 }
 
 function TimerCard({ timer, onToggle, onReset, onDelete, onLabelChange, onTargetChange }: TimerCardProps) {
+  const { t } = useTranslation()
   const [tick, setTick] = useState(0)
   const [editingTarget, setEditingTarget] = useState(false)
   const [targetInput, setTargetInput] = useState('')
@@ -194,11 +197,11 @@ function TimerCard({ timer, onToggle, onReset, onDelete, onLabelChange, onTarget
           <div className="text-xs text-muted-foreground mt-1">
             of {formatHMSLabel(timer.target)}
             {' · '}
-            <button onClick={openTargetEdit} className="underline underline-offset-2 hover:text-foreground">edit</button>
+            <button onClick={openTargetEdit} className="underline underline-offset-2 hover:text-foreground">{t('action.save', 'edit')}</button>
           </div>
         )}
         {timer.mode === 'countup' && elapsed > 0 && (
-          <div className="text-xs text-muted-foreground mt-1">{formatHMSLabel(elapsed)} elapsed</div>
+          <div className="text-xs text-muted-foreground mt-1">{formatHMSLabel(elapsed)} {t('office.timer_start', 'elapsed')}</div>
         )}
       </div>
 
@@ -233,12 +236,12 @@ function TimerCard({ timer, onToggle, onReset, onDelete, onLabelChange, onTarget
         <button
           onClick={() => onToggle(timer.id)}
           className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${timer.running ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-sky-500/20 text-sky-400 hover:bg-sky-500/30'}`}>
-          {timer.running ? '⏸ Pause' : elapsed > 0 ? '▶ Resume' : '▶ Start'}
+          {timer.running ? `⏸ ${t('common.pause', 'Pause')}` : elapsed > 0 ? `▶ ${t('common.resume', 'Resume')}` : `▶ ${t('common.start', 'Start')}`}
         </button>
         <button
           onClick={() => onReset(timer.id)}
           className="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted/60 transition-colors border border-input/60">
-          ↺ Reset
+          ↺ {t('office.timer_reset', 'Reset')}
         </button>
       </div>
     </div>
@@ -252,6 +255,7 @@ interface AddTimerFormProps {
 }
 
 function AddTimerForm({ onAdd, onCancel }: AddTimerFormProps) {
+  const { t } = useTranslation()
   const [label, setLabel] = useState('')
   const [mode, setMode] = useState<TimerMode>('countup')
   const [hours, setHours] = useState(0)
@@ -273,16 +277,16 @@ function AddTimerForm({ onAdd, onCancel }: AddTimerFormProps) {
 
   return (
     <div className="rounded-xl border border-input bg-muted/30 p-4 space-y-4">
-      <p className="text-sm font-medium">New timer</p>
+      <p className="text-sm font-medium">{t('office.timer_start', 'New timer')}</p>
       <div>
-        <label className="text-xs text-muted-foreground mb-1 block">Name</label>
+        <label className="text-xs text-muted-foreground mb-1 block">{t('common.name', 'Name')}</label>
         <input value={label} onChange={e => setLabel(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
           placeholder="e.g. Project Alpha" autoFocus />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground mb-1.5 block">Mode</label>
+        <label className="text-xs text-muted-foreground mb-1.5 block">{t('common.mode', 'Mode')}</label>
         <div className="flex gap-2">
           {(['countup', 'countdown'] as TimerMode[]).map(m => (
             <button key={m} onClick={() => setMode(m)}
@@ -294,7 +298,7 @@ function AddTimerForm({ onAdd, onCancel }: AddTimerFormProps) {
       </div>
       {mode === 'countdown' && (
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Duration</label>
+          <label className="text-xs text-muted-foreground mb-1.5 block">{t('office.duration', 'Duration')}</label>
           <div className="flex items-center gap-2">
             {([['h', hours, setHours, 23], ['m', mins, setMins, 59], ['s', secs, setSecs, 59]] as [string, number, (v: number) => void, number][]).map(([unit, val, set, max]) => (
               <label key={unit} className="flex flex-col items-center gap-0.5 flex-1">
@@ -309,10 +313,10 @@ function AddTimerForm({ onAdd, onCancel }: AddTimerFormProps) {
       )}
       <div className="flex gap-2">
         <button onClick={submit} className="flex-1 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-          Add Timer
+          {t('action.add', 'Add')} Timer
         </button>
         <button onClick={onCancel} className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted/60 border border-input/60 transition-colors">
-          Cancel
+          {t('action.close', 'Cancel')}
         </button>
       </div>
     </div>
@@ -321,6 +325,7 @@ function AddTimerForm({ onAdd, onCancel }: AddTimerFormProps) {
 
 // ─── main component ────────────────────────────────────────────────────────────
 export default function SessionTimer({ onOutput }: ToolProps) {
+  const { t } = useTranslation()
   const [timers, setTimers] = useState<TimerEntry[]>([])
   const [adding, setAdding] = useState(false)
   const originalTitle = useRef<string>('')
@@ -365,6 +370,7 @@ export default function SessionTimer({ onOutput }: ToolProps) {
   }, [timers])
 
   function addTimer(timer: TimerEntry) {
+    analytics.buttonClick('session-timer', 'start')
     setTimers(prev => [...prev, timer])
     setAdding(false)
     onOutput({ action: 'add', label: timer.label, mode: timer.mode }, {})
@@ -418,20 +424,20 @@ export default function SessionTimer({ onOutput }: ToolProps) {
               </span>
             )}
             <span className="text-xs text-muted-foreground">
-              Total: <span className="font-mono font-medium text-foreground">{formatHMS(totalElapsed)}</span>
+              {t('office.total', 'Total')}: <span className="font-mono font-medium text-foreground">{formatHMS(totalElapsed)}</span>
             </span>
           </div>
           <div className="flex gap-2">
             {running.length > 0 && (
               <button onClick={() => setTimers(prev => prev.map(t => t.running ? { ...t, running: false, elapsed: liveElapsed(t), startedAt: null } : t))}
                 className="text-xs px-3 py-1 rounded-md bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors">
-                ⏸ Pause all
+                ⏸ {t('common.pause', 'Pause')} {t('common.all', 'all')}
               </button>
             )}
             {timers.some(t => !t.running && liveElapsed(t) === 0) ? null : (
               <button onClick={() => setTimers(prev => prev.map(t => ({ ...t, running: false, elapsed: 0, startedAt: null })))}
                 className="text-xs px-3 py-1 rounded-md bg-muted/60 text-muted-foreground hover:bg-muted border border-input/40 transition-colors">
-                ↺ Reset all
+                ↺ {t('office.timer_reset', 'Reset')} {t('common.all', 'all')}
               </button>
             )}
           </div>
@@ -462,13 +468,13 @@ export default function SessionTimer({ onOutput }: ToolProps) {
         <button onClick={() => setAdding(true)}
           className="w-full rounded-xl border-2 border-dashed border-input/60 py-8 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/20 transition-colors text-sm flex flex-col items-center gap-1.5">
           <span className="text-2xl">＋</span>
-          Add a timer
+          {t('action.add', 'Add')} a timer
         </button>
       )}
 
       {timers.length === 0 && !adding && (
         <p className="text-center text-xs text-muted-foreground pb-2">
-          Track billable hours across projects. Each timer counts independently : count up or set a target duration.
+          {t('office.hours', 'Track billable hours across projects. Each timer counts independently : count up or set a target duration.')}
         </p>
       )}
     </div>

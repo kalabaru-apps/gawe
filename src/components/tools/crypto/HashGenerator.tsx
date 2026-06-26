@@ -6,6 +6,7 @@ import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface HashRow {
   label: string
@@ -33,6 +34,7 @@ export default function HashGenerator({ onOutput, initialState }: ToolProps) {
       rows.push({ label: 'HMAC-SHA512', value: fmt(CryptoJS.HmacSHA512(input, hmacKey).toString()) })
     }
     setHashes(rows)
+    analytics.buttonClick('hash-generator', 'hash')
     onOutput({ input, hmacKey }, { sha256: rows.find((r) => r.label === 'SHA-256')?.value ?? '' })
   }, [input, hmacKey, uppercase, onOutput])
 

@@ -7,6 +7,7 @@ import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type UuidVersion = 'v1' | 'v4' | 'v5' | 'ulid'
 
@@ -91,7 +92,7 @@ export default function UuidUlid({ onOutput, initialState }: ToolProps) {
             <input type="number" min={1} max={50} value={count} onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value))))}
               className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
           </div>
-          <button onClick={generate}
+          <button onClick={() => { analytics.buttonClick('uuid-ulid', 'generate'); generate() }}
             className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
             {t('crypto.uuid_generate', 'Generate')}
           </button>
@@ -115,7 +116,7 @@ export default function UuidUlid({ onOutput, initialState }: ToolProps) {
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground">{generated.length} generated</span>
+            <span className="text-xs text-muted-foreground">{generated.length} {t('action.result', 'generated')}</span>
             <CopyButton value={generated.join('\n')} />
           </div>
           <div className="space-y-1 font-mono text-sm">

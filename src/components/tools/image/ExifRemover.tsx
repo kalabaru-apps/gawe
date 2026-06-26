@@ -8,6 +8,7 @@ import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import { FileDropzone } from '@/components/tools/shared/FileDropzone'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 function isHeic(buf: ArrayBuffer): boolean {
   // ISOBMFF: bytes 4–7 are 'ftyp', bytes 8–11 identify the brand
@@ -74,7 +75,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
     const name = file.name.toLowerCase()
     const isHeicFile = type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif')
     if (!type.startsWith('image/') && !isHeicFile) {
-      setError('Please upload a JPEG, PNG, or HEIC/HEIF image.')
+      setError(t('image.failed_load', 'Please upload a JPEG, PNG, or HEIC/HEIF image.'))
       return
     }
     setError('')
@@ -94,7 +95,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
       const exifTags = await scanExif(file)
       setFileInfo({ file, width: 0, height: 0, exifTags, objectUrl })
       if (isHeicFile) {
-        setError('HEIC preview not supported in this browser. Use Safari on macOS/iOS to strip & download, or convert to JPEG first on other browsers.')
+        setError(t('image.failed_load', 'HEIC preview not supported in this browser. Use Safari on macOS/iOS to strip & download, or convert to JPEG first on other browsers.'))
       }
       return
     }
@@ -119,7 +120,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
       const q = outputFormat === 'jpeg' ? quality : undefined
       canvas.toBlob((blob) => {
         if (!blob) {
-          setError('Failed to process image.')
+          setError(t('image.failed_convert', 'Failed to process image.'))
           setProcessing(false)
           return
         }
@@ -139,7 +140,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
       }, mime, q)
     }
     img.onerror = () => {
-      setError('Failed to load image.')
+      setError(t('image.failed_load', 'Failed to load image.'))
       setProcessing(false)
     }
   }, [fileInfo, outputFormat, quality, onOutput])
@@ -183,7 +184,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
           <div className="flex flex-col gap-4">
             <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Output format</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('common.output_format', 'Output format')}</div>
                 <div className="flex gap-2">
                   {(['jpeg', 'png'] as const).map((fmt) => (
                     <Button
@@ -200,7 +201,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
               {outputFormat === 'jpeg' && (
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    Quality: {Math.round(quality * 100)}%
+                    {t('common.quality', 'Quality')}: {Math.round(quality * 100)}%
                   </div>
                   <input
                     type="range"
@@ -215,19 +216,19 @@ export default function ExifRemover({ onOutput }: ToolProps) {
             </div>
             {fileInfo && outputSize !== null && (
               <div className="rounded-lg border border-border p-3 text-sm space-y-1">
-                <div className="text-muted-foreground">Before: <span className="text-foreground">{formatBytes(fileInfo.file.size)}</span></div>
-                <div className="text-muted-foreground">After: <span className="text-foreground">{formatBytes(outputSize)}</span></div>
+                <div className="text-muted-foreground">{t('common.original_size', 'Before')}: <span className="text-foreground">{formatBytes(fileInfo.file.size)}</span></div>
+                <div className="text-muted-foreground">{t('common.output_size', 'After')}: <span className="text-foreground">{formatBytes(outputSize)}</span></div>
                 <div className="text-muted-foreground">
-                  Saved: <span className="text-green-500">{formatBytes(fileInfo.file.size - outputSize)} ({Math.round((1 - outputSize / fileInfo.file.size) * 100)}%)</span>
+                  {t('common.saved', 'Saved')}: <span className="text-green-500">{formatBytes(fileInfo.file.size - outputSize)} ({Math.round((1 - outputSize / fileInfo.file.size) * 100)}%)</span>
                 </div>
               </div>
             )}
             <Button
-              onClick={stripAndDownload}
+              onClick={() => { analytics.buttonClick('exif-remover', 'remove'); stripAndDownload() }}
               disabled={!fileInfo || processing}
               className="w-full"
             >
-              {processing ? 'Processing…' : 'Strip & Download'}
+              {processing ? t('common.processing', 'Processing…') : t('image.exif_removed', 'Strip & Download')}
             </Button>
           </div>
         }

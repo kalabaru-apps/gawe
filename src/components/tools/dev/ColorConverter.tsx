@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import chroma from 'chroma-js'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface ColorOutput {
   label: string
@@ -22,6 +23,7 @@ export default function ColorConverter({ onOutput, initialState }: ToolProps) {
   const [contrastBlack, setContrastBlack] = useState<number>(0)
   const [swatchBg, setSwatchBg] = useState('#3b82f6')
   const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
   useEffect(() => {
     const raw = input.trim()
@@ -46,6 +48,7 @@ export default function ColorConverter({ onOutput, initialState }: ToolProps) {
       setSwatchBg(hex)
       setPickerValue(hex)
       setError(null)
+      if (!firedRef.current) { analytics.buttonClick('color-converter', 'convert'); firedRef.current = true }
       onOutput({ color: raw }, { hex, rgb: `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})` })
     } catch {
       setError('Invalid color format. Try: #3b82f6, rgb(59,130,246), hsl(217,91%,60%), blue')

@@ -7,6 +7,7 @@ import { FileDropzone } from '../shared/FileDropzone'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Tab = 'generate' | 'read'
 type DotShape = 'square' | 'dots' | 'rounded' | 'classy' | 'classy-rounded' | 'extra-rounded'
@@ -151,6 +152,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
         qrRef.current.update(config)
       }
 
+      analytics.buttonClick('qr-code', 'generate')
       onOutput({ text: input }, {})
     }
 
@@ -187,15 +189,15 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
           setDecoded(result.data)
           onOutput({ action: 'read' }, { decoded: result.data })
         } else {
-          setReadError('No QR code found in image')
+          setReadError(t('action.error', 'No QR code found in image'))
         }
       }
-      img.onerror = () => setReadError('Failed to load image')
+      img.onerror = () => setReadError(t('action.error', 'Failed to load image'))
       img.src = e.target?.result as string
     }
-    reader.onerror = () => setReadError('Failed to read file')
+    reader.onerror = () => setReadError(t('action.error', 'Failed to read file'))
     reader.readAsDataURL(file)
-  }, [onOutput])
+  }, [onOutput, t])
 
   return (
     <div className="space-y-4">
@@ -310,7 +312,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
                   className="w-full text-sm border border-input rounded-md px-3 py-1.5 bg-background outline-none focus:ring-1 focus:ring-ring" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Error correction</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.qr_error_level', 'Error correction')}</label>
                 <select value={opts.errorLevel} onChange={e => set('errorLevel', e.target.value as ErrorLevel)}
                   className="w-full text-sm border border-input rounded-md px-3 py-1.5 bg-background outline-none focus:ring-1 focus:ring-ring">
                   {ERROR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
@@ -347,7 +349,7 @@ export default function QrCode({ onOutput, initialState }: ToolProps) {
           {decoded && (
             <div className="rounded-md border border-input p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-emerald-400">✓ QR Code Decoded</span>
+                <span className="text-xs font-medium text-emerald-400">✓ {t('action.result', 'QR Code Decoded')}</span>
                 <CopyButton value={decoded} />
               </div>
               <p className="font-mono text-sm break-all">{decoded}</p>

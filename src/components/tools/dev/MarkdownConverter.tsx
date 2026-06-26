@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { marked } from 'marked'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const SAMPLE = `# Hello, World!
 
@@ -34,11 +35,13 @@ export default function MarkdownConverter({ onOutput, initialState }: ToolProps)
   const [input, setInput] = useState((initialState?.input as string) ?? SAMPLE)
   const [tab, setTab] = useState<Tab>('preview')
   const [html, setHtml] = useState('')
+  const firedRef = useRef(false)
 
   useEffect(() => {
     const result = marked.parse(input, { async: false }) as string
     setHtml(result)
     if (input) {
+      if (!firedRef.current) { analytics.buttonClick('markdown-converter', 'convert'); firedRef.current = true }
       onOutput({ markdown: input }, { html: result })
     }
   }, [input, onOutput])

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Mode = 'work' | 'short' | 'long'
 const DURATIONS: Record<Mode, number> = { work: 25 * 60, short: 5 * 60, long: 15 * 60 }
@@ -92,7 +93,7 @@ export default function Pomodoro({ onOutput, initialState: _initialState }: Tool
         </div>
       </div>
       <div className="flex gap-3">
-        <button onClick={() => setIsRunning((r) => !r)}
+        <button onClick={() => { if (!isRunning) analytics.buttonClick('pomodoro', 'start'); setIsRunning((r) => !r) }}
           className="px-8 py-3 rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
           {isRunning ? t('common.pause', 'Pause') : t('common.start', 'Start')}
         </button>

@@ -10,6 +10,7 @@ import { FileDropzone } from '@/components/tools/shared/FileDropzone'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Mode = 'text' | 'file'
 
@@ -71,8 +72,8 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
       {mode === 'text' ? (
         <>
           <div className="flex gap-2">
-            <Button size="sm" onClick={encode}>{t('encoding.encode_text', 'Encode →')}</Button>
-            <Button size="sm" variant="outline" onClick={decode}>{t('encoding.decode_text', '← Decode')}</Button>
+            <Button size="sm" onClick={() => { analytics.buttonClick('base64', 'encode'); encode() }}>{t('encoding.encode_text', 'Encode →')}</Button>
+            <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('base64', 'decode'); decode() }}>{t('encoding.decode_text', '← Decode')}</Button>
           </div>
           {error && <ErrorAlert message={error} />}
           <ToolPanel

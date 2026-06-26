@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface Pace {
   key: string
@@ -37,6 +39,7 @@ function countWordySentences(text: string): number {
 }
 
 export default function SpeechTimer({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [text, setText] = useState((initialState?.text as string) ?? '')
   const [paceKey, setPaceKey] = useState('normal')
   const [targetMinutes, setTargetMinutes] = useState('')
@@ -63,8 +66,10 @@ export default function SpeechTimer({ onOutput, initialState }: ToolProps) {
     return { targetSecs, diff, diffWords }
   }, [targetMinutes, stats.speakSeconds, pace.wpm])
 
+  const firedRef = useRef(false)
   const handleChange = (val: string) => {
     setText(val)
+    if (!firedRef.current && val.trim()) { analytics.buttonClick('speech-timer', 'start'); firedRef.current = true }
     onOutput({ text: val, pace: paceKey }, { wordCount: val.trim().split(/\s+/).filter(Boolean).length })
   }
 
@@ -75,7 +80,7 @@ export default function SpeechTimer({ onOutput, initialState }: ToolProps) {
         className="w-full min-h-[200px] rounded-lg border border-border bg-background text-foreground text-sm p-3 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"
         value={text}
         onChange={(e) => handleChange(e.target.value)}
-        placeholder="Paste your speech or script here…"
+        placeholder={t('office.paste_text', 'Paste your speech or script here…')}
         rows={12}
       />
 
@@ -96,18 +101,18 @@ export default function SpeechTimer({ onOutput, initialState }: ToolProps) {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <StatCard label="Words" value={stats.wordCount.toLocaleString()} />
-        <StatCard label="Characters" value={stats.charCount.toLocaleString()} />
-        <StatCard label="Sentences" value={stats.sentenceCount.toLocaleString()} />
-        <StatCard label="Reading time" value={stats.wordCount > 0 ? formatTime(stats.readSeconds) : '—'} sub="at 250 WPM" />
+        <StatCard label={t('office.words', 'Words')} value={stats.wordCount.toLocaleString()} />
+        <StatCard label={t('office.characters', 'Characters')} value={stats.charCount.toLocaleString()} />
+        <StatCard label={t('office.sentences', 'Sentences')} value={stats.sentenceCount.toLocaleString()} />
+        <StatCard label={t('office.reading_time', 'Reading time')} value={stats.wordCount > 0 ? formatTime(stats.readSeconds) : '—'} sub="at 250 WPM" />
         {stats.wordySentences > 0 && (
-          <StatCard label="Long sentences" value={String(stats.wordySentences)} sub=">40 words" warn />
+          <StatCard label={t('office.speech_duration', 'Long sentences')} value={String(stats.wordySentences)} sub=">40 words" warn />
         )}
       </div>
 
       {/* Big time display */}
       <div className="rounded-xl border border-border bg-muted/20 p-6 text-center">
-        <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Estimated speaking time</div>
+        <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('office.speech_duration', 'Estimated speaking time')}</div>
         <div className="text-5xl font-bold text-foreground tabular-nums">
           {stats.wordCount > 0 ? formatTime(stats.speakSeconds) : '—'}
         </div>
@@ -116,7 +121,7 @@ export default function SpeechTimer({ onOutput, initialState }: ToolProps) {
 
       {/* Target duration */}
       <div className="flex items-center gap-3">
-        <label className="text-sm text-muted-foreground shrink-0">Target duration (min):</label>
+        <label className="text-sm text-muted-foreground shrink-0">{t('office.speech_duration', 'Target duration')} ({t('office.minutes', 'min')}):</label>
         <input
           type="number"
           min={0}
@@ -129,10 +134,10 @@ export default function SpeechTimer({ onOutput, initialState }: ToolProps) {
         {target && (
           <span className={`text-sm font-medium ${Math.abs(target.diff) < 5 ? 'text-green-500' : target.diff > 0 ? 'text-destructive' : 'text-yellow-500'}`}>
             {Math.abs(target.diff) < 5
-              ? 'On target'
+              ? t('office.speech_pace', 'On target')
               : target.diff > 0
-              ? `~${target.diffWords} words too many (${formatTime(target.diff)} over)`
-              : `~${target.diffWords} words short (${formatTime(-target.diff)} under)`}
+              ? `~${target.diffWords} ${t('office.words', 'words')} too many (${formatTime(target.diff)} over)`
+              : `~${target.diffWords} ${t('office.words', 'words')} short (${formatTime(-target.diff)} under)`}
           </span>
         )}
       </div>

@@ -7,6 +7,7 @@ import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const FIELD_DEFS = [
   { key: 'name', label: 'Full Name', fn: () => faker.person.fullName() },
@@ -106,11 +107,11 @@ export default function FakeDataGenerator({ onOutput, initialState }: ToolProps)
             ))}
           </div>
           <button
-            onClick={generate}
+            onClick={() => { analytics.buttonClick('fake-data-generator', 'generate'); generate() }}
             disabled={selectedFields.length === 0}
             className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            {t('action.generate', 'Generate')} {count} rows
+            {t('action.generate', 'Generate')} {count} {t('dev.fake_count', 'rows')}
           </button>
         </div>
       }
@@ -120,7 +121,7 @@ export default function FakeDataGenerator({ onOutput, initialState }: ToolProps)
             <CopyButton value={output} />
           </div>
           <CodeEditor
-            value={output || `// ${t('action.generate', 'Click "Generate" to produce')} ${count} rows of fake data`}
+            value={output || `// ${t('action.generate', 'Generate')} ${count} ${t('dev.fake_count', 'rows')}`}
             onChange={() => {}}
             language={format}
             readOnly

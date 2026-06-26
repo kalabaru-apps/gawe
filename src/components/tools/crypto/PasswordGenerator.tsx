@@ -5,6 +5,7 @@ import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -93,7 +94,7 @@ export default function PasswordGenerator({ onOutput, initialState }: ToolProps)
             />
           </div>
           <button
-            onClick={() => setCount((c) => c)} // trigger re-render
+            onClick={() => { analytics.buttonClick('password-generator', 'generate'); setCount((c) => c) }} // trigger re-render
             className="w-full py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors"
           >
             {t('crypto.regenerate', 'Regenerate')}

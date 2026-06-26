@@ -5,6 +5,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const DEFAULT_ZONES = [
   'UTC',
@@ -36,6 +37,7 @@ export default function TimezoneClock({ onOutput, initialState: _initialState }:
 
   function addPinnedZone(tz: string) {
     if (!tz || pinnedZones.includes(tz)) return
+    analytics.buttonClick('timezone-clock', 'add_timezone')
     setPinnedZones((prev) => [...prev, tz])
     setAddZone('')
   }

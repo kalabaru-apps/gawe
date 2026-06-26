@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Tab = 'shadow' | 'gradient'
 type GradientType = 'linear' | 'radial' | 'conic'
@@ -154,7 +155,9 @@ export default function CssGenerators({ onOutput, initialState: _initialState }:
           <div className="rounded-md border border-input p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">{t('visual.css_output', 'CSS')}</span>
-              <CopyButton value={currentCss} />
+              <div onClick={() => analytics.buttonClick('css-generators', 'copy')}>
+                <CopyButton value={currentCss} />
+              </div>
             </div>
             <pre className="font-mono text-xs text-foreground whitespace-pre-wrap break-all">{currentCss}</pre>
           </div>

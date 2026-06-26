@@ -9,6 +9,7 @@ import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type IndentSize = 2 | 4
 
@@ -63,8 +64,8 @@ export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
             <TabsTrigger value="4">{t('encoding.indent_4', '4 spaces')}</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button size="sm" onClick={format}>{t('common.format', 'Format')}</Button>
-        <Button size="sm" variant="outline" onClick={minify}>{t('common.minify', 'Minify')}</Button>
+        <Button size="sm" onClick={() => { analytics.buttonClick('json-formatter', 'format'); format() }}>{t('common.format', 'Format')}</Button>
+        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('json-formatter', 'minify'); minify() }}>{t('common.minify', 'Minify')}</Button>
       </div>
       {error && <ErrorAlert message={error} />}
       <ToolPanel

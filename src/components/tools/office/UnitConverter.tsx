@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface Unit {
   label: string
@@ -82,6 +83,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
     return (initialState?.fromUnit as string) ?? Object.keys(CATEGORIES[cat].units)[0]
   })
   const [value, setValue] = useState((initialState?.value as string) ?? '1')
+  const firedRef = useRef(false)
 
   const cat = CATEGORIES[category]
   const units = Object.entries(cat.units)
@@ -106,6 +108,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
 
   useEffect(() => {
     if (results.length > 0) {
+      if (!firedRef.current) { analytics.buttonClick('unit-converter', 'convert'); firedRef.current = true }
       onOutput(
         { value, fromUnit, category },
         { results: Object.fromEntries(results.map(r => [r.key, r.result])) }

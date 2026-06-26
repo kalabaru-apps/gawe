@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const BASES = [
   { label: 'Binary', base: 2, prefix: '0b' },
@@ -27,6 +28,7 @@ export default function BaseConverter({ onOutput, initialState }: ToolProps) {
   const [fromBase, setFromBase] = useState<number>((initialState?.fromBase as number) ?? 10)
   const [conversions, setConversions] = useState<Conversion[]>([])
   const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
   useEffect(() => {
     const raw = input.trim().replace(/^0[xXbBoO]/, '') // strip prefix
@@ -38,6 +40,7 @@ export default function BaseConverter({ onOutput, initialState }: ToolProps) {
       return
     }
     setError(null)
+    if (!firedRef.current) { analytics.buttonClick('base-converter', 'convert'); firedRef.current = true }
     const result = BASES.map((b) => {
       let val = decimal.toString(b.base).toUpperCase()
       // Group binary by 4 bits

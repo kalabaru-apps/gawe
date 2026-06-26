@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface HistoryEntry {
   expression: string
@@ -177,6 +178,7 @@ export default function ScientificCalculator({ onOutput, initialState }: ToolPro
     if (value === '=') {
       const expr = expression.trim()
       if (!expr) return
+      analytics.buttonClick('scientific-calculator', 'evaluate')
       try {
         const result = evaluateExpression(expr, mode)
         setDisplayResult(result)

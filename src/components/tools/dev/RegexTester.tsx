@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const FLAG_OPTIONS = ['g', 'i', 'm', 's', 'u'] as const
 
@@ -17,6 +18,7 @@ export default function RegexTester({ onOutput, initialState }: ToolProps) {
   const [error, setError] = useState<string | null>(null)
   const [matches, setMatches] = useState<string[]>([])
   const [highlighted, setHighlighted] = useState('')
+  const firedRef = useRef(false)
 
   useEffect(() => {
     if (!pattern) {
@@ -43,6 +45,7 @@ export default function RegexTester({ onOutput, initialState }: ToolProps) {
       result += escapeHtml(testString.slice(lastIndex))
       setHighlighted(result)
       if (found.length > 0) {
+        if (!firedRef.current) { analytics.buttonClick('regex-tester', 'test'); firedRef.current = true }
         onOutput({ pattern, flags, testString }, { matchCount: found.length, matches: found.map((m) => m[0]) })
       }
     } catch (e) {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 export interface ToolProps {
   onOutput: (inputs: Record<string, unknown>, outputs: Record<string, unknown>) => void
@@ -158,7 +159,7 @@ export default function MolarMassCalculator({ onOutput }: ToolProps) {
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button
-            onClick={calculate}
+            onClick={() => { analytics.buttonClick('molar-mass', 'calculate'); calculate() }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap"
           >
             {t('action.calculate')}

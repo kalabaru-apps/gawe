@@ -9,6 +9,7 @@ import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Dialect = 'sql' | 'mysql' | 'postgresql' | 'sqlite' | 'tsql' | 'plsql'
 
@@ -88,10 +89,10 @@ export default function SqlFormatter({ onOutput, initialState }: ToolProps) {
             </option>
           ))}
         </select>
-        <Button size="sm" onClick={handleFormat} disabled={!input.trim()}>
+        <Button size="sm" onClick={() => { analytics.buttonClick('sql-formatter', 'format'); handleFormat() }} disabled={!input.trim()}>
           {t('common.format', 'Format')}
         </Button>
-        <Button size="sm" variant="outline" onClick={handleMinify} disabled={!input.trim()}>
+        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('sql-formatter', 'minify'); handleMinify() }} disabled={!input.trim()}>
           {t('common.minify', 'Minify')}
         </Button>
       </div>

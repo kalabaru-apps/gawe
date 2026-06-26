@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface CaseResult {
   label: string
@@ -41,6 +42,7 @@ export default function CaseConverter({ onOutput, initialState }: ToolProps) {
   const handleChange = (value: string) => {
     setInput(value)
     if (value) {
+      analytics.buttonClick('case-converter', 'convert')
       const cases = convertAll(value)
       onOutput({ input: value }, { cases: Object.fromEntries(cases.map((c) => [c.key, c.value])) })
     }

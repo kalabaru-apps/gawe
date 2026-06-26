@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface TodoItem { id: string; text: string; done: boolean }
 
@@ -81,7 +82,7 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
               onKeyDown={(e) => { if (e.key === 'Enter') addTodo() }}
               className="flex-1 text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
               placeholder="New task... (press Enter to add)" />
-            <button onClick={addTodo} className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors">Add</button>
+            <button onClick={() => { analytics.buttonClick('scratchpad', 'save'); addTodo() }} className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors">{t('action.add', 'Add')}</button>
           </div>
           <div className="space-y-1">
             {todos.filter((t) => !t.done).map((todo) => (
@@ -93,7 +94,7 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
             ))}
             {todos.some((t) => t.done) && (
               <>
-                <p className="text-xs text-muted-foreground px-1 pt-2">Completed</p>
+                <p className="text-xs text-muted-foreground px-1 pt-2">{t('office.task_done', 'Completed')}</p>
                 {todos.filter((t) => t.done).map((todo) => (
                   <div key={todo.id} className="flex items-center gap-3 rounded-md border border-border/30 px-3 py-2.5 opacity-60">
                     <input type="checkbox" checked onChange={() => toggleTodo(todo.id)} className="rounded" />
@@ -103,7 +104,7 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
                 ))}
               </>
             )}
-            {todos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No tasks yet : add one above</p>}
+            {todos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">{t('office.task_pending', 'No tasks yet')} : {t('office.task_add', 'add one above')}</p>}
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@ import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 export default function ImageResize({ onOutput, initialState: _initialState }: ToolProps) {
   const { t } = useTranslation()
@@ -69,7 +70,7 @@ export default function ImageResize({ onOutput, initialState: _initialState }: T
       canvas.width = targetW; canvas.height = targetH
       canvas.getContext('2d')!.drawImage(img, 0, 0, targetW, targetH)
       canvas.toBlob((blob) => {
-        if (!blob) { setError('Resize failed'); setLoading(false); return }
+        if (!blob) { setError(t('image.failed_convert', 'Resize failed')); setLoading(false); return }
         const outUrl = URL.createObjectURL(blob)
         const a = document.createElement('a'); a.href = outUrl; a.download = `${originalName}-${targetW}x${targetH}.png`; a.click()
         URL.revokeObjectURL(outUrl); URL.revokeObjectURL(url)
@@ -121,7 +122,7 @@ export default function ImageResize({ onOutput, initialState: _initialState }: T
               <p>{t('common.original', 'Original')}: {origW}×{origH} · {formatBytes(origSize)}</p>
               <p>{t('common.output_format', 'Output')}: {targetW}×{targetH} (target)</p>
             </div>
-            <button onClick={resize} disabled={loading}
+            <button onClick={() => { analytics.buttonClick('image-resize', 'resize'); void resize() }} disabled={loading}
               className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
               {loading ? t('image.converting', 'Resizing…') : `${t('image.resize', 'Resize')} & ${t('common.download', 'Download')}`}
             </button>

@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fromUnixTime, format, getUnixTime, formatDistanceToNow, parseISO } from 'date-fns'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Mode = 'ts-to-date' | 'date-to-ts'
 
@@ -22,6 +23,7 @@ export default function TimestampConverter({ onOutput, initialState }: ToolProps
   const [dateInput, setDateInput] = useState((initialState?.dateInput as string) ?? new Date().toISOString().slice(0, 16))
   const [rows, setRows] = useState<OutputRow[]>([])
   const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
   useEffect(() => {
     try {
@@ -51,6 +53,7 @@ export default function TimestampConverter({ onOutput, initialState }: ToolProps
       ]
       setRows(result)
       setError(null)
+      if (!firedRef.current) { analytics.buttonClick('timestamp-converter', 'convert'); firedRef.current = true }
       onOutput(
         mode === 'ts-to-date' ? { timestamp: tsInput } : { date: dateInput },
         { iso: date.toISOString(), unixSeconds: unixS, unixMs }

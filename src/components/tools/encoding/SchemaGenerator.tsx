@@ -9,6 +9,7 @@ import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type InputMode = 'csv' | 'json'
 type OutputTab = 'typescript' | 'zod' | 'jsonschema'
@@ -269,7 +270,7 @@ export default function SchemaGenerator({ onOutput, initialState }: ToolProps) {
           className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
 
-        <Button size="sm" onClick={generate} disabled={!input.trim()}>
+        <Button size="sm" onClick={() => { analytics.buttonClick('schema-generator', 'generate'); generate() }} disabled={!input.trim()}>
           {t('action.generate', 'Generate')}
         </Button>
       </div>

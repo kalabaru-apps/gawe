@@ -8,6 +8,7 @@ import { FileDropzone } from '../shared/FileDropzone'
 import { CodeEditor } from '../shared/CodeEditor'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Tab = 'optimize' | 'favicon'
 
@@ -52,7 +53,7 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
   const handleSvgFile = useCallback((file: File) => {
     const reader = new FileReader()
     reader.onload = (e) => setSvgInput(e.target?.result as string)
-    reader.onerror = () => setSvgError('Failed to read file')
+    reader.onerror = () => setSvgError(t('image.failed_load', 'Failed to read file'))
     reader.readAsText(file)
   }, [])
 
@@ -71,7 +72,7 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
       })
       setFaviconPreviews(previews)
     }
-    img.onerror = () => setFaviconError('Failed to load image')
+    img.onerror = () => setFaviconError(t('image.failed_load', 'Failed to load image'))
     img.src = url
   }, [])
 
@@ -103,7 +104,7 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
             <div className="space-y-3">
               <FileDropzone accept=".svg,image/svg+xml" onFile={handleSvgFile} label={t('image.drop_svg', 'Drop an SVG file or paste code below')} />
               <CodeEditor value={svgInput} onChange={setSvgInput} language="svg" />
-              <button onClick={optimizeSvg} disabled={optimizing || !svgInput.trim()}
+              <button onClick={() => { analytics.buttonClick('svg-tools', 'optimize'); void optimizeSvg() }} disabled={optimizing || !svgInput.trim()}
                 className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
                 {optimizing ? t('image.converting', 'Optimizing…') : t('image.optimize', 'Optimize SVG')}
               </button>
@@ -120,8 +121,8 @@ export default function SvgTools({ onOutput, initialState }: ToolProps) {
                   </div>
                   <CodeEditor value={optimized} onChange={() => {}} language="svg" readOnly />
                   <div className="flex gap-4 text-xs text-muted-foreground">
-                    <span>Before: {svgInput.length} bytes</span>
-                    <span>After: {optimized.length} bytes</span>
+                    <span>{t('common.original_size', 'Before')}: {svgInput.length} bytes</span>
+                    <span>{t('common.output_size', 'After')}: {optimized.length} bytes</span>
                   </div>
                 </>
               )}

@@ -7,6 +7,7 @@ import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import { FileDropzone } from '@/components/tools/shared/FileDropzone'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface FileEntry {
   id: string
@@ -183,7 +184,7 @@ export default function CsvMerger({ onOutput }: ToolProps) {
           </div>
 
           <Button
-            onClick={handleMerge}
+            onClick={() => { analytics.buttonClick('csv-merger', 'merge'); handleMerge() }}
             disabled={entries.length < 2}
             className="self-start"
           >

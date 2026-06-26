@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -686,7 +687,7 @@ export default function CitationGenerator({ onOutput, initialState }: ToolProps)
 
       {/* Action buttons */}
       <div className="flex gap-2">
-        <button onClick={generate}
+        <button onClick={() => { analytics.buttonClick('citation-generator', 'generate'); generate() }}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
           {t('citation.generate')}
         </button>

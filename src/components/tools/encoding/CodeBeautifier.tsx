@@ -9,6 +9,7 @@ import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Language = 'javascript' | 'css' | 'html' | 'sql'
 const LANGUAGES: Language[] = ['javascript', 'css', 'html', 'sql']
@@ -96,10 +97,10 @@ export default function CodeBeautifier({ onOutput, initialState }: ToolProps) {
             </button>
           ))}
         </div>
-        <Button size="sm" onClick={handleBeautify} disabled={loading}>
+        <Button size="sm" onClick={() => { analytics.buttonClick('code-beautifier', 'beautify'); handleBeautify() }} disabled={loading}>
           {loading ? t('common.format', 'Formatting…') : t('common.format', 'Beautify')}
         </Button>
-        <Button size="sm" variant="outline" onClick={handleMinify}>{t('common.minify', 'Minify')}</Button>
+        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('code-beautifier', 'minify'); handleMinify() }}>{t('common.minify', 'Minify')}</Button>
       </div>
       {error && <ErrorAlert message={error} />}
       <ToolPanel

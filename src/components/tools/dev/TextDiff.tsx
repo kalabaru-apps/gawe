@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { diffLines } from 'diff'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 export default function TextDiff({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
@@ -12,6 +13,7 @@ export default function TextDiff({ onOutput, initialState }: ToolProps) {
   const [modified, setModified] = useState((initialState?.modified as string) ?? '')
   const [added, setAdded] = useState(0)
   const [removed, setRemoved] = useState(0)
+  const firedRef = useRef(false)
 
   const parts = diffLines(original, modified)
 
@@ -25,6 +27,7 @@ export default function TextDiff({ onOutput, initialState }: ToolProps) {
     setAdded(a)
     setRemoved(r)
     if (a > 0 || r > 0) {
+      if (!firedRef.current) { analytics.buttonClick('text-diff', 'diff'); firedRef.current = true }
       onOutput({ original, modified }, { linesAdded: a, linesRemoved: r })
     }
   }, [original, modified])
@@ -39,8 +42,8 @@ export default function TextDiff({ onOutput, initialState }: ToolProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <span className="text-xs text-emerald-400 font-medium">+{added} added</span>
-        <span className="text-xs text-rose-400 font-medium">-{removed} removed</span>
+        <span className="text-xs text-emerald-400 font-medium">+{added} {t('action.add', 'added')}</span>
+        <span className="text-xs text-rose-400 font-medium">-{removed} {t('action.remove', 'removed')}</span>
         <div className="ml-auto">
           <CopyButton value={diffText} />
         </div>

@@ -7,6 +7,7 @@ import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Mode = 'encrypt' | 'decrypt'
 
@@ -65,7 +66,7 @@ export default function AesEncrypt({ onOutput, initialState }: ToolProps) {
               className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
               placeholder={t('crypto.passphrase', 'Encryption key...')} />
           </div>
-          <button onClick={process} disabled={!text || !key}
+          <button onClick={() => { analytics.buttonClick('aes-encrypt', mode === 'encrypt' ? 'encrypt' : 'decrypt'); process() }} disabled={!text || !key}
             className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
             {mode === 'encrypt' ? t('crypto.aes_encrypt', 'Encrypt') : t('crypto.aes_decrypt', 'Decrypt')}
           </button>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 import { Marked } from 'marked'
 import { markedHighlight } from 'marked-highlight'
 import hljs from 'highlight.js'
@@ -150,6 +151,7 @@ function FileList({ files, activeIdx, onSelect, onNew, onDelete }: FileListProps
 
 // ─── main component ────────────────────────────────────────────────────────────
 export default function MarkdownEditor({ onOutput }: ToolProps) {
+  const { t } = useTranslation()
   const [files, setFiles] = useState<RecentEntry[]>([])
   const [activeIdx, setActiveIdx] = useState<number | null>(null)
   const [content, setContent] = useState('')
@@ -378,7 +380,7 @@ export default function MarkdownEditor({ onOutput }: ToolProps) {
           <div className="flex items-center gap-1 pr-2 border-r border-input/40">
             <TBtn title="New file" onClick={newFile}>＋ New</TBtn>
             <TBtn title="Open file from disk" onClick={openFile}>⬆ Open</TBtn>
-            <TBtn title="Save (Ctrl+S)" onClick={saveFile}>
+            <TBtn title="Save (Ctrl+S)" onClick={() => { analytics.buttonClick('markdown-editor', 'copy'); void saveFile() }}>
               {saving ? '…' : dirty ? '● Save' : '✓ Save'}
             </TBtn>
             {FS_SUPPORTED && <TBtn title="Save As" onClick={saveAs}>Save As</TBtn>}

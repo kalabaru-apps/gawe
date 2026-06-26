@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import cronstrue from 'cronstrue'
 import { CronExpressionParser } from 'cron-parser'
 import type { ToolProps } from '@/types'
@@ -8,6 +8,7 @@ import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const PRESETS = [
   { label: 'Every minute', value: '* * * * *' },
@@ -25,6 +26,7 @@ export default function CronBuilder({ onOutput, initialState }: ToolProps) {
   const [description, setDescription] = useState('')
   const [nextRuns, setNextRuns] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
   useEffect(() => {
     if (!expression.trim()) return
@@ -38,6 +40,7 @@ export default function CronBuilder({ onOutput, initialState }: ToolProps) {
       setDescription(desc)
       setNextRuns(runs)
       setError(null)
+      if (!firedRef.current) { analytics.buttonClick('cron-builder', 'parse'); firedRef.current = true }
       onOutput({ expression }, { description: desc, nextRuns: runs })
     } catch (e) {
       setError((e as Error).message)

@@ -7,6 +7,7 @@ import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Mode = 'hash' | 'verify'
 
@@ -45,7 +46,7 @@ export default function Bcrypt({ onOutput, initialState }: ToolProps) {
       setMatch(isMatch)
       onOutput({ hashInput }, { match: isMatch })
     } catch (e) {
-      setError('Invalid hash format')
+      setError(t('action.error', 'Invalid hash format'))
       setMatch(null)
     } finally {
       setLoading(false)
@@ -86,7 +87,7 @@ export default function Bcrypt({ onOutput, initialState }: ToolProps) {
                 placeholder="$2b$12$..." spellCheck={false} />
             </div>
           )}
-          <button onClick={mode === 'hash' ? handleHash : handleVerify} disabled={loading || !password}
+          <button onClick={() => { analytics.buttonClick('bcrypt', mode === 'hash' ? 'hash' : 'verify'); (mode === 'hash' ? handleHash : handleVerify)() }} disabled={loading || !password}
             className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
             {loading ? t('action.result', 'Computing…') : mode === 'hash' ? t('action.generate', 'Generate Hash') : t('crypto.bcrypt_verify', 'Verify')}
           </button>
