@@ -85,6 +85,16 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'exif-remover': () => import('@/components/tools/image/ExifRemover'),
     'pdf-splitter': () => import('@/components/tools/image/PdfSplitter'),
   },
+  education: {
+    'quadratic-solver': () => import('@/components/tools/education/QuadraticSolver'),
+    'matrix-calculator': () => import('@/components/tools/education/MatrixCalculator'),
+    'scientific-calculator': () => import('@/components/tools/education/ScientificCalculator'),
+    'statistics-calculator': () => import('@/components/tools/education/StatisticsCalculator'),
+    'molar-mass': () => import('@/components/tools/education/MolarMassCalculator'),
+    'physics-solver': () => import('@/components/tools/education/PhysicsSolver'),
+    'citation-generator': () => import('@/components/tools/education/CitationGenerator'),
+    'gpa-calculator': () => import('@/components/tools/education/GpaCalculator'),
+  },
 }
 
 interface ToolPageClientProps {

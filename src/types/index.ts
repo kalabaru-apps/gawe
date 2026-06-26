@@ -1,4 +1,4 @@
-export type CategoryId = 'encoding' | 'crypto' | 'dev' | 'image' | 'office' | 'visual'
+export type CategoryId = 'encoding' | 'crypto' | 'dev' | 'image' | 'office' | 'visual' | 'education'
 
 export interface CategoryDefinition {
   id: CategoryId
@@ -60,4 +60,5 @@ export interface Preferences {
   favorites: string[]
   recentTools: string[]
   collapsedCategories: CategoryId[]
+  locale: 'en' | 'id'
 }

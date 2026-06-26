@@ -9,6 +9,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   favorites: [],
   recentTools: [],
   collapsedCategories: [],
+  locale: 'en',
 }
 
 export function getPreferences(): Preferences {
