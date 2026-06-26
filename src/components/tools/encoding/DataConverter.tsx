@@ -11,6 +11,8 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Format = 'json' | 'yaml' | 'toml' | 'csv' | 'xml'
 const FORMATS: Format[] = ['json', 'yaml', 'toml', 'csv', 'xml']
@@ -53,6 +55,7 @@ function serializeOutput(data: unknown, format: Format): string {
 }
 
 export default function DataConverter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [from, setFrom] = useState<Format>((initialState?.from as Format) ?? 'json')
   const [to, setTo] = useState<Format>((initialState?.to as Format) ?? 'yaml')
@@ -78,7 +81,7 @@ export default function DataConverter({ onOutput, initialState }: ToolProps) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">From</span>
+          <span className="text-sm text-muted-foreground">{t('common.convert', 'From')}</span>
           <div className="flex gap-1">
             {FORMATS.map((f) => (
               <button
@@ -96,7 +99,7 @@ export default function DataConverter({ onOutput, initialState }: ToolProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">To</span>
+          <span className="text-sm text-muted-foreground">{t('common.output_format', 'To')}</span>
           <div className="flex gap-1">
             {FORMATS.map((f) => (
               <button
@@ -113,7 +116,7 @@ export default function DataConverter({ onOutput, initialState }: ToolProps) {
             ))}
           </div>
         </div>
-        <Button size="sm" onClick={convert}>Convert</Button>
+        <Button size="sm" onClick={() => { analytics.buttonClick('json-converter', 'convert'); convert() }}>{t('common.convert', 'Convert')}</Button>
       </div>
       {error && <ErrorAlert message={error} />}
       <ToolPanel
@@ -121,10 +124,10 @@ export default function DataConverter({ onOutput, initialState }: ToolProps) {
         right={
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">{to} output</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{to} {t('action.output', 'output')}</span>
               <CopyButton value={output} />
             </div>
-            <CodeEditor value={output} onChange={() => {}} readOnly rows={16} placeholder="Output appears here…" />
+            <CodeEditor value={output} onChange={() => {}} readOnly rows={16} placeholder={t('common.no_output', 'Output appears here…')} />
           </div>
         }
       />

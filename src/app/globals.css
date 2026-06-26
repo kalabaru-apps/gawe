@@ -9,6 +9,11 @@
     --card-foreground: 0 0% 3.6%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.6%;
+    /* primary = foreground: black button in light mode */
+    --primary: 0 0% 3.6%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
     --accent: 0 0% 9.0%;
@@ -33,6 +38,11 @@
     --card-foreground: 0 0% 98.2%;
     --popover: 0 0% 3.6%;
     --popover-foreground: 0 0% 98.2%;
+    /* primary = foreground: white button in dark mode */
+    --primary: 0 0% 98.2%;
+    --primary-foreground: 0 0% 3.6%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98.2%;
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;
     --accent: 0 0% 98.2%;
@@ -76,6 +86,10 @@
   --color-card-foreground: hsl(var(--card-foreground));
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-accent: hsl(var(--accent));

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { formatInTimeZone } from 'date-fns-tz'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const DEFAULT_ZONES = [
   'UTC',
@@ -22,6 +24,7 @@ const DEFAULT_ZONES = [
 const ALL_ZONES = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') as string[] : DEFAULT_ZONES
 
 export default function TimezoneClock({ onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [now, setNow] = useState(new Date())
   const [pinnedZones, setPinnedZones] = useState<string[]>(DEFAULT_ZONES)
   const [addZone, setAddZone] = useState('')
@@ -34,6 +37,7 @@ export default function TimezoneClock({ onOutput, initialState: _initialState }:
 
   function addPinnedZone(tz: string) {
     if (!tz || pinnedZones.includes(tz)) return
+    analytics.buttonClick('timezone-clock', 'add_timezone')
     setPinnedZones((prev) => [...prev, tz])
     setAddZone('')
   }
@@ -51,7 +55,7 @@ export default function TimezoneClock({ onOutput, initialState: _initialState }:
           value={filterZone}
           onChange={(e) => setFilterZone(e.target.value)}
           className="flex-1 text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-          placeholder="Search timezone (e.g. Tokyo, New_York)..."
+          placeholder={t('common.search', 'Search') + ' timezone (e.g. Tokyo, New_York)...'}
         />
         {filterZone && (
           <div className="relative">

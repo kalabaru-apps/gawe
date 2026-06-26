@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 const STATUS_CODES = [
   // 1xx
@@ -81,6 +82,7 @@ function statusColor(code: number): string {
 }
 
 export default function HttpReference({ onOutput: _onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('status')
   const [search, setSearch] = useState('')
   const q = search.toLowerCase()
@@ -96,15 +98,15 @@ export default function HttpReference({ onOutput: _onOutput, initialState: _init
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex gap-1 border border-input rounded-md p-0.5">
-          {(['status', 'mime'] as Tab[]).map((t) => (
+          {(['status', 'mime'] as Tab[]).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'
+                tab === tabKey ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'
               }`}
             >
-              {t === 'status' ? 'HTTP Status Codes' : 'MIME Types'}
+              {tabKey === 'status' ? 'HTTP Status Codes' : 'MIME Types'}
             </button>
           ))}
         </div>

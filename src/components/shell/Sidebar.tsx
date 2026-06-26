@@ -11,7 +11,9 @@ import { usePreferences } from '@/hooks/usePreferences'
 import { SidebarCategory } from './SidebarCategory'
 import { SidebarItem } from './SidebarItem'
 import { ThemeToggle } from './ThemeToggle'
+import { LocaleToggle } from './LocaleToggle'
 import { Button } from '@/components/ui/button'
+import { useTranslation } from '@/lib/i18n'
 import type { CategoryId } from '@/types'
 
 export function Sidebar() {
@@ -20,6 +22,7 @@ export function Sidebar() {
 
   const { setCommandPaletteOpen } = useAppStore()
   const { prefs, toggleFavorite, toggleCategory, update } = usePreferences()
+  const { t } = useTranslation()
   const sidebarCollapsed = mounted ? prefs.sidebarCollapsed : false
   const setSidebarCollapsed = (collapsed: boolean) => update({ sidebarCollapsed: collapsed })
   const favTools = TOOLS.filter((t) => prefs.favorites.includes(t.id))
@@ -64,7 +67,7 @@ export function Sidebar() {
             onClick={() => setCommandPaletteOpen(true)}
             className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"
           >
-            <span>Search tools...</span>
+            <span>{t('nav.search')}</span>
             <kbd className="ml-auto rounded bg-muted px-1 font-mono text-[10px]">⌘K</kbd>
           </button>
         </div>
@@ -77,7 +80,7 @@ export function Sidebar() {
           <div className="mb-2">
             {!sidebarCollapsed && (
               <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Favorites
+                {t('nav.favorites')}
               </p>
             )}
             <div className="space-y-0.5">
@@ -112,8 +115,9 @@ export function Sidebar() {
       <div className="shrink-0 border-t border-border px-2 py-2 space-y-2">
         <div className="flex items-center gap-1">
           <ThemeToggle />
+          <LocaleToggle />
           {!sidebarCollapsed && (
-            <span className="text-xs text-muted-foreground ml-1">Theme</span>
+            <span className="text-xs text-muted-foreground ml-1">Theme & Language</span>
           )}
         </div>
         {!sidebarCollapsed && (
@@ -124,7 +128,7 @@ export function Sidebar() {
               rel="noopener noreferrer"
               className="flex w-full items-center justify-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-black hover:bg-amber-400 transition-colors"
             >
-              ☕ Support this app
+              ☕ {t('nav.support')}
             </a>
             <p className="px-1 text-[10px] text-muted-foreground/50 leading-snug">
               Free &amp; open source by{' '}

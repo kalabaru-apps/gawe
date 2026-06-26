@@ -3,6 +3,7 @@
 import {
   useState, useEffect, useRef, useCallback,
 } from 'react'
+import { analytics } from '@/lib/analytics'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
   closestCorners, type DragStartEvent, type DragOverEvent, type DragEndEvent,
@@ -13,6 +14,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type LabelColor = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'violet' | 'pink' | 'slate'
@@ -177,6 +179,7 @@ interface ColumnProps {
 }
 
 function KanbanColumn({ col, cards, activeId, onCardOpen, onAddCard, onColRename, onColDelete }: ColumnProps) {
+  const { t } = useTranslation()
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
@@ -247,14 +250,14 @@ function KanbanColumn({ col, cards, activeId, onCardOpen, onAddCard, onColRename
             className="w-full text-sm border border-input rounded-md p-2 bg-background resize-none outline-none focus:ring-1 focus:ring-ring"
           />
           <div className="flex gap-1.5">
-            <button onClick={submitAdd} className="px-3 py-1 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Add</button>
+            <button onClick={submitAdd} className="px-3 py-1 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">{t('action.add', 'Add')}</button>
             <button onClick={() => setAdding(false)} className="px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-muted transition-colors">✕</button>
           </div>
         </div>
       ) : (
         <button onClick={() => { setAdding(true); setTimeout(() => inputRef.current?.focus(), 50) }}
           className="mx-2 mb-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors">
-          + Add a card
+          + {t('office.task_add', 'Add a card')}
         </button>
       )}
     </div>
@@ -271,6 +274,7 @@ interface CardModalProps {
 }
 
 function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps) {
+  const { t } = useTranslation()
   const [draft, setDraft] = useState<Card>({ ...card, labels: [...card.labels], checklist: card.checklist.map(c => ({ ...c })) })
   const [newCheckItem, setNewCheckItem] = useState('')
   const [addingLabel, setAddingLabel] = useState(false)
@@ -321,7 +325,7 @@ function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps
               className="flex-1 text-base font-semibold bg-transparent outline-none resize-none border-b border-transparent focus:border-input leading-snug"
               placeholder="Card title…"
             />
-            <button onClick={() => onSave(draft)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors text-xs px-2 py-1 rounded hover:bg-muted">Save ↵</button>
+            <button onClick={() => onSave(draft)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors text-xs px-2 py-1 rounded hover:bg-muted">{t('action.save', 'Save')} ↵</button>
             <button onClick={onClose} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors text-lg leading-none px-1">×</button>
           </div>
           <p className="text-xs text-muted-foreground">in <span className="font-medium text-foreground">{colTitle}</span></p>
@@ -330,7 +334,7 @@ function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
           {/* Labels */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Labels</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('common.type', 'Labels')}</p>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {draft.labels.map((l, i) => (
                 <button key={i} onClick={() => removeLabel(i)}
@@ -353,7 +357,7 @@ function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps
                     onKeyDown={e => { if (e.key === 'Enter') addLabel(); if (e.key === 'Escape') setAddingLabel(false) }}
                     placeholder="Label text…"
                     className="flex-1 text-xs border border-input rounded px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-ring" />
-                  <button onClick={addLabel} className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground">Add</button>
+                  <button onClick={addLabel} className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground">{t('action.add', 'Add')}</button>
                   <button onClick={() => setAddingLabel(false)} className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">✕</button>
                 </div>
               </div>
@@ -362,18 +366,18 @@ function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps
 
           {/* Due date */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Due date</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('office.date_to', 'Due date')}</p>
             <input type="date" value={draft.due}
               onChange={e => field('due', e.target.value)}
               className="text-sm border border-input rounded-md px-3 py-1.5 bg-background outline-none focus:ring-1 focus:ring-ring" />
             {draft.due && (
-              <button onClick={() => field('due', '')} className="ml-2 text-xs text-muted-foreground hover:text-rose-400 transition-colors">clear</button>
+              <button onClick={() => field('due', '')} className="ml-2 text-xs text-muted-foreground hover:text-rose-400 transition-colors">{t('action.clear', 'clear')}</button>
             )}
           </div>
 
           {/* Description */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Description</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('common.content', 'Description')}</p>
             <textarea
               value={draft.description}
               onChange={e => field('description', e.target.value)}
@@ -386,7 +390,7 @@ function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps
           {/* Checklist */}
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Checklist</p>
+              <p className="text-xs font-medium text-muted-foreground">{t('office.task_all', 'Checklist')}</p>
               {draft.checklist.length > 0 && (
                 <span className="text-xs text-muted-foreground font-mono">{doneCount}/{draft.checklist.length} ({pct}%)</span>
               )}
@@ -411,15 +415,15 @@ function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps
                 onKeyDown={e => { if (e.key === 'Enter') addCheckItem() }}
                 placeholder="Add item… (Enter to add)"
                 className="flex-1 text-xs border border-input rounded px-2 py-1.5 bg-background outline-none focus:ring-1 focus:ring-ring" />
-              <button onClick={addCheckItem} className="text-xs px-2 py-1.5 rounded border border-input hover:bg-muted/60 transition-colors">Add</button>
+              <button onClick={addCheckItem} className="text-xs px-2 py-1.5 rounded border border-input hover:bg-muted/60 transition-colors">{t('action.add', 'Add')}</button>
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-input/40 flex justify-between">
-          <button onClick={onDelete} className="text-xs text-rose-400 hover:text-rose-300 px-3 py-1.5 rounded hover:bg-rose-500/10 transition-colors">Delete card</button>
-          <button onClick={() => onSave(draft)} className="text-sm px-4 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium">Save</button>
+          <button onClick={onDelete} className="text-xs text-rose-400 hover:text-rose-300 px-3 py-1.5 rounded hover:bg-rose-500/10 transition-colors">{t('action.delete', 'Delete')} card</button>
+          <button onClick={() => onSave(draft)} className="text-sm px-4 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium">{t('action.save', 'Save')}</button>
         </div>
       </div>
     </div>
@@ -428,6 +432,7 @@ function CardModal({ card, colTitle, onSave, onDelete, onClose }: CardModalProps
 
 // ─── main component ────────────────────────────────────────────────────────────
 export default function TaskTracker({ onOutput }: ToolProps) {
+  const { t } = useTranslation()
   const [boards, setBoards] = useState<Board[]>([])
   const [activeBoardId, setActiveBoardId] = useState('default')
   const [openCardId, setOpenCardId] = useState<string | null>(null)
@@ -458,6 +463,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
   // ── card ops ────────────────────────────────────────────────────────────────
   function addCard(colId: string, title: string) {
     if (!board) return
+    analytics.buttonClick('task-tracker', 'add_task')
     const card = emptyCard(title)
     updateBoard({
       cards: { ...board.cards, [card.id]: card },
@@ -621,7 +627,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board])
 
-  if (!board) return <div className="text-sm text-muted-foreground p-4">Loading…</div>
+  if (!board) return <div className="text-sm text-muted-foreground p-4">{t('common.search', 'Loading')}…</div>
 
   const openCard = openCardId ? board.cards[openCardId] : null
   const openCardCol = openCardId ? board.columns.find(c => c.cardIds.includes(openCardId)) : null
@@ -647,7 +653,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
               onKeyDown={e => { if (e.key === 'Enter') addBoard(newBoardName.trim() || 'New Board'); if (e.key === 'Escape') setAddingBoard(false) }}
               placeholder="Board name…"
               className="text-sm border border-input rounded-md px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-ring w-32" />
-            <button onClick={() => addBoard(newBoardName.trim() || 'New Board')} className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground">Add</button>
+            <button onClick={() => addBoard(newBoardName.trim() || 'New Board')} className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground">{t('action.add', 'Add')}</button>
             <button onClick={() => setAddingBoard(false)} className="text-xs text-muted-foreground px-1">✕</button>
           </div>
         ) : (
@@ -685,7 +691,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
                     className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
                   <div className="flex gap-1.5">
                     <button onClick={() => { addColumn(newColName.trim() || 'New Column'); setNewColName(''); setAddingCol(false) }}
-                      className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Add column</button>
+                      className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">{t('action.add', 'Add')} column</button>
                     <button onClick={() => setAddingCol(false)} className="text-xs px-2 py-1 rounded text-muted-foreground hover:bg-muted transition-colors">✕</button>
                   </div>
                 </div>

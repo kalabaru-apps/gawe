@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { marked } from 'marked'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const SAMPLE = `# Hello, World!
 
@@ -29,14 +31,17 @@ const greet = (name) => \`Hello, \${name}!\`
 type Tab = 'preview' | 'html'
 
 export default function MarkdownConverter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? SAMPLE)
   const [tab, setTab] = useState<Tab>('preview')
   const [html, setHtml] = useState('')
+  const firedRef = useRef(false)
 
   useEffect(() => {
     const result = marked.parse(input, { async: false }) as string
     setHtml(result)
     if (input) {
+      if (!firedRef.current) { analytics.buttonClick('markdown-converter', 'convert'); firedRef.current = true }
       onOutput({ markdown: input }, { html: result })
     }
   }, [input, onOutput])
@@ -45,7 +50,7 @@ export default function MarkdownConverter({ onOutput, initialState }: ToolProps)
     <ToolPanel
       left={
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground block">Markdown</label>
+          <label className="text-xs font-medium text-muted-foreground block">{t('dev.markdown_input', 'Markdown')}</label>
           <CodeEditor value={input} onChange={setInput} language="markdown" />
         </div>
       }
@@ -53,15 +58,15 @@ export default function MarkdownConverter({ onOutput, initialState }: ToolProps)
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex gap-1 border border-input rounded-md p-0.5">
-              {(['preview', 'html'] as Tab[]).map((t) => (
+              {(['preview', 'html'] as Tab[]).map((tabVal) => (
                 <button
-                  key={t}
-                  onClick={() => setTab(t)}
+                  key={tabVal}
+                  onClick={() => setTab(tabVal)}
                   className={`px-3 py-1 rounded text-xs capitalize transition-colors ${
-                    tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'
+                    tab === tabVal ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'
                   }`}
                 >
-                  {t}
+                  {tabVal === 'preview' ? t('dev.markdown_preview', 'Preview') : tabVal}
                 </button>
               ))}
             </div>

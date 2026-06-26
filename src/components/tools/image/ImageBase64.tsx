@@ -1,14 +1,18 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { FileDropzone } from '../shared/FileDropzone'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface OutputRow { label: string; value: string }
 
 export default function ImageBase64({ onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
+  const firedRef = useRef(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [outputs, setOutputs] = useState<OutputRow[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -21,6 +25,7 @@ export default function ImageBase64({ onOutput, initialState: _initialState }: T
     setError(null)
     const reader = new FileReader()
     reader.onload = (e) => {
+      if (!firedRef.current) { analytics.buttonClick('image-base64', 'convert'); firedRef.current = true }
       const dataUri = e.target?.result as string
       setPreview(dataUri)
       const bare = dataUri.split(',')[1]
@@ -33,7 +38,7 @@ export default function ImageBase64({ onOutput, initialState: _initialState }: T
       setOutputs(rows)
       onOutput({ fileName: file.name, mimeType: file.type }, { dataUriLength: dataUri.length, base64Size: bare.length })
     }
-    reader.onerror = () => setError('Failed to read file')
+    reader.onerror = () => setError(t('image.failed_load', 'Failed to read file'))
     reader.readAsDataURL(file)
   }, [onOutput])
 
@@ -45,7 +50,7 @@ export default function ImageBase64({ onOutput, initialState: _initialState }: T
 
   return (
     <div className="space-y-4">
-      <FileDropzone accept="image/*" onFile={handleFile} label="Drop an image to convert to Base64" />
+      <FileDropzone accept="image/*" onFile={handleFile} label={t('image.to_base64', 'Drop an image to convert to Base64')} />
       {error && <ErrorAlert message={error} />}
       {preview && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -55,9 +60,9 @@ export default function ImageBase64({ onOutput, initialState: _initialState }: T
             </div>
             <div className="text-xs text-muted-foreground space-y-0.5">
               <p>{fileName}</p>
-              <p>Original: {formatBytes(originalSize)}</p>
-              <p>Base64: {formatBytes(outputs[1]?.value.length ?? 0)}</p>
-              <p>Overhead: +{Math.round(((outputs[1]?.value.length ?? 0) / originalSize - 1) * 100)}%</p>
+              <p>{t('common.original', 'Original')}: {formatBytes(originalSize)}</p>
+              <p>{t('image.from_base64', 'Base64')}: {formatBytes(outputs[1]?.value.length ?? 0)}</p>
+              <p>{t('image.from_base64', 'Overhead')}: +{Math.round(((outputs[1]?.value.length ?? 0) / originalSize - 1) * 100)}%</p>
             </div>
           </div>
           <div className="space-y-3">

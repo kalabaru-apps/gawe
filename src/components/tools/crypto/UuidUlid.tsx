@@ -6,6 +6,8 @@ import { ulid } from 'ulid'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type UuidVersion = 'v1' | 'v4' | 'v5' | 'ulid'
 
@@ -13,6 +15,7 @@ const DNS_NS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 const URL_NS = '6ba7b811-9dad-11d1-80b4-00c04fd430c8'
 
 export default function UuidUlid({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [uuidVersion, setUuidVersion] = useState<UuidVersion>((initialState?.uuidVersion as UuidVersion) ?? 'v4')
   const [count, setCount] = useState<number>((initialState?.count as number) ?? 5)
   const [v5Name, setV5Name] = useState((initialState?.v5Name as string) ?? 'example.com')
@@ -70,7 +73,7 @@ export default function UuidUlid({ onOutput, initialState }: ToolProps) {
           {uuidVersion === 'v5' && (
             <div className="space-y-2">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Name</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.text', 'Name')}</label>
                 <input value={v5Name} onChange={(e) => setV5Name(e.target.value)}
                   className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
               </div>
@@ -78,42 +81,42 @@ export default function UuidUlid({ onOutput, initialState }: ToolProps) {
                 {(['dns', 'url'] as const).map((ns) => (
                   <button key={ns} onClick={() => setV5Ns(ns)}
                     className={`flex-1 py-1.5 rounded text-xs border uppercase transition-colors ${v5Ns === ns ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'}`}>
-                    {ns} namespace
+                    {ns} {t('crypto.uuid_version', 'namespace')}
                   </button>
                 ))}
               </div>
             </div>
           )}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Count (1-50)</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.count', 'Count')} (1-50)</label>
             <input type="number" min={1} max={50} value={count} onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value))))}
               className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
           </div>
-          <button onClick={generate}
+          <button onClick={() => { analytics.buttonClick('uuid-ulid', 'generate'); generate() }}
             className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-            Generate
+            {t('crypto.uuid_generate', 'Generate')}
           </button>
           {error && <ErrorAlert message={error} />}
           <div className="border-t border-border pt-4">
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Validate UUID</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.uuid_version', 'Validate UUID')}</label>
             <div className="flex gap-2">
               <input value={validateInput} onChange={(e) => setValidateInput(e.target.value)}
                 className="flex-1 font-mono text-xs border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-                placeholder="Paste UUID to validate..." spellCheck={false} />
+                placeholder={t('crypto.input_placeholder', 'Paste UUID to validate...')} spellCheck={false} />
               <button onClick={checkValidate} className="px-3 py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors">
-                Check
+                {t('action.result', 'Check')}
               </button>
             </div>
             {validateResult && (
               <p className={`text-xs mt-1 ${validateResult.valid ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {validateResult.valid ? `✓ Valid UUID v${validateResult.version}` : '✗ Invalid UUID'}
+                {validateResult.valid ? `✓ ${t('crypto.uuid_version', 'Valid UUID')} v${validateResult.version}` : `✗ ${t('action.error', 'Invalid UUID')}`}
               </p>
             )}
           </div>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground">{generated.length} generated</span>
+            <span className="text-xs text-muted-foreground">{generated.length} {t('action.result', 'generated')}</span>
             <CopyButton value={generated.join('\n')} />
           </div>
           <div className="space-y-1 font-mono text-sm">
@@ -125,7 +128,7 @@ export default function UuidUlid({ onOutput, initialState }: ToolProps) {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">Click Generate to produce IDs</p>
+              <p className="text-sm text-muted-foreground">{t('crypto.empty_prompt', 'Click Generate to produce IDs')}</p>
             )}
           </div>
         </div>

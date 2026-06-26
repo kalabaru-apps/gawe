@@ -4,12 +4,15 @@ import { useState, useEffect } from 'react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface Snippet { id: string; name: string; content: string; createdAt: number; language: string }
 
 const STORAGE_KEY = 'gawe-pastebin'
 
 export default function Pastebin({ onOutput: _onOutput, initialState: _initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [snippets, setSnippets] = useState<Snippet[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -53,7 +56,7 @@ export default function Pastebin({ onOutput: _onOutput, initialState: _initialSt
           <p className="text-xs font-medium text-muted-foreground">{snippets.length} snippets</p>
           <button onClick={() => { setCreating(true); setSelected(null) }}
             className="px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors">
-            + New
+            + {t('action.add', 'New')}
           </button>
         </div>
         <div className="space-y-1 max-h-[500px] overflow-auto">
@@ -68,7 +71,7 @@ export default function Pastebin({ onOutput: _onOutput, initialState: _initialSt
                 className="opacity-0 group-hover:opacity-100 text-xs text-muted-foreground hover:text-rose-400 transition-all ml-2 shrink-0">✕</button>
             </div>
           )) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">No snippets yet</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t('common.history_empty', 'No snippets yet')}</p>
           )}
         </div>
       </div>
@@ -78,7 +81,7 @@ export default function Pastebin({ onOutput: _onOutput, initialState: _initialSt
             <div className="flex gap-2">
               <input value={newName} onChange={(e) => setNewName(e.target.value)}
                 className="flex-1 text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-                placeholder="Snippet name..." />
+                placeholder={`${t('common.name', 'Snippet name')}...`} />
               <select value={newLang} onChange={(e) => setNewLang(e.target.value)}
                 className="text-sm border border-input rounded-md px-2 py-2 bg-background outline-none">
                 {['text', 'json', 'js', 'ts', 'css', 'html', 'python', 'sql', 'bash', 'markdown'].map((l) => (
@@ -88,13 +91,13 @@ export default function Pastebin({ onOutput: _onOutput, initialState: _initialSt
             </div>
             <CodeEditor value={newContent} onChange={setNewContent} language={newLang} />
             <div className="flex gap-2">
-              <button onClick={createSnippet} disabled={!newName.trim() || !newContent.trim()}
+              <button onClick={() => { analytics.buttonClick('pastebin', 'save'); createSnippet() }} disabled={!newName.trim() || !newContent.trim()}
                 className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">
-                Save Snippet
+                {t('action.save', 'Save')} Snippet
               </button>
               <button onClick={() => setCreating(false)}
                 className="px-4 py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors">
-                Cancel
+                {t('action.close', 'Cancel')}
               </button>
             </div>
           </div>
@@ -109,7 +112,7 @@ export default function Pastebin({ onOutput: _onOutput, initialState: _initialSt
                 <CopyButton value={selectedSnippet.content} />
                 <button onClick={() => deleteSnippet(selectedSnippet.id)}
                   className="px-3 py-1.5 rounded-md border border-rose-500/30 text-rose-400 text-xs hover:bg-rose-500/10 transition-colors">
-                  Delete
+                  {t('action.delete', 'Delete')}
                 </button>
               </div>
             </div>
@@ -117,7 +120,7 @@ export default function Pastebin({ onOutput: _onOutput, initialState: _initialSt
           </div>
         ) : (
           <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
-            Select a snippet or create a new one
+            {t('common.history_empty', 'Select a snippet or create a new one')}
           </div>
         )}
       </div>

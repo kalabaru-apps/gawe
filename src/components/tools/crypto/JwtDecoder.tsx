@@ -7,6 +7,8 @@ import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { CodeEditor } from '../shared/CodeEditor'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 function decodeBase64Url(str: string): string {
   const padded = str.replace(/-/g, '+').replace(/_/g, '/').padEnd(str.length + (4 - (str.length % 4)) % 4, '=')
@@ -14,6 +16,7 @@ function decodeBase64Url(str: string): string {
 }
 
 export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [token, setToken] = useState((initialState?.token as string) ?? '')
   const [header, setHeader] = useState('')
   const [payload, setPayload] = useState('')
@@ -41,6 +44,7 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
         setExpDate(null)
       }
       setError(null)
+      analytics.buttonClick('jwt-decoder', 'decode')
       onOutput({ token: '[redacted]' }, { alg: headerObj.alg, expired: expStatus === 'expired' })
     } catch (e) {
       setError((e as Error).message)
@@ -57,10 +61,10 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
       left={
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">JWT Token</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.jwt_header', 'JWT Token')}</label>
             <textarea value={token} onChange={(e) => setToken(e.target.value)}
               className="w-full min-h-[120px] font-mono text-xs border border-input rounded-md p-3 bg-background resize-y outline-none focus:ring-1 focus:ring-ring"
-              placeholder="Paste your JWT here..." spellCheck={false} />
+              placeholder={t('crypto.input_placeholder', 'Paste your JWT here...')} spellCheck={false} />
           </div>
           {token.trim() && parts.length === 3 && (
             <div className="font-mono text-xs p-3 rounded-md border border-input bg-muted/30 break-all leading-relaxed">
@@ -74,9 +78,9 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
           {expStatus && (
             <div className={`rounded-md border p-3 ${expStatus === 'expired' ? 'border-rose-500 bg-rose-500/10' : expStatus === 'valid' ? 'border-emerald-500 bg-emerald-500/10' : 'border-muted bg-muted/30'}`}>
               <p className={`text-sm font-medium ${expStatus === 'expired' ? 'text-rose-400' : expStatus === 'valid' ? 'text-emerald-400' : 'text-muted-foreground'}`}>
-                {expStatus === 'expired' ? '✗ Expired' : expStatus === 'valid' ? '✓ Valid' : 'No Expiry'}
+                {expStatus === 'expired' ? `✗ ${t('crypto.jwt_expired', 'Expired')}` : expStatus === 'valid' ? `✓ ${t('crypto.jwt_valid', 'Valid')}` : t('crypto.jwt_valid', 'No Expiry')}
               </p>
-              {expDate && <p className="text-xs text-muted-foreground mt-0.5">Expires: {expDate}</p>}
+              {expDate && <p className="text-xs text-muted-foreground mt-0.5">{t('crypto.totp_expires', 'Expires')}: {expDate}</p>}
             </div>
           )}
           {error && <ErrorAlert message={error} />}
@@ -87,7 +91,7 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
           {header && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-rose-400">Header</span>
+                <span className="text-xs font-medium text-rose-400">{t('crypto.jwt_header', 'Header')}</span>
                 <CopyButton value={header} />
               </div>
               <CodeEditor value={header} onChange={() => {}} language="json" readOnly />
@@ -96,16 +100,16 @@ export default function JwtDecoder({ onOutput, initialState }: ToolProps) {
           {payload && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-emerald-400">Payload</span>
+                <span className="text-xs font-medium text-emerald-400">{t('crypto.jwt_payload', 'Payload')}</span>
                 <CopyButton value={payload} />
               </div>
               <CodeEditor value={payload} onChange={() => {}} language="json" readOnly />
             </div>
           )}
           {!header && !error && (
-            <p className="text-sm text-muted-foreground">Paste a JWT to decode its header and payload</p>
+            <p className="text-sm text-muted-foreground">{t('crypto.empty_prompt', 'Paste a JWT to decode its header and payload')}</p>
           )}
-          <p className="text-xs text-muted-foreground">Signature is not verified : this tool only decodes.</p>
+          <p className="text-xs text-muted-foreground">{t('crypto.jwt_signature', 'Signature is not verified : this tool only decodes.')}</p>
         </div>
       }
     />

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const ARTICLES = new Set(['a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'but', 'nor', 'yet', 'so', 'and', 'or'])
 
@@ -56,10 +58,12 @@ const OPERATIONS: Operation[] = [
 const GROUPS = Array.from(new Set(OPERATIONS.map((o) => o.group)))
 
 export default function TextCleaner({ onOutput }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
 
   const apply = (fn: (text: string) => string, key: string) => {
+    analytics.buttonClick('text-cleaner', 'clean')
     const result = fn(input)
     setOutput(result)
     onOutput({ input, operation: key }, { output: result })
@@ -95,7 +99,7 @@ export default function TextCleaner({ onOutput }: ToolProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Input</span>
+            <span>{t('action.input', 'Input')}</span>
             <span>{input ? input.split(/\s+/).filter(Boolean).length : 0} words</span>
           </div>
           <textarea
@@ -107,14 +111,14 @@ export default function TextCleaner({ onOutput }: ToolProps) {
         </div>
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center text-xs text-muted-foreground">
-            <span>Output</span>
+            <span>{t('action.output', 'Output')}</span>
             <div className="flex gap-2 items-center">
               {output && (
                 <button
                   onClick={copyOutputToInput}
                   className="text-xs underline text-primary hover:text-primary/80"
                 >
-                  Copy to input
+                  {t('action.copy', 'Copy')} to {t('action.input', 'input')}
                 </button>
               )}
               <CopyButton value={output} />

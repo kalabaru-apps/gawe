@@ -8,10 +8,13 @@ import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type IndentSize = 2 | 4
 
 export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
@@ -57,12 +60,12 @@ export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
       <div className="flex items-center gap-2 flex-wrap">
         <Tabs value={String(indent)} onValueChange={(v) => setIndent(Number(v) as IndentSize)}>
           <TabsList>
-            <TabsTrigger value="2">2 spaces</TabsTrigger>
-            <TabsTrigger value="4">4 spaces</TabsTrigger>
+            <TabsTrigger value="2">{t('encoding.indent_2', '2 spaces')}</TabsTrigger>
+            <TabsTrigger value="4">{t('encoding.indent_4', '4 spaces')}</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button size="sm" onClick={format}>Format</Button>
-        <Button size="sm" variant="outline" onClick={minify}>Minify</Button>
+        <Button size="sm" onClick={() => { analytics.buttonClick('json-formatter', 'format'); format() }}>{t('common.format', 'Format')}</Button>
+        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('json-formatter', 'minify'); minify() }}>{t('common.minify', 'Minify')}</Button>
       </div>
       {error && <ErrorAlert message={error} />}
       <ToolPanel
@@ -70,7 +73,7 @@ export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
           <CodeEditor
             value={input}
             onChange={setInput}
-            language="JSON input"
+            language={t('encoding.json_input', 'JSON input')}
             placeholder='{"key": "value"}'
             rows={16}
           />
@@ -78,7 +81,7 @@ export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
         right={
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Output</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
               <CopyButton value={output} />
             </div>
             <CodeEditor
@@ -86,7 +89,7 @@ export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
               onChange={() => {}}
               readOnly
               rows={16}
-              placeholder="Formatted JSON appears here…"
+              placeholder={t('encoding.formatted', 'Formatted JSON appears here…')}
             />
           </div>
         }

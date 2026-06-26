@@ -8,6 +8,8 @@ import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type InputMode = 'csv' | 'json'
 type OutputTab = 'typescript' | 'zod' | 'jsonschema'
@@ -163,6 +165,7 @@ function capitalize(s: string): string {
 }
 
 export default function SchemaGenerator({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [inputMode, setInputMode] = useState<InputMode>((initialState?.inputMode as InputMode) ?? 'json')
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [schemaName, setSchemaName] = useState((initialState?.schemaName as string) ?? 'MyType')
@@ -263,12 +266,12 @@ export default function SchemaGenerator({ onOutput, initialState }: ToolProps) {
         <input
           value={schemaName}
           onChange={(e) => setSchemaName(e.target.value)}
-          placeholder="Type name (e.g. MyType)"
+          placeholder={t('encoding.schema_type', 'Type name (e.g. MyType)')}
           className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
 
-        <Button size="sm" onClick={generate} disabled={!input.trim()}>
-          Generate
+        <Button size="sm" onClick={() => { analytics.buttonClick('schema-generator', 'generate'); generate() }} disabled={!input.trim()}>
+          {t('action.generate', 'Generate')}
         </Button>
       </div>
 
@@ -278,7 +281,7 @@ export default function SchemaGenerator({ onOutput, initialState }: ToolProps) {
         left={
           <div className="flex flex-col gap-1">
             <div className="text-xs text-muted-foreground">
-              {inputMode === 'csv' ? 'Paste CSV (first row = headers)' : 'Paste JSON object or array'}
+              {inputMode === 'csv' ? t('encoding.json_input', 'Paste CSV (first row = headers)') : t('encoding.json_input', 'Paste JSON object or array')}
             </div>
             <CodeEditor
               value={input}
@@ -320,7 +323,7 @@ export default function SchemaGenerator({ onOutput, initialState }: ToolProps) {
               language={outputTab === 'jsonschema' ? 'json' : outputTab === 'typescript' ? 'typescript' : 'typescript'}
               rows={17}
               readOnly
-              placeholder="Generated schema appears here…"
+              placeholder={t('common.no_output', 'Generated schema appears here…')}
             />
             {fields && (
               <div className="text-xs text-muted-foreground">

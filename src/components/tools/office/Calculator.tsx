@@ -5,6 +5,8 @@ import { evaluate } from 'mathjs'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface HistoryItem { expr: string; result: string }
 
@@ -17,6 +19,7 @@ const BUTTONS = [
 ]
 
 export default function Calculator({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [expr, setExpr] = useState('')
   const [result, setResult] = useState('')
   const [history, setHistory] = useState<HistoryItem[]>([])
@@ -24,6 +27,7 @@ export default function Calculator({ onOutput, initialState }: ToolProps) {
 
   function compute(expression: string) {
     if (!expression.trim()) return
+    analytics.buttonClick('calculator', 'calculate')
     try {
       const res = String(evaluate(expression))
       setResult(res)
@@ -67,20 +71,20 @@ export default function Calculator({ onOutput, initialState }: ToolProps) {
           ))}
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Expression</label>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.expression', 'Expression')}</label>
           <div className="flex gap-2">
             <input value={expr} onChange={(e) => setExpr(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') compute(expr) }}
               className="flex-1 font-mono text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-              placeholder="e.g. sqrt(144) + 2^8 - PI" spellCheck={false} />
+              placeholder={t('office.expression_placeholder', 'e.g. sqrt(144) + 2^8 - PI')} spellCheck={false} />
             <button onClick={() => compute(expr)}
               className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors">=</button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Supports: sqrt, sin, cos, log, PI, E, %, ^</p>
+          <p className="text-xs text-muted-foreground mt-1">{t('office.supports', 'Supports')}: sqrt, sin, cos, log, PI, E, %, ^</p>
         </div>
       </div>
       <div>
-        <p className="text-xs font-medium text-muted-foreground mb-2">History</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">{t('common.history', 'History')}</p>
         {history.length > 0 ? (
           <div className="space-y-1 max-h-96 overflow-auto">
             {history.map((h, i) => (
@@ -95,7 +99,7 @@ export default function Calculator({ onOutput, initialState }: ToolProps) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Calculations will appear here</p>
+          <p className="text-sm text-muted-foreground">{t('common.history_empty', 'Calculations will appear here')}</p>
         )}
       </div>
     </div>

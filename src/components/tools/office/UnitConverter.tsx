@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface Unit {
   label: string
@@ -74,12 +76,14 @@ function formatNum(n: number): string {
 }
 
 export default function UnitConverter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [category, setCategory] = useState((initialState?.category as string) ?? 'length')
   const [fromUnit, setFromUnit] = useState(() => {
     const cat = initialState?.category as string ?? 'length'
     return (initialState?.fromUnit as string) ?? Object.keys(CATEGORIES[cat].units)[0]
   })
   const [value, setValue] = useState((initialState?.value as string) ?? '1')
+  const firedRef = useRef(false)
 
   const cat = CATEGORIES[category]
   const units = Object.entries(cat.units)
@@ -104,6 +108,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
 
   useEffect(() => {
     if (results.length > 0) {
+      if (!firedRef.current) { analytics.buttonClick('unit-converter', 'convert'); firedRef.current = true }
       onOutput(
         { value, fromUnit, category },
         { results: Object.fromEntries(results.map(r => [r.key, r.result])) }
@@ -137,7 +142,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              Value
+              {t('office.unit_value', 'Value')}
             </label>
             <input
               type="number"
@@ -148,7 +153,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              From Unit
+              {t('office.unit_from', 'From Unit')}
             </label>
             <select
               value={fromUnit}

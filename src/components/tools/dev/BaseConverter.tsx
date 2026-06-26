@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const BASES = [
   { label: 'Binary', base: 2, prefix: '0b' },
@@ -21,10 +23,12 @@ interface Conversion {
 }
 
 export default function BaseConverter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '255')
   const [fromBase, setFromBase] = useState<number>((initialState?.fromBase as number) ?? 10)
   const [conversions, setConversions] = useState<Conversion[]>([])
   const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
   useEffect(() => {
     const raw = input.trim().replace(/^0[xXbBoO]/, '') // strip prefix
@@ -36,6 +40,7 @@ export default function BaseConverter({ onOutput, initialState }: ToolProps) {
       return
     }
     setError(null)
+    if (!firedRef.current) { analytics.buttonClick('base-converter', 'convert'); firedRef.current = true }
     const result = BASES.map((b) => {
       let val = decimal.toString(b.base).toUpperCase()
       // Group binary by 4 bits
@@ -51,7 +56,7 @@ export default function BaseConverter({ onOutput, initialState }: ToolProps) {
       left={
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Input Base</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.base_from', 'Input Base')}</label>
             <div className="flex gap-2">
               {BASES.map((b) => (
                 <button
@@ -94,7 +99,7 @@ export default function BaseConverter({ onOutput, initialState }: ToolProps) {
               </div>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">Enter a number to convert it across all bases</p>
+            <p className="text-sm text-muted-foreground">{t('dev.base_input', 'Enter a number to convert it across all bases')}</p>
           )}
         </div>
       }

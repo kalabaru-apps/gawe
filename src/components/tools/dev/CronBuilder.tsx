@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import cronstrue from 'cronstrue'
 import { CronExpressionParser } from 'cron-parser'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
 import { ErrorAlert } from '../shared/ErrorAlert'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const PRESETS = [
   { label: 'Every minute', value: '* * * * *' },
@@ -19,10 +21,12 @@ const PRESETS = [
 ]
 
 export default function CronBuilder({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [expression, setExpression] = useState((initialState?.expression as string) ?? '0 9 * * 1-5')
   const [description, setDescription] = useState('')
   const [nextRuns, setNextRuns] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
   useEffect(() => {
     if (!expression.trim()) return
@@ -36,6 +40,7 @@ export default function CronBuilder({ onOutput, initialState }: ToolProps) {
       setDescription(desc)
       setNextRuns(runs)
       setError(null)
+      if (!firedRef.current) { analytics.buttonClick('cron-builder', 'parse'); firedRef.current = true }
       onOutput({ expression }, { description: desc, nextRuns: runs })
     } catch (e) {
       setError((e as Error).message)
@@ -52,7 +57,7 @@ export default function CronBuilder({ onOutput, initialState }: ToolProps) {
       left={
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Cron Expression</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.cron_expression', 'Cron Expression')}</label>
             <input
               value={expression}
               onChange={(e) => setExpression(e.target.value)}
@@ -72,7 +77,7 @@ export default function CronBuilder({ onOutput, initialState }: ToolProps) {
             )}
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Presets</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t('common.examples', 'Presets')}</p>
             <div className="grid grid-cols-1 gap-1">
               {PRESETS.map((p) => (
                 <button
@@ -101,7 +106,7 @@ export default function CronBuilder({ onOutput, initialState }: ToolProps) {
           )}
           {nextRuns.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Next 5 runs</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">{t('dev.next_runs', 'Next 5 runs')}</p>
               <div className="space-y-1">
                 {nextRuns.map((run, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm py-1.5 border-b border-border/50 last:border-0">
@@ -113,7 +118,7 @@ export default function CronBuilder({ onOutput, initialState }: ToolProps) {
             </div>
           )}
           {!description && !error && (
-            <p className="text-sm text-muted-foreground">Enter a valid cron expression to see its schedule</p>
+            <p className="text-sm text-muted-foreground">{t('dev.cron_description', 'Enter a valid cron expression to see its schedule')}</p>
           )}
         </div>
       }

@@ -7,6 +7,8 @@ import { ToolPanel } from '@/components/tools/shared/ToolPanel'
 import { CodeEditor } from '@/components/tools/shared/CodeEditor'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 type Operation =
   | 'slugify'
@@ -52,6 +54,7 @@ function applyOperation(input: string, op: Operation): string {
 }
 
 export default function StringTools({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [output, setOutput] = useState('')
 
@@ -66,17 +69,17 @@ export default function StringTools({ onOutput, initialState }: ToolProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-2">
         {OPERATIONS.map((op) => (
-          <Button key={op.key} size="sm" variant="outline" onClick={() => apply(op.key)}>
+          <Button key={op.key} size="sm" variant="outline" onClick={() => { analytics.buttonClick('string-tools', 'apply'); apply(op.key) }}>
             {op.label}
           </Button>
         ))}
       </div>
       <ToolPanel
-        left={<CodeEditor value={input} onChange={setInput} language="Input" rows={14} placeholder="Enter string to transform…" />}
+        left={<CodeEditor value={input} onChange={setInput} language={t('action.input', 'Input')} rows={14} placeholder={t('common.input_placeholder', 'Enter string to transform…')} />}
         right={
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Output</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
               <CopyButton value={output} />
             </div>
             <CodeEditor value={output} onChange={() => {}} readOnly rows={14} />

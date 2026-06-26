@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 import {
   differenceInDays, differenceInCalendarWeeks, differenceInMonths, differenceInYears,
   addDays, addWeeks, addMonths, addYears, format, eachDayOfInterval, isWeekend,
@@ -15,6 +17,7 @@ type AddUnit = 'days' | 'weeks' | 'months' | 'years'
 const today = format(new Date(), 'yyyy-MM-dd')
 
 export default function DateCalculator({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('diff')
   // Diff tab
   const [date1, setDate1] = useState((initialState?.date1 as string) ?? today)
@@ -24,6 +27,7 @@ export default function DateCalculator({ onOutput, initialState }: ToolProps) {
   const [addAmount, setAddAmount] = useState(30)
   const [addUnit, setAddUnit] = useState<AddUnit>('days')
   const [addDir, setAddDir] = useState<1 | -1>(1)
+  const firedRef = useRef(false)
 
   function computeDiff() {
     const d1 = new Date(date1)
@@ -55,16 +59,22 @@ export default function DateCalculator({ onOutput, initialState }: ToolProps) {
   const added = tab === 'add' ? computeAdd() : null
 
   useEffect(() => {
-    if (diff) onOutput({ date1, date2 }, { days: diff.days, businessDays: diff.businessDays })
-    if (added) onOutput({ baseDate, addAmount, addUnit, addDir }, { result: added.result })
+    if (diff) {
+      if (!firedRef.current) { analytics.buttonClick('date-calculator', 'calculate'); firedRef.current = true }
+      onOutput({ date1, date2 }, { days: diff.days, businessDays: diff.businessDays })
+    }
+    if (added) {
+      if (!firedRef.current) { analytics.buttonClick('date-calculator', 'calculate'); firedRef.current = true }
+      onOutput({ baseDate, addAmount, addUnit, addDir }, { result: added.result })
+    }
   }, [tab, date1, date2, baseDate, addAmount, addUnit, addDir, diff, added, onOutput])
 
   const DIFF_ROWS = diff ? [
-    { label: 'Days', value: String(diff.days) },
-    { label: 'Business Days', value: String(diff.businessDays) },
-    { label: 'Weeks', value: String(diff.weeks) },
-    { label: 'Months', value: String(diff.months) },
-    { label: 'Years', value: String(diff.years) },
+    { label: t('office.days', 'Days'), value: String(diff.days) },
+    { label: t('office.difference', 'Business Days'), value: String(diff.businessDays) },
+    { label: t('office.weeks', 'Weeks'), value: String(diff.weeks) },
+    { label: t('office.months', 'Months'), value: String(diff.months) },
+    { label: t('office.years', 'Years'), value: String(diff.years) },
   ] : []
 
   return (
@@ -72,22 +82,22 @@ export default function DateCalculator({ onOutput, initialState }: ToolProps) {
       left={
         <div className="space-y-4">
           <div className="flex gap-1 border border-input rounded-md p-0.5">
-            {(['diff', 'add'] as Tab[]).map((t) => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-1.5 rounded text-sm transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-                {t === 'diff' ? 'Date Difference' : 'Add / Subtract'}
+            {(['diff', 'add'] as Tab[]).map((tabItem) => (
+              <button key={tabItem} onClick={() => setTab(tabItem)}
+                className={`flex-1 py-1.5 rounded text-sm transition-colors ${tab === tabItem ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
+                {tabItem === 'diff' ? t('office.date_from', 'Date Difference') : t('action.calculate', 'Add / Subtract')}
               </button>
             ))}
           </div>
           {tab === 'diff' ? (
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Start Date</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.date_from', 'Start Date')}</label>
                 <input type="date" value={date1} onChange={(e) => setDate1(e.target.value)}
                   className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">End Date</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.date_to', 'End Date')}</label>
                 <input type="date" value={date2} onChange={(e) => setDate2(e.target.value)}
                   className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
               </div>
@@ -95,13 +105,13 @@ export default function DateCalculator({ onOutput, initialState }: ToolProps) {
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Base Date</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.date_from', 'Base Date')}</label>
                 <input type="date" value={baseDate} onChange={(e) => setBaseDate(e.target.value)}
                   className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setAddDir(1)} className={`flex-1 py-2 rounded-md text-sm border transition-colors ${addDir === 1 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500' : 'border-input hover:bg-muted/50'}`}>+ Add</button>
-                <button onClick={() => setAddDir(-1)} className={`flex-1 py-2 rounded-md text-sm border transition-colors ${addDir === -1 ? 'bg-rose-500/20 text-rose-400 border-rose-500' : 'border-input hover:bg-muted/50'}`}>− Subtract</button>
+                <button onClick={() => setAddDir(1)} className={`flex-1 py-2 rounded-md text-sm border transition-colors ${addDir === 1 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500' : 'border-input hover:bg-muted/50'}`}>+ {t('action.add', 'Add')}</button>
+                <button onClick={() => setAddDir(-1)} className={`flex-1 py-2 rounded-md text-sm border transition-colors ${addDir === -1 ? 'bg-rose-500/20 text-rose-400 border-rose-500' : 'border-input hover:bg-muted/50'}`}>− {t('action.remove', 'Subtract')}</button>
               </div>
               <div className="flex gap-2">
                 <input type="number" min={1} value={addAmount} onChange={(e) => setAddAmount(Math.max(1, Number(e.target.value)))}
@@ -128,7 +138,7 @@ export default function DateCalculator({ onOutput, initialState }: ToolProps) {
           ))}
           {tab === 'add' && added && (
             <div className="rounded-md border border-input p-4">
-              <p className="text-xs text-muted-foreground mb-1">Result</p>
+              <p className="text-xs text-muted-foreground mb-1">{t('action.result', 'Result')}</p>
               <p className="text-2xl font-semibold">{added.result}</p>
               <p className="font-mono text-sm text-muted-foreground mt-1">{added.iso}</p>
               <div className="flex gap-2 mt-3">

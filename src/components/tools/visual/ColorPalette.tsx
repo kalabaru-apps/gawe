@@ -5,6 +5,8 @@ import chroma from 'chroma-js'
 import { ChevronRight } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { CopyButton } from '../shared/CopyButton'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Harmony =
@@ -311,19 +313,20 @@ function ShadeRow({ hex }: { hex: string }) {
 
 // ─── Export panel ─────────────────────────────────────────────────────────────
 function ExportPanel({ colors, harmony }: { colors: string[]; harmony: Harmony }) {
+  const { t } = useTranslation()
   const [withTints, setWithTints] = useState(false)
   const formats = [
-    { label: 'Image (PNG)',     fn: () => exportImage(colors, harmony, withTints) },
-    { label: 'Document (.txt)', fn: () => exportDocument(colors, harmony, withTints) },
-    { label: 'Tailwind CSS',    fn: () => exportTailwind(colors, harmony, withTints) },
-    { label: 'Figma Tokens',    fn: () => exportFigma(colors, harmony, withTints) },
+    { label: t('visual.image_png', 'Image (PNG)'),       fn: () => exportImage(colors, harmony, withTints) },
+    { label: t('visual.document_txt', 'Document (.txt)'),fn: () => exportDocument(colors, harmony, withTints) },
+    { label: t('visual.tailwind', 'Tailwind CSS'),        fn: () => exportTailwind(colors, harmony, withTints) },
+    { label: t('visual.figma', 'Figma Tokens'),           fn: () => exportFigma(colors, harmony, withTints) },
   ]
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
         <input type="checkbox" checked={withTints} onChange={e => setWithTints(e.target.checked)}
           className="rounded border-input" />
-        Include tints
+        {t('visual.include_tints', 'Include tints')}
       </label>
       <div className="grid grid-cols-2 gap-1.5">
         {formats.map(({ label, fn }) => (
@@ -339,6 +342,7 @@ function ExportPanel({ colors, harmony }: { colors: string[]; harmony: Harmony }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ColorPalette({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [hue, setHue]     = useState<number>((initialState?.hue as number) ?? 239)
   const [sv,  setSv]      = useState<number>((initialState?.sv  as number) ?? 62)
   const [val, setVal]     = useState<number>((initialState?.val as number) ?? 95)
@@ -371,6 +375,7 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
   }, [hue, sv, val, harmony, canvasSize])
 
   useEffect(() => {
+    analytics.buttonClick('color-palette', 'generate')
     onOutput({ hue, sv, val, harmony }, { colors: buildColors(hue, sv, val, harmony) })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hue, sv, val, harmony])
@@ -427,16 +432,26 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
     <div className="space-y-4">
       {/* Harmony tabs */}
       <div className="flex flex-wrap gap-1.5">
-        {HARMONIES.map(h => (
-          <button key={h.id} onClick={() => { setHarmony(h.id); setExpanded(new Set()) }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              harmony === h.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-            }`}>
-            {h.label}
-          </button>
-        ))}
+        {HARMONIES.map(h => {
+          const harmonyLabel: Record<string, string> = {
+            complementary: t('visual.complementary', h.label),
+            analogous:     t('visual.analogous', h.label),
+            triadic:       t('visual.triadic', h.label),
+            split:         t('visual.split_comp', h.label),
+            tetradic:      t('visual.tetradic', h.label),
+            monochromatic: t('visual.monochromatic', h.label),
+          }
+          return (
+            <button key={h.id} onClick={() => { setHarmony(h.id); setExpanded(new Set()) }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                harmony === h.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}>
+              {harmonyLabel[h.id] ?? h.label}
+            </button>
+          )
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[auto_1fr]">
@@ -471,12 +486,12 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-              {HARMONIES.find(h => h.id === harmony)?.label} Palette
+              {HARMONIES.find(h => h.id === harmony)?.label} {t('visual.palette', 'Palette')}
             </p>
             <button
               onClick={() => setExpanded(expanded.size === colors.length ? new Set() : new Set(colors.map((_, i) => i)))}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              {expanded.size === colors.length ? 'Collapse all' : 'Expand all'}
+              {expanded.size === colors.length ? t('visual.collapse_all', 'Collapse all') : t('visual.expand_all', 'Expand all')}
             </button>
           </div>
 
@@ -509,7 +524,7 @@ export default function ColorPalette({ onOutput, initialState }: ToolProps) {
                       <CopyButton value={c.toUpperCase()} />
                       <button
                         onClick={() => toggleExpand(i)}
-                        title={isExpanded ? 'Collapse tints' : 'Expand tints'}
+                        title={isExpanded ? t('visual.collapse_all', 'Collapse tints') : t('visual.expand_all', 'Expand tints')}
                         className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground">
                         <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                       </button>

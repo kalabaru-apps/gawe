@@ -8,6 +8,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
 import type { ToolProps } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 interface CaseResult {
   label: string
@@ -32,6 +34,7 @@ function convertAll(input: string): CaseResult[] {
 }
 
 export default function CaseConverter({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
 
   const results = input ? convertAll(input) : []
@@ -39,6 +42,7 @@ export default function CaseConverter({ onOutput, initialState }: ToolProps) {
   const handleChange = (value: string) => {
     setInput(value)
     if (value) {
+      analytics.buttonClick('case-converter', 'convert')
       const cases = convertAll(value)
       onOutput({ input: value }, { cases: Object.fromEntries(cases.map((c) => [c.key, c.value])) })
     }
@@ -49,7 +53,7 @@ export default function CaseConverter({ onOutput, initialState }: ToolProps) {
       <Textarea
         value={input}
         onChange={(e) => handleChange(e.target.value)}
-        placeholder="Type or paste text to convert…"
+        placeholder={t('common.input_placeholder', 'Type or paste text to convert…')}
         rows={3}
         className="font-mono text-sm"
       />

@@ -58,4 +58,8 @@ export const analytics = {
     track('tool_favorite', { tool, action: added ? 'add' : 'remove' })
     pixel('tool_favorite', { tool, action: added ? 'add' : 'remove' })
   },
+  buttonClick(tool: string, action: string) {
+    track('button_click', { tool, action })
+    pixel('button_click', { tool, action })
+  },
 }

@@ -5,11 +5,14 @@ import { LoremIpsum } from 'lorem-ipsum'
 import type { ToolProps } from '@/types'
 import { ToolPanel } from '../shared/ToolPanel'
 import { CopyButton } from '../shared/CopyButton'
+import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
 
 const lorem = new LoremIpsum()
 type Unit = 'words' | 'sentences' | 'paragraphs'
 
 export default function LoremIpsumGenerator({ onOutput, initialState }: ToolProps) {
+  const { t } = useTranslation()
   const [unit, setUnit] = useState<Unit>((initialState?.unit as Unit) ?? 'paragraphs')
   const [count, setCount] = useState<number>((initialState?.count as number) ?? 3)
   const [output, setOutput] = useState('')
@@ -30,7 +33,7 @@ export default function LoremIpsumGenerator({ onOutput, initialState }: ToolProp
       left={
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Unit</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.type', 'Unit')}</label>
             <div className="flex gap-2">
               {(['words', 'sentences', 'paragraphs'] as Unit[]).map((u) => (
                 <button
@@ -46,7 +49,7 @@ export default function LoremIpsumGenerator({ onOutput, initialState }: ToolProp
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Count</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.count', 'Count')}</label>
             <input
               type="number"
               min={1}
@@ -57,16 +60,16 @@ export default function LoremIpsumGenerator({ onOutput, initialState }: ToolProp
             />
           </div>
           <button
-            onClick={generate}
+            onClick={() => { analytics.buttonClick('lorem-ipsum', 'generate'); generate() }}
             className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            Generate
+            {t('dev.lorem_generate', 'Generate')}
           </button>
           <button
             onClick={generate}
             className="w-full py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors"
           >
-            Regenerate (new random)
+            {t('action.reset', 'Regenerate (new random)')}
           </button>
         </div>
       }
@@ -77,7 +80,7 @@ export default function LoremIpsumGenerator({ onOutput, initialState }: ToolProp
             <CopyButton value={output} />
           </div>
           <div className="border border-input rounded-md p-4 min-h-[300px] text-sm leading-relaxed whitespace-pre-wrap">
-            {output || <span className="text-muted-foreground">Click Generate to produce lorem ipsum text</span>}
+            {output || <span className="text-muted-foreground">{t('dev.lorem_generate', 'Click Generate to produce lorem ipsum text')}</span>}
           </div>
         </div>
       }
