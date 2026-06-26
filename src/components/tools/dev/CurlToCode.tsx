@@ -363,7 +363,7 @@ export default function CurlToCode({ onOutput, initialState }: ToolProps) {
       {/* Input */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-muted-foreground">curl command</label>
+          <label className="text-xs font-medium text-muted-foreground">cURL command</label>
           <Button size="sm" onClick={handleConvert}>Convert</Button>
         </div>
         <textarea
@@ -397,9 +397,7 @@ export default function CurlToCode({ onOutput, initialState }: ToolProps) {
       {/* Output */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {LANGS.find((l) => l.key === activeLang)?.language ?? ''}
-          </span>
+
           <CopyButton value={outputCode} />
         </div>
         <CodeEditor
