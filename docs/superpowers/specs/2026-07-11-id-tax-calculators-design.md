@@ -97,10 +97,21 @@ Basis: PMK-11/2025, "DPP Nilai Lain" scheme, effective Feb 1, 2025.
 - JKK risk tier dropdown (5 tiers above, default Sedang)
 
 **Reverse-solve algorithm (THP → Gross):**
-THP as a function of gross is monotonic non-decreasing (TER brackets are calibrated
-by design so take-home never drops as gross rises), so binary-search over candidate
-gross values converges to the gross salary that produces the target THP. No closed-form
-inverse is needed since TER is a step function.
+THP as a function of gross is monotonic *within* a single TER bracket (same flat
+rate applied to a larger base always yields more take-home), but **not** monotonic
+*across* bracket boundaries: TER applies its rate to the whole income, not just the
+marginal slice, so crossing into the next bracket by as little as Rp1 of gross can
+retax the entire amount at a higher rate and drop net pay by a large, discontinuous
+step (a documented quirk of PP 58/2023's TER system — sometimes multiple gross
+values map to the same take-home pay). A single global binary search is invalid
+here since it assumes monotonicity end-to-end.
+
+The correct approach: scan the TER bracket table for the resolved category in
+ascending gross order; within each bracket the mapping is strictly monotonic, so
+binary-search locally inside the first bracket whose take-home range contains the
+target. This returns the smallest gross that produces the target take-home pay —
+the reasonable canonical answer, and well-defined even when the mapping isn't
+globally injective.
 
 **Output — two cards:**
 1. **Take-home breakdown** (employee side, this is what changes your paycheck):

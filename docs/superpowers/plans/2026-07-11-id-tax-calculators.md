@@ -221,20 +221,41 @@ export function computePaycheck(gross: number, ptkp: PtkpStatus, jkkTier: JkkTie
   }
 }
 
-export function solveGrossFromThp(targetThp: number, ptkp: PtkpStatus, jkkTier: JkkTier): PaycheckBreakdown {
-  let lo = targetThp
-  let hi = targetThp * 2 + 10_000_000
-  while (computePaycheck(hi, ptkp, jkkTier).takeHomePay < targetThp) {
-    hi *= 2
-  }
+// TER applies its rate to the WHOLE income, not just the marginal slice above a
+// threshold. That means take-home pay is monotonic *within* one TER bracket but can
+// drop sharply at a bracket boundary (crossing into the next bracket retaxes the
+// entire amount at the higher rate) — a documented quirk of PP 58/2023's TER system.
+// A single global binary search over gross would silently return a wrong root near
+// those boundaries, so we scan brackets in ascending gross order and binary-search
+// only within the first bracket whose take-home range can reach the target — that
+// bracket is strictly monotonic, so the search there is always valid. This yields
+// the smallest gross that produces the target take-home pay.
+function binarySearchInRange(targetThp: number, ptkp: PtkpStatus, jkkTier: JkkTier, lo: number, hi: number): number {
   for (let i = 0; i < 100; i++) {
     const mid = (lo + hi) / 2
     const thp = computePaycheck(mid, ptkp, jkkTier).takeHomePay
-    if (Math.abs(thp - targetThp) < 1) return computePaycheck(Math.round(mid), ptkp, jkkTier)
+    if (Math.abs(thp - targetThp) < 1) return mid
     if (thp < targetThp) lo = mid
     else hi = mid
   }
-  return computePaycheck(Math.round((lo + hi) / 2), ptkp, jkkTier)
+  return (lo + hi) / 2
+}
+
+export function solveGrossFromThp(targetThp: number, ptkp: PtkpStatus, jkkTier: JkkTier): PaycheckBreakdown {
+  const category = ptkpToTerCategory(ptkp)
+  const table = terTable(category)
+  let segStart = 0
+  for (const [upTo] of table) {
+    const segEnd = upTo === null ? segStart + Math.max(targetThp * 3, 2_000_000_000) : upTo
+    const thpAtStart = computePaycheck(segStart, ptkp, jkkTier).takeHomePay
+    const thpAtEnd = computePaycheck(segEnd, ptkp, jkkTier).takeHomePay
+    if (targetThp >= thpAtStart - 1 && targetThp <= thpAtEnd + 1) {
+      const gross = binarySearchInRange(targetThp, ptkp, jkkTier, segStart, segEnd)
+      return computePaycheck(Math.round(gross), ptkp, jkkTier)
+    }
+    segStart = segEnd
+  }
+  return computePaycheck(Math.round(targetThp), ptkp, jkkTier)
 }
 
 export interface PpnResult {
@@ -307,10 +328,19 @@ assert.strictEqual(p.pph21, Math.round(10_000_000 * terRate('A', 10_000_000)))
 assert.strictEqual(p.takeHomePay, p.gross - p.pph21 - p.bpjsKesehatanEmployee - p.jhtEmployee - p.jpEmployee)
 assert.ok(p.totalCostToCompany > p.gross)
 
-// Reverse-solve round trip
+// Reverse-solve: the gross solveGrossFromThp returns must itself produce the
+// target take-home pay. We check takeHomePay matches, NOT that gross round-trips
+// to the original 15,000,000 — TER's per-bracket cliffs mean more than one gross
+// can map to the same take-home pay, and solveGrossFromThp returns the smallest
+// one, which may legitimately differ from the original forward-direction input.
 const forward = computePaycheck(15_000_000, 'K1', 'tinggi')
 const reverse = solveGrossFromThp(forward.takeHomePay, 'K1', 'tinggi')
-assert.ok(Math.abs(reverse.gross - 15_000_000) <= 2, `expected ~15,000,000 got ${reverse.gross}`)
+assert.ok(Math.abs(reverse.takeHomePay - forward.takeHomePay) <= 1, `expected takeHomePay ~${forward.takeHomePay} got ${reverse.takeHomePay}`)
+
+// A mid-bracket target (away from any TER cliff) should round-trip on gross too
+const forward2 = computePaycheck(8_000_000, 'TK0', 'sedang')
+const reverse2 = solveGrossFromThp(forward2.takeHomePay, 'TK0', 'sedang')
+assert.ok(Math.abs(reverse2.gross - 8_000_000) <= 2, `expected ~8,000,000 got ${reverse2.gross}`)
 
 // PPN umum (effective 11%) vs mewah (12%)
 const ppnUmum = ppnFromExclusive(1_000_000, 'umum')
