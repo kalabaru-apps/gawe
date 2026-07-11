@@ -59,15 +59,15 @@ const PTKP_TO_CATEGORY: Record<PtkpStatus, TerCategory> = {
   K3: 'C',
 }
 
-export const PTKP_OPTIONS: { value: PtkpStatus; label: string }[] = [
-  { value: 'TK0', label: 'TK/0 — Single, no dependents' },
-  { value: 'TK1', label: 'TK/1 — Single, 1 dependent' },
-  { value: 'TK2', label: 'TK/2 — Single, 2 dependents' },
-  { value: 'TK3', label: 'TK/3 — Single, 3 dependents' },
-  { value: 'K0', label: 'K/0 — Married, no dependents' },
-  { value: 'K1', label: 'K/1 — Married, 1 dependent' },
-  { value: 'K2', label: 'K/2 — Married, 2 dependents' },
-  { value: 'K3', label: 'K/3 — Married, 3 dependents' },
+export const PTKP_OPTIONS: { value: PtkpStatus; code: string; descriptor: string }[] = [
+  { value: 'TK0', code: 'TK/0', descriptor: 'Single, no dependents' },
+  { value: 'TK1', code: 'TK/1', descriptor: 'Single, 1 dependent' },
+  { value: 'TK2', code: 'TK/2', descriptor: 'Single, 2 dependents' },
+  { value: 'TK3', code: 'TK/3', descriptor: 'Single, 3 dependents' },
+  { value: 'K0', code: 'K/0', descriptor: 'Married, no dependents' },
+  { value: 'K1', code: 'K/1', descriptor: 'Married, 1 dependent' },
+  { value: 'K2', code: 'K/2', descriptor: 'Married, 2 dependents' },
+  { value: 'K3', code: 'K/3', descriptor: 'Married, 3 dependents' },
 ]
 
 export function ptkpToTerCategory(status: PtkpStatus): TerCategory {

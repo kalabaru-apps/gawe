@@ -91,7 +91,7 @@ export default function IncomeTaxCalculator({ onOutput }: ToolProps) {
             className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
           >
             {PTKP_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{o.code} — {t(`office.ptkp_${o.value.toLowerCase()}`, o.descriptor)}</option>
             ))}
           </select>
         </div>
@@ -103,7 +103,7 @@ export default function IncomeTaxCalculator({ onOutput }: ToolProps) {
             className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
           >
             {JKK_TIERS.map((tier) => (
-              <option key={tier.value} value={tier.value}>{tier.label} — {tier.example}</option>
+              <option key={tier.value} value={tier.value}>{tier.label} — {t(`office.jkk_example_${tier.value}`, tier.example)}</option>
             ))}
           </select>
         </div>
