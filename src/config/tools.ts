@@ -567,6 +567,24 @@ export const TOOLS: ToolDefinition[] = [
     slug: 'hours-calculator',
     keywords: ['hours', 'working', 'time', 'calculate', 'overtime', 'break', 'timesheet', 'payroll', 'freelance'],
   },
+  {
+    id: 'income-tax-calculator',
+    name: 'Income Tax Calculator (PPh 21)',
+    category: 'office',
+    description: 'Calculate Indonesian income tax, BPJS Kesehatan, and BPJS Ketenagakerjaan from gross salary or take-home pay',
+    icon: 'Landmark',
+    slug: 'income-tax-calculator',
+    keywords: ['pph21', 'pph 21', 'pajak', 'penghasilan', 'income tax', 'tax', 'bpjs', 'ketenagakerjaan', 'kesehatan', 'gaji', 'salary', 'take home pay', 'thp', 'ter', 'payroll', 'indonesia'],
+  },
+  {
+    id: 'ppn-calculator',
+    name: 'VAT Calculator (PPN)',
+    category: 'office',
+    description: 'Calculate Indonesian VAT (PPN) on purchases, both inclusive and exclusive of tax',
+    icon: 'Receipt',
+    slug: 'ppn-calculator',
+    keywords: ['ppn', 'vat', 'pajak', 'pertambahan', 'nilai', 'tax', 'consumption', 'purchase', 'barang', 'jasa', 'mewah', 'luxury', 'indonesia'],
+  },
   // Visual & Design
   {
     id: 'css-generators',
