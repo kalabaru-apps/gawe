@@ -67,6 +67,8 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'text-cleaner': () => import('@/components/tools/office/TextCleaner'),
     'speech-timer': () => import('@/components/tools/office/SpeechTimer'),
     'hours-calculator': () => import('@/components/tools/office/HoursCalculator'),
+    'income-tax-calculator': () => import('@/components/tools/office/IncomeTaxCalculator'),
+    'ppn-calculator': () => import('@/components/tools/office/VatCalculator'),
   },
   visual: {
     'css-generators': () => import('@/components/tools/visual/CssGenerators'),
