@@ -358,6 +358,24 @@ export const TOOLS: ToolDefinition[] = [
     slug: 'api-tester',
     keywords: ['api', 'http', 'request', 'test', 'webhook', 'localhost', 'postman', 'rest', 'get', 'post', 'headers'],
   },
+  {
+    id: 'protobuf-inspector',
+    name: 'Protobuf & Hex Inspector',
+    category: 'dev',
+    description: 'Decode protobuf payloads from hex, Base64, or a file — with a synced hex dump and optional .proto schema',
+    icon: 'FileDigit',
+    slug: 'protobuf-inspector',
+    keywords: ['protobuf', 'proto', 'grpc', 'hex', 'decode', 'wire format', 'varint', 'binary', 'dump', 'byte'],
+  },
+  {
+    id: 'ktp-mock-generator',
+    name: 'KTP Mock Generator',
+    category: 'dev',
+    description: 'Generate fake Indonesian KTP data with structurally valid NIKs for QA and staging tests',
+    icon: 'IdCard',
+    slug: 'ktp-mock-generator',
+    keywords: ['ktp', 'nik', 'mock', 'fake', 'data', 'indonesia', 'identitas', 'qa', 'staging', 'dukcapil', 'kependudukan'],
+  },
   // Image & Document
   {
     id: 'pdf-tools',
