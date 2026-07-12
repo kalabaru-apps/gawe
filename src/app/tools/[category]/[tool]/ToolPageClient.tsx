@@ -40,6 +40,8 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'http-reference': () => import('@/components/tools/dev/HttpReference'),
     'curl-to-code': () => import('@/components/tools/dev/CurlToCode'),
     'api-tester': () => import('@/components/tools/dev/ApiTester'),
+    'protobuf-inspector': () => import('@/components/tools/dev/ProtobufInspector'),
+    'ktp-mock-generator': () => import('@/components/tools/dev/KtpMockGenerator'),
   },
   crypto: {
     'hash-generator': () => import('@/components/tools/crypto/HashGenerator'),
