@@ -33,10 +33,6 @@ export default function AboutPage() {
               body: 'Every tool is free to use, with no paywalls, subscriptions, or premium tiers. Ever.',
             },
             {
-              title: 'Open source',
-              body: 'The entire codebase is open source. Read it, fork it, self-host it, contribute to it.',
-            },
-            {
               title: 'Zero data collection',
               body: 'Your inputs never leave your device. Everything runs client-side — we have no server that processes your data, no database storing your content.',
             },

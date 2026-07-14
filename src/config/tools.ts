@@ -378,15 +378,6 @@ export const TOOLS: ToolDefinition[] = [
   },
   // Image & Document
   {
-    id: 'pdf-tools',
-    name: 'PDF Tools',
-    category: 'image',
-    description: 'Merge, split, reorder, rotate, and compress PDF files',
-    icon: 'FilePdf',
-    slug: 'pdf-tools',
-    keywords: ['pdf', 'merge', 'split', 'rotate', 'compress', 'reorder', 'combine'],
-  },
-  {
     id: 'pdf-image-converter',
     name: 'PDF ↔ Images',
     category: 'image',
@@ -441,13 +432,13 @@ export const TOOLS: ToolDefinition[] = [
     keywords: ['exif', 'metadata', 'strip', 'remove', 'gps', 'location', 'privacy', 'image', 'photo', 'jpeg', 'heic', 'heif', 'hevc', 'iphone'],
   },
   {
-    id: 'pdf-splitter',
-    name: 'PDF Splitter & Merger',
+    id: 'pdf-tools',
+    name: 'PDF Tools',
     category: 'image',
-    description: 'Select pages to extract or merge multiple PDFs into one file — fully offline',
+    description: 'Split, merge, rotate, sign, and compress PDF files — fully offline',
     icon: 'FilePdf2',
-    slug: 'pdf-splitter',
-    keywords: ['pdf', 'split', 'merge', 'extract', 'pages', 'combine', 'offline', 'document'],
+    slug: 'pdf-tools',
+    keywords: ['pdf', 'split', 'merge', 'extract', 'pages', 'combine', 'rotate', 'sign', 'signature', 'compress', 'offline', 'document'],
   },
   // Office Productivity
   {
