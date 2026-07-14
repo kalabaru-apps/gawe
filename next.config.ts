@@ -4,6 +4,15 @@ import withPWA from '@ducanh2912/next-pwa'
 const nextConfig: NextConfig = {
   output: 'standalone',
   turbopack: {},
+  async redirects() {
+    return [
+      {
+        source: '/tools/image/pdf-tools',
+        destination: '/tools/image/pdf-splitter',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default withPWA({

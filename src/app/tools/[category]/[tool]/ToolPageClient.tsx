@@ -80,14 +80,13 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'color-palette': () => import('@/components/tools/visual/ColorPalette'),
   },
   image: {
-    'pdf-tools': () => import('@/components/tools/image/PdfTools'),
     'pdf-image-converter': () => import('@/components/tools/image/PdfImageConverter'),
     'image-converter': () => import('@/components/tools/image/ImageConverter'),
     'image-resize': () => import('@/components/tools/image/ImageResize'),
     'svg-tools': () => import('@/components/tools/image/SvgTools'),
     'image-base64': () => import('@/components/tools/image/ImageBase64'),
     'exif-remover': () => import('@/components/tools/image/ExifRemover'),
-    'pdf-splitter': () => import('@/components/tools/image/PdfSplitter'),
+    'pdf-splitter': () => import('@/components/tools/image/PdfTools'),
   },
   education: {
     'quadratic-solver': () => import('@/components/tools/education/QuadraticSolver'),
