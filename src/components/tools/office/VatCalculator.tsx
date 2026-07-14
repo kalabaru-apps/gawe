@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
+import { FormattedNumberInput } from '@/components/tools/shared/FormattedNumberInput'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
@@ -42,13 +43,7 @@ export default function VatCalculator({ onOutput }: ToolProps) {
     <div className="max-w-lg mx-auto space-y-6">
       <div>
         <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.ppn_price', 'Price')}</label>
-        <input
-          type="number"
-          min={0}
-          value={price}
-          onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))}
-          className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-        />
+        <FormattedNumberInput value={price} onChange={setPrice} min={0} />
       </div>
 
       <label className="flex items-center gap-2 text-sm">

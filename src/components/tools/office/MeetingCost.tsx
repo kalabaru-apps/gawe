@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { FormattedNumberInput } from '@/components/tools/shared/FormattedNumberInput'
 
 export default function MeetingCost({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
@@ -51,8 +52,7 @@ export default function MeetingCost({ onOutput, initialState }: ToolProps) {
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.hourly_rate', 'Avg Hourly Rate')} (USD)</label>
-          <input type="number" min={1} value={hourlyRate} onChange={(e) => setHourlyRate(Math.max(1, Number(e.target.value)))}
-            className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
+          <FormattedNumberInput value={hourlyRate} onChange={setHourlyRate} min={1} />
         </div>
       </div>
       <div className="rounded-xl border border-input bg-muted/30 p-8 text-center space-y-4">

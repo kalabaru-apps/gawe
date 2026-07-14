@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/tools/shared/CopyButton'
+import { FormattedNumberInput } from '@/components/tools/shared/FormattedNumberInput'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
@@ -75,13 +76,7 @@ export default function IncomeTaxCalculator({ onOutput }: ToolProps) {
           <label className="text-xs font-medium text-muted-foreground mb-1 block">
             {mode === 'gross-to-thp' ? t('office.gross_salary', 'Gross Monthly Salary') : t('office.known_thp', 'Known Take Home Pay')}
           </label>
-          <input
-            type="number"
-            min={0}
-            value={amount}
-            onChange={(e) => setAmount(Math.max(0, Number(e.target.value)))}
-            className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-          />
+          <FormattedNumberInput value={amount} onChange={setAmount} min={0} />
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.marital_status', 'Marital / Dependent Status (PTKP)')}</label>
