@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { TOOLS, CATEGORIES } from '@/config/tools'
+import { SUPPORT_URL } from '@/config/site'
 
 export const metadata: Metadata = {
   title: 'About',
@@ -104,22 +105,51 @@ export default function AboutPage() {
         </p>
       </div>
 
-      {/* Support */}
-      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-5 py-4 space-y-3">
-        <h2 className="text-base font-semibold">Support this project</h2>
+      {/* Open source */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">Open source</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Gawe is free forever and will always stay that way. If it saves you time,
-          consider buying us a coffee — it helps keep the tools maintained and new ones coming.
+          Gawe is released under the{' '}
+          <a
+            href="https://github.com/kalabaru-apps/gawe/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors"
+          >
+            MIT License
+          </a>
+          . Use it, fork it, self-host it, or ship it as part of your own project —
+          commercially or otherwise. The full source is on{' '}
+          <a
+            href="https://github.com/kalabaru-apps/gawe"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors"
+          >
+            GitHub
+          </a>
+          , and contributions are welcome.
         </p>
-        <a
-          href="https://saweria.co/vnctkevin"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400 transition-colors"
-        >
-          ☕ Support on Saweria
-        </a>
       </div>
+
+      {/* Support */}
+      {SUPPORT_URL && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-5 py-4 space-y-3">
+          <h2 className="text-base font-semibold">Support this project</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Gawe is free forever and will always stay that way. If it saves you time,
+            consider buying us a coffee — it helps keep the tools maintained and new ones coming.
+          </p>
+          <a
+            href={SUPPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400 transition-colors"
+          >
+            ☕ Support on Saweria
+          </a>
+        </div>
+      )}
 
     </div>
   )

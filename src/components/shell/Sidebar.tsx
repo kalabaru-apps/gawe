@@ -6,6 +6,7 @@ import { PanelLeftClose, PanelLeftOpen, History, Settings } from 'lucide-react'
 import { LogoImage } from './LogoImage'
 import { cn } from '@/lib/utils'
 import { CATEGORIES, TOOLS } from '@/config/tools'
+import { SUPPORT_URL } from '@/config/site'
 import { useAppStore } from '@/store'
 import { usePreferences } from '@/hooks/usePreferences'
 import { SidebarCategory } from './SidebarCategory'
@@ -122,14 +123,16 @@ export function Sidebar() {
         </div>
         {!sidebarCollapsed && (
           <>
-            <a
-              href="https://saweria.co/vnctkevin"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-black hover:bg-amber-400 transition-colors"
-            >
-              ☕ {t('nav.support')}
-            </a>
+            {SUPPORT_URL && (
+              <a
+                href={SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-black hover:bg-amber-400 transition-colors"
+              >
+                ☕ {t('nav.support')}
+              </a>
+            )}
             <p className="px-1 text-[10px] text-muted-foreground/50 leading-snug">
               Free &amp; open source by{' '}
               <a
