@@ -117,6 +117,9 @@ export default function SignTab({ onOutput }: ToolProps) {
   }, [sigMode, sigText, hasDrawn, uploadDataUrl])
 
   const handlePageClick = useCallback(async (e: React.MouseEvent<HTMLDivElement>) => {
+    // Ignore clicks that bubble up from the placement box/resize handle (e.g. the
+    // synthetic click the browser fires after a drag) — only place on empty page space.
+    if (e.target !== e.currentTarget) return
     if (!isReady || dragStateRef.current) return
     const rect = pageContainerRef.current!.getBoundingClientRect()
     const clickXPct = (e.clientX - rect.left) / rect.width
@@ -166,10 +169,22 @@ export default function SignTab({ onOutput }: ToolProps) {
             yPct: Math.min(Math.max(drag.start.yPct + dyPct, 0), 1 - prev.hPct),
           }
         }
+        // Resize keeps the signature's original aspect ratio — driven by horizontal
+        // drag distance only, height follows so the image never gets distorted.
+        const startWPx = drag.start.wPct * bounds.width
+        const startHPx = drag.start.hPct * bounds.height
+        const aspect = startWPx / startHPx
+        const dxPx = e.clientX - drag.startX
+        let newWPx = Math.max(startWPx + dxPx, bounds.width * 0.05)
+        let newHPx = newWPx / aspect
+        const maxWPx = bounds.width - drag.start.xPct * bounds.width
+        const maxHPx = bounds.height - drag.start.yPct * bounds.height
+        if (newWPx > maxWPx) { newWPx = maxWPx; newHPx = newWPx / aspect }
+        if (newHPx > maxHPx) { newHPx = maxHPx; newWPx = newHPx * aspect }
         return {
           ...prev,
-          wPct: Math.min(Math.max(drag.start.wPct + dxPct, 0.05), 1 - prev.xPct),
-          hPct: Math.min(Math.max(drag.start.hPct + dyPct, 0.05), 1 - prev.yPct),
+          wPct: newWPx / bounds.width,
+          hPct: newHPx / bounds.height,
         }
       })
     }
@@ -288,12 +303,12 @@ export default function SignTab({ onOutput }: ToolProps) {
                     width: `${placement.wPct * 100}%`,
                     height: `${placement.hPct * 100}%`,
                   }}
-                  className="border-2 border-primary bg-primary/5 cursor-move touch-none"
+                  className="border-2 border-blue-500 bg-blue-500/10 cursor-move touch-none shadow-[0_0_0_1px_rgba(255,255,255,0.6)]"
                 >
                   <img src={placement.dataUrl} alt="Signature" className="w-full h-full object-contain pointer-events-none" />
                   <div
                     onPointerDown={startResize}
-                    className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-sm bg-primary cursor-nwse-resize touch-none"
+                    className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-sm bg-blue-500 border border-white cursor-nwse-resize touch-none"
                   />
                 </div>
               )}

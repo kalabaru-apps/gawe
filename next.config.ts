@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/tools/image/pdf-tools',
-        destination: '/tools/image/pdf-splitter',
+        source: '/tools/image/pdf-splitter',
+        destination: '/tools/image/pdf-tools',
         permanent: true,
       },
     ]

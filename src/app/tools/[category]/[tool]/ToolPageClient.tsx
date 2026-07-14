@@ -86,7 +86,7 @@ const toolMap: Partial<Record<CategoryId, Record<string, ToolLoader>>> = {
     'svg-tools': () => import('@/components/tools/image/SvgTools'),
     'image-base64': () => import('@/components/tools/image/ImageBase64'),
     'exif-remover': () => import('@/components/tools/image/ExifRemover'),
-    'pdf-splitter': () => import('@/components/tools/image/PdfTools'),
+    'pdf-tools': () => import('@/components/tools/image/PdfTools'),
   },
   education: {
     'quadratic-solver': () => import('@/components/tools/education/QuadraticSolver'),
