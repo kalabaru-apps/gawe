@@ -3,7 +3,9 @@
 Offline-first toolbox for developers, students, and office work — 50+ browser tools, no sign-up, no server round-trip. Everything runs client-side; your data never leaves the browser (installable as a PWA, works without a network connection once loaded).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/kalabaru-apps/gawe)
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/kalabaru-apps/gawe)
 
 ## Tools
