@@ -1,7 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
-import { getPreferences, setPreferences } from '@/lib/preferences'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { getPreferences, setPreferences, DEFAULT_PREFERENCES } from '@/lib/preferences'
 import type { Preferences, CategoryId } from '@/types'
 
 interface PreferencesContextValue {
@@ -15,7 +15,11 @@ interface PreferencesContextValue {
 const PreferencesContext = createContext<PreferencesContextValue | null>(null)
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
-  const [prefs, setPrefs] = useState<Preferences>(() => getPreferences())
+  const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES)
+
+  useEffect(() => {
+    setPrefs(getPreferences())
+  }, [])
 
   const update = useCallback((patch: Partial<Preferences>) => {
     const next = setPreferences(patch)

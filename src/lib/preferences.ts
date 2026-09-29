@@ -3,7 +3,7 @@ import type { Preferences } from '@/types'
 const PREFS_KEY = 'gawe-preferences'
 const TOOL_STATE_PREFIX = 'gawe-tool-state:'
 
-const DEFAULT_PREFERENCES: Preferences = {
+export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'system',
   sidebarCollapsed: false,
   favorites: [],
