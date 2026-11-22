@@ -10,9 +10,6 @@ services:
         NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
         NEXT_PUBLIC_UMAMI_URL: ${NEXT_PUBLIC_UMAMI_URL:-}
         NEXT_PUBLIC_UMAMI_PIXEL_URL: ${NEXT_PUBLIC_UMAMI_PIXEL_URL:-}
-    env_file:
-      - path: .env.example
-        required: false
     expose:
       - "3000"
     environment:
