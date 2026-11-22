@@ -3,6 +3,7 @@ export type CategoryId = 'encoding' | 'crypto' | 'dev' | 'image' | 'office' | 'v
 export interface CategoryDefinition {
   id: CategoryId
   label: string
+  description?: string
   /** Tailwind bg class for accent : e.g. 'bg-indigo-500' */
   accentBg: string
   /** Tailwind text class for accent : e.g. 'text-indigo-400' */

@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { analytics } from '@/lib/analytics'
 import type { ToolDefinition, CategoryDefinition } from '@/types'
+import { useTranslation } from '@/lib/i18n'
+import { localizedTool } from '@/config/tools'
 
 interface SidebarItemProps {
   tool: ToolDefinition
@@ -15,13 +17,15 @@ interface SidebarItemProps {
 
 export function SidebarItem({ tool, category, collapsed, onNavigate }: SidebarItemProps) {
   const pathname = usePathname()
+  const { locale } = useTranslation()
+  const localized = localizedTool(tool, locale)
   const href = `/tools/${tool.category}/${tool.slug}`
   const isActive = pathname === href
 
   return (
     <Link
       href={href}
-      title={collapsed ? tool.name : undefined}
+      title={collapsed ? localized.name : undefined}
       aria-current={isActive ? 'page' : undefined}
       onClick={() => { analytics.toolSidebarClick(tool.category, tool.slug); onNavigate?.() }}
       className={cn(
@@ -33,7 +37,7 @@ export function SidebarItem({ tool, category, collapsed, onNavigate }: SidebarIt
       {collapsed ? (
         <span className={cn('h-2 w-2 rounded-full', category.accentBg)} aria-hidden />
       ) : (
-        <span className="truncate">{tool.name}</span>
+        <span className="truncate">{localized.name}</span>
       )}
     </Link>
   )

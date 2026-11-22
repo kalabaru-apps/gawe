@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { PanelLeftClose, PanelLeftOpen, Search, Coffee } from 'lucide-react'
 import { LogoImage } from './LogoImage'
 import { cn } from '@/lib/utils'
-import { CATEGORIES, TOOLS } from '@/config/tools'
+import { CATEGORIES, TOOLS, localizedCategory } from '@/config/tools'
 import { SUPPORT_URL } from '@/config/site'
 import { useAppStore } from '@/store'
 import { usePreferences } from '@/hooks/usePreferences'
@@ -22,7 +22,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   const { setCommandPaletteOpen } = useAppStore()
   const { prefs, toggleCategory, update } = usePreferences()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const categories = CATEGORIES.map((category) => localizedCategory(category, locale))
   // The drawer on phones is always expanded; collapse is a desktop affordance.
   const collapsed = mounted ? prefs.sidebarCollapsed : false
   const favTools = TOOLS.filter((tool) => prefs.favorites.includes(tool.id))
@@ -81,13 +82,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             <ul className="space-y-0.5">
               {favTools.map((tool) => (
                 <li key={tool.id}>
-                  <SidebarItem tool={tool} category={CATEGORIES.find((c) => c.id === tool.category)!} collapsed={collapsed} onNavigate={onNavigate} />
+                  <SidebarItem tool={tool} category={categories.find((c) => c.id === tool.category)!} collapsed={collapsed} onNavigate={onNavigate} />
                 </li>
               ))}
             </ul>
           </div>
         )}
-        {CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <SidebarCategory
             key={cat.id}
             category={cat}

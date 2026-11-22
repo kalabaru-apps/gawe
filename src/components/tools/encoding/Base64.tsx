@@ -43,7 +43,7 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
     } catch {
       // Auto mode fell on a string that only looked like Base64: encode it instead.
       if (dir === 'auto') return { out: encode(input), error: '' }
-      return { out: '', error: 'Not valid Base64 (or not UTF-8 text). Check for stray characters, or switch to Encode.' }
+      return { out: '', error: t('encoding.not_base64', 'Not valid Base64 (or not UTF-8 text). Check for stray characters, or switch to Encode.') }
     }
   }, [input, effective, dir, file])
 
@@ -82,21 +82,21 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
             label={t('encoding.mode', 'Direction')}
             value={dir}
             onChange={(v) => { setDir(v); setFile(null) }}
-            options={[{ value: 'auto', label: 'Auto' }, { value: 'encode', label: 'Encode' }, { value: 'decode', label: 'Decode' }]}
+            options={[{ value: 'auto', label: t('encoding.auto', 'Auto') }, { value: 'encode', label: t('encoding.encode', 'Encode') }, { value: 'decode', label: t('encoding.decode', 'Decode') }]}
           />
-          <WbButton onClick={swap} disabled={!res.out || !!file} aria-label="Use output as input">
-            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />Swap
+          <WbButton onClick={swap} disabled={!res.out || !!file} aria-label={t('encoding.use_output', 'Use output as input')}>
+            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />{t('encoding.swap', 'Swap')}
           </WbButton>
           <WbButton onClick={() => picker.current?.click()}>
             <FileUp className="h-3.5 w-3.5" aria-hidden />{t('encoding.choose_file', 'Encode a file')}
           </WbButton>
-          <input ref={picker} type="file" className="sr-only" aria-label="Choose file to encode" onChange={(e) => { readFile(e.target.files?.[0]); e.target.value = '' }} />
+          <input ref={picker} type="file" className="sr-only" aria-label={t('encoding.choose_file_to_encode', 'Choose file to encode')} onChange={(e) => { readFile(e.target.files?.[0]); e.target.value = '' }} />
         </Toolbar>
       }
       status={
         <StatusBar>
-          {!input && !file && <span>Paste text or Base64. Direction is detected for you.</span>}
-          {(input || file) && !res.error && <span className="flex items-center gap-1 text-d-accent"><CheckCircle2 className="h-3 w-3" aria-hidden />{file ? `Encoded ${file.name}` : shownDir === 'decode' ? 'Decoded Base64' : 'Encoded to Base64'}</span>}
+          {!input && !file && <span>{t('encoding.paste_base64', 'Paste text or Base64. Direction is detected for you.')}</span>}
+          {(input || file) && !res.error && <span className="flex items-center gap-1 text-d-accent"><CheckCircle2 className="h-3 w-3" aria-hidden />{file ? t('encoding.encoded_file', 'Encoded {name}').replace('{name}', file.name) : shownDir === 'decode' ? t('encoding.decoded_base64', 'Decoded Base64') : t('encoding.encoded_base64', 'Encoded to Base64')}</span>}
           {res.error && <span role="alert" className="flex min-w-0 items-center gap-1 text-red-600 dark:text-red-400"><AlertCircle className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{res.error}</span></span>}
           {res.out && <span className="ml-auto">{res.out.length.toLocaleString()} chars</span>}
         </StatusBar>
@@ -111,7 +111,7 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
             onDrop={(e) => { e.preventDefault(); setOver(false); readFile(e.dataTransfer.files[0]) }}
           >
             <Pane label={t('encoding.input', 'Input')}>
-              <CodeArea label="Input" value={file ? '' : input} onChange={(v) => { setFile(null); setInput(v) }} placeholder={file ? `File: ${file.name}` : 'Type or paste text or Base64, or drop a file here'} />
+              <CodeArea label={t('encoding.input', 'Input')} value={file ? '' : input} onChange={(v) => { setFile(null); setInput(v) }} placeholder={file ? `${t('common.file_size', 'File')}: ${file.name}` : t('encoding.type_or_drop', 'Type or paste text or Base64, or drop a file here')} />
             </Pane>
           </div>
         }
@@ -125,7 +125,7 @@ export default function Base64({ onOutput, initialState }: ToolProps) {
               </WbButton>
             }
           >
-            <CodeArea label="Output" value={res.out} readOnly placeholder="Result appears here as you type" />
+            <CodeArea label={t('action.output', 'Output')} value={res.out} readOnly placeholder={t('common.processing', 'Result appears here as you type')} />
           </Pane>
         }
       />

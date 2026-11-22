@@ -11,11 +11,13 @@ import { Sidebar } from './Sidebar'
 import { CommandPalette } from './CommandPalette'
 import { HistoryDrawer } from './HistoryDrawer'
 import { LogoImage } from './LogoImage'
+import { useTranslation } from '@/lib/i18n'
 
 function Frame({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false)
   const pathname = usePathname()
   const { setCommandPaletteOpen } = useAppStore()
+  const { t } = useTranslation()
 
   // Close the drawer after navigating.
   useEffect(() => setNavOpen(false), [pathname])
@@ -31,7 +33,7 @@ function Frame({ children }: { children: React.ReactNode }) {
       {/* Phone: slide-over navigation */}
       {navOpen && (
         <button
-          aria-label="Close navigation"
+          aria-label={t('nav.close_navigation', 'Close navigation')}
           className="fixed inset-0 z-40 cursor-pointer bg-black/50 md:hidden"
           onClick={() => setNavOpen(false)}
         />
@@ -50,7 +52,7 @@ function Frame({ children }: { children: React.ReactNode }) {
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3 md:hidden">
           <button
             onClick={() => setNavOpen(true)}
-            aria-label="Open navigation"
+            aria-label={t('nav.open_navigation', 'Open navigation')}
             aria-expanded={navOpen}
             className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
           >
@@ -62,7 +64,7 @@ function Frame({ children }: { children: React.ReactNode }) {
           </Link>
           <button
             onClick={() => setCommandPaletteOpen(true)}
-            aria-label="Search tools"
+            aria-label={t('nav.search')}
             className="ml-auto inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
           >
             <Search className="h-5 w-5" aria-hidden />

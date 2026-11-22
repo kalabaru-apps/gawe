@@ -6,11 +6,10 @@
  * Uses Paper primitives for the ledger feel.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Trash2, Copy, Check, Calendar, Clock } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
-import { Region, Column, Scroll, Field, TextInput, Btn, CopyBtn, Notice, Empty, Row, Stat, Seg } from '@/components/domain'
+import { Region, Btn, CopyBtn, Empty, Stat } from '@/components/domain'
 
 interface TimeEntry {
   id: string
@@ -138,20 +137,20 @@ export default function HoursCalculator({ onOutput }: ToolProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex flex-col gap-6 max-w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 flex-1 min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 px-3 py-3 sm:px-4 sm:py-4">
         {/* Top controls */}
 
         {/* Ledger table */}
         {entries.length === 0 ? (
           <Empty
             title={t('common.history_empty', 'No entries yet')}
-            children={t('office.hours_empty_desc', 'Click "Add Row" to start logging work hours.')}
             action={<Btn onClick={addRow}><Plus className="h-3.5 w-3.5" aria-hidden /> {t('action.add', 'Add')} Row</Btn>}
-          />
+          >
+            {t('office.hours_empty_desc', 'Click "Add Row" to start logging work hours.')}
+          </Empty>
         ) : (
-          <Region domain="workbench" className="flex-1 min-h-0">
-            <Scroll className="h-full">
-              <table className="w-full border-collapse font-mono text-sm">
+          <Region domain="workbench" className="min-h-0 flex-1 overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse font-mono text-sm">
                 <thead>
                   <tr className="border-b border-d-border text-left text-xs text-d-muted">
                     <th className="pb-2 pr-4 font-medium w-32">{t('office.date', 'Date')}</th>
@@ -236,8 +235,7 @@ export default function HoursCalculator({ onOutput }: ToolProps) {
                     )
                   })}
                 </tbody>
-              </table>
-            </Scroll>
+            </table>
           </Region>
         )}
 

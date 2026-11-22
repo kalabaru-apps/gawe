@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
-import { Sheet, Page, Section, Btn, TextInput, TextArea, Notice, Chip, Column, Scroll } from '@/components/domain/kit'
+import { Sheet, Btn, TextInput, TextArea, Column, Scroll } from '@/components/domain/kit'
 import { Plus, X, Check, Trash2, GripVertical, Calendar, Flag, MessageSquare, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -198,7 +198,7 @@ function KanbanColumn({ col, cards, activeId, onCardOpen, onAddCard, onColRename
     <div
       ref={setColRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn('flex flex-col w-72 shrink-0 rounded-xl border-t-2 bg-d-raised/50 border border-d-border border-t-[currentColor]', col.color)}
+      className={cn('flex w-[min(18rem,calc(100vw-5rem))] shrink-0 flex-col rounded-xl border-t-2 border border-d-border border-t-[currentColor] bg-d-raised/50', col.color)}
     >
       <div className="flex items-center gap-2 px-3 pt-3 pb-2">
         <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-d-muted hover:text-d-ink transition-colors text-xs">
@@ -611,9 +611,9 @@ export default function TaskTracker({ onOutput }: ToolProps) {
   const openCardCol = openCardId ? board.columns.find((c) => c.cardIds.includes(openCardId)) : null
 
   return (
-    <Scroll>
-      <Column width="xl">
-        <Sheet>
+    <Scroll className="!px-3 !py-3 sm:!px-4 sm:!py-4">
+      <div className="w-full max-w-none">
+        <Sheet className="w-full max-w-none">
           <h1 className="font-serif text-2xl font-semibold mb-1">{t('office.task_tracker', 'Task Tracker')}</h1>
           <p className="text-d-muted text-sm mb-6">{t('office.task_tracker_desc', 'Kanban board. Drag cards, add labels, due dates, checklists. Auto-saved locally.')}</p>
 
@@ -646,10 +646,10 @@ export default function TaskTracker({ onOutput }: ToolProps) {
             )}
           </div>
 
-          <div className="overflow-x-auto overflow-y-hidden pb-2">
+          <div className="w-full min-w-0 overflow-x-auto overflow-y-hidden pb-2">
             <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
               <SortableContext items={board.columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
-                <div className="flex gap-3 h-full min-h-[480px] items-start">
+                <div className="flex min-h-[min(480px,60dvh)] items-start gap-3">
                   {board.columns.map((col) => (
                     <KanbanColumn
                       key={col.id}
@@ -664,7 +664,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
                   ))}
 
                   {addingCol ? (
-                    <div className="w-72 shrink-0 rounded-xl border border-d-border bg-d-raised/50 p-3 space-y-2">
+                    <div className="w-[min(18rem,calc(100vw-5rem))] shrink-0 rounded-xl border border-d-border bg-d-raised/50 p-3 space-y-2">
                       <TextInput autoFocus value={newColName} onChange={(e) => setNewColName(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { addColumn(newColName.trim() || 'New Column'); setNewColName(''); setAddingCol(false) } if (e.key === 'Escape') setAddingCol(false) }}
                         placeholder="Column name…" />
@@ -676,7 +676,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
                       </div>
                     </div>
                   ) : (
-                    <Btn variant="quiet" className="w-64 shrink-0 rounded-xl border-2 border-dashed border-d-border/40 py-6 hover:border-d-accent/50 hover:bg-d-border/40 transition-colors flex items-center justify-center gap-1.5 self-start" onClick={() => setAddingCol(true)}>
+                    <Btn variant="quiet" className="w-[min(16rem,calc(100vw-5rem))] shrink-0 rounded-xl border-2 border-dashed border-d-border/40 py-6 hover:border-d-accent/50 hover:bg-d-border/40 transition-colors flex items-center justify-center gap-1.5 self-start" onClick={() => setAddingCol(true)}>
                       <Plus className="h-4 w-4" aria-hidden />
                       {t('action.add', 'Add')} column
                     </Btn>
@@ -686,7 +686,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
 
               <DragOverlay>
                 {activeId && board.cards[activeId] && (
-                  <div className="rotate-2 opacity-90 w-72">
+                  <div className="rotate-2 opacity-90 w-[min(18rem,calc(100vw-5rem))]">
                     <CardChip card={board.cards[activeId]} t={t} onClick={() => {}} />
                   </div>
                 )}
@@ -704,7 +704,7 @@ export default function TaskTracker({ onOutput }: ToolProps) {
             />
           )}
         </Sheet>
-      </Column>
+      </div>
     </Scroll>
   )
 }

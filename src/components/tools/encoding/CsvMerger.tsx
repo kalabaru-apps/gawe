@@ -62,7 +62,7 @@ export default function CsvMerger({ onOutput }: ToolProps) {
   if (!entries.length) {
     return (
       <div className="flex h-full flex-col">
-        <div className="min-h-0 flex-1"><DropHero accept=".csv,text/csv" multiple onFiles={addFiles} title={t('encoding.csv_drop', 'Drop CSV files to merge')} hint="Two or more files. Columns are matched by name." /></div>
+        <div className="min-h-0 flex-1"><DropHero accept=".csv,text/csv" multiple onFiles={addFiles} title={t('encoding.csv_drop', 'Drop CSV files to merge')} hint={t('encoding.csv_hint', 'Two or more files. Columns are matched by name.')} /></div>
         {error && <div className="p-4"><Notice tone="error">{error}</Notice></div>}
       </div>
     )

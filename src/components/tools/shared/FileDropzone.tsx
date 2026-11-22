@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/lib/i18n'
 
 interface FileDropzoneProps {
   accept: string
@@ -11,8 +12,10 @@ interface FileDropzoneProps {
   compact?: boolean
 }
 
-export function FileDropzone({ accept, onFile, label = 'Drop file here or click to upload', compact }: FileDropzoneProps) {
+export function FileDropzone({ accept, onFile, label, compact }: FileDropzoneProps) {
+  const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
+  const prompt = label ?? t('common.drop_file', 'Drop a file here or choose one')
   const [dragging, setDragging] = useState(false)
 
   const handleDrop = (e: React.DragEvent) => {
@@ -39,7 +42,7 @@ export function FileDropzone({ accept, onFile, label = 'Drop file here or click 
       )}
     >
       <Upload className="h-6 w-6" />
-      <span>{label}</span>
+      <span>{prompt}</span>
       <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={handleChange} />
     </div>
   )

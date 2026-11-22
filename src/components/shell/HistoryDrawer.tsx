@@ -13,14 +13,17 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAppStore } from '@/store'
 import { useHistory } from '@/hooks/useHistory'
-import { TOOLS } from '@/config/tools'
+import { TOOLS, localizedTool } from '@/config/tools'
+import { useTranslation } from '@/lib/i18n'
 
 export function HistoryDrawer() {
   const { historyDrawerToolId, closeHistoryDrawer } = useAppStore()
+  const { t, locale } = useTranslation()
   const open = historyDrawerToolId !== null
   const toolId = historyDrawerToolId ?? ''
   const { entries, remove, clear } = useHistory(toolId)
-  const tool = TOOLS.find((t) => t.id === toolId)
+  const foundTool = TOOLS.find((t) => t.id === toolId)
+  const tool = foundTool ? localizedTool(foundTool, locale) : undefined
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && closeHistoryDrawer()}>
@@ -28,7 +31,7 @@ export function HistoryDrawer() {
         <SheetHeader className="px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-sm">
-              History : {tool?.name ?? ''}
+              {t('nav.history_for', 'History: {tool}').replace('{tool}', tool?.name ?? '')}
             </SheetTitle>
             <div className="flex gap-1">
               {entries.length > 0 && (
@@ -37,7 +40,7 @@ export function HistoryDrawer() {
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => clear()}
-                  title="Clear all history"
+                  title={t('nav.clear_history_confirm', 'Clear all history')} aria-label={t('nav.clear_history_confirm', 'Clear all history')}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
@@ -47,6 +50,7 @@ export function HistoryDrawer() {
                 size="icon"
                 className="h-7 w-7"
                 onClick={closeHistoryDrawer}
+                aria-label={t('nav.close_history', 'Close history')}
               >
                 <X className="h-3.5 w-3.5" />
               </Button>
@@ -56,7 +60,7 @@ export function HistoryDrawer() {
         <ScrollArea className="flex-1">
           {entries.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No history yet. Run the tool to save entries.
+              {t('nav.history_empty_hint', 'Run the tool to save entries here.')}
             </p>
           ) : (
             <div className="divide-y divide-border">

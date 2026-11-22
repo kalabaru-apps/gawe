@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { getToolsByCategory } from '@/config/tools'
+import { getToolsByCategory, localizedCategory, localizedTool } from '@/config/tools'
+import { useTranslation } from '@/lib/i18n'
 import type { CategoryDefinition } from '@/types'
 
 interface CategoryCardProps {
@@ -8,7 +9,9 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ category }: CategoryCardProps) {
-  const tools = getToolsByCategory(category.id)
+  const { t, locale } = useTranslation()
+  const localCategory = localizedCategory(category, locale)
+  const tools = getToolsByCategory(category.id).map((tool) => localizedTool(tool, locale))
 
   return (
     <div
@@ -21,9 +24,9 @@ export function CategoryCard({ category }: CategoryCardProps) {
       <div className="flex items-center gap-3 mb-4">
         <div className={cn('h-3 w-3 rounded-full shrink-0', category.accentBg)} aria-hidden />
         <h2 className={cn('font-semibold text-sm', category.accentText)}>
-          {category.label}
+          {localCategory.label}
         </h2>
-        <span className="ml-auto text-xs text-muted-foreground">{tools.length} tools</span>
+        <span className="ml-auto text-xs text-muted-foreground">{tools.length} {t('common.tools', 'tools')}</span>
       </div>
       <div className="space-y-1">
         {tools.slice(0, 5).map((tool) => (
@@ -38,7 +41,7 @@ export function CategoryCard({ category }: CategoryCardProps) {
         ))}
         {tools.length > 5 && (
           <p className="px-2 py-1 text-xs text-muted-foreground">
-            +{tools.length - 5} more
+            +{tools.length - 5} {t('common.more', 'more')}
           </p>
         )}
       </div>

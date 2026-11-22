@@ -11,13 +11,16 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { useAppStore } from '@/store'
-import { CATEGORIES, TOOLS } from '@/config/tools'
+import { CATEGORIES, TOOLS, localizedCategory, localizedTool } from '@/config/tools'
+import { useTranslation } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { analytics } from '@/lib/analytics'
 
 export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen } = useAppStore()
   const router = useRouter()
+  const { t, locale } = useTranslation()
+  const categories = CATEGORIES.map((category) => localizedCategory(category, locale))
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -38,29 +41,31 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
-      <CommandInput placeholder="Search tools..." />
+      <CommandInput placeholder={t('nav.search')} />
       <CommandList>
-        <CommandEmpty>No tools found.</CommandEmpty>
-        {CATEGORIES.map((category) => {
+        <CommandEmpty>{locale === 'id' ? 'Alat tidak ditemukan.' : 'No tools found.'}</CommandEmpty>
+        {categories.map((category) => {
           const tools = TOOLS.filter((t) => t.category === category.id)
           return (
             <CommandGroup key={category.id} heading={category.label}>
-              {tools.map((tool) => (
+              {tools.map((tool) => {
+                const localTool = localizedTool(tool, locale)
+                return (
                 <CommandItem
                   key={tool.id}
-                  value={`${tool.name} ${tool.description} ${tool.keywords.join(' ')}`}
+                  value={`${localTool.name} ${localTool.description} ${tool.name} ${tool.description} ${tool.keywords.join(' ')}`}
                   onSelect={() => navigate(`/tools/${tool.category}/${tool.slug}`, { category: tool.category, slug: tool.slug })}
                 >
                   <span
                     className={cn('mr-2 h-2 w-2 rounded-full shrink-0', category.accentBg)}
                     aria-hidden
                   />
-                  <span className="font-medium">{tool.name}</span>
+                  <span className="font-medium">{localTool.name}</span>
                   <span className="ml-2 text-xs text-muted-foreground truncate">
-                    {tool.description}
+                    {localTool.description}
                   </span>
                 </CommandItem>
-              ))}
+              )})}
             </CommandGroup>
           )
         })}

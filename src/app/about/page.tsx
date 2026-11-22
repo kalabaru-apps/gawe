@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import Link from 'next/link'
-import { TOOLS, CATEGORIES } from '@/config/tools'
+import { TOOLS, CATEGORIES, localizedCategory, localizedTool } from '@/config/tools'
 import { SUPPORT_URL } from '@/config/site'
+import { useTranslation } from '@/lib/i18n'
 
 export const metadata: Metadata = {
   title: 'About',
@@ -11,39 +11,39 @@ export const metadata: Metadata = {
 }
 
 export default function AboutPage() {
+  const { t, locale } = useTranslation()
   return (
     <div className="p-8 max-w-2xl mx-auto space-y-12">
 
       {/* Hero */}
       <div className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight">About Gawe</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('about.title', 'About Gawe')}</h1>
         <p className="text-muted-foreground leading-relaxed">
-          Gawe is a free, open-source collection of {TOOLS.length} developer and productivity tools
-          that runs entirely in your browser — no internet connection required after the first load.
+          {t('about.intro', 'Gawe is a collection of {count} tools.').replace('{count}', String(TOOLS.length))}
         </p>
       </div>
 
       {/* Principles */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">Our principles</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t('about.principles', 'Our principles')}</h2>
         <div className="grid gap-3">
           {[
             {
-              title: 'Free forever',
-              body: 'Every tool is free to use, with no paywalls, subscriptions, or premium tiers. Ever.',
+              title: t('about.free_title', 'Free to use'),
+              body: t('about.free_body', 'Every tool is free to use, with no paywalls, subscriptions, or premium tiers.'),
             },
             {
-              title: 'Zero data collection',
-              body: 'Your inputs never leave your device. Everything runs client-side — we have no server that processes your data, no database storing your content.',
+              title: t('about.privacy_title', 'Your data stays yours'),
+              body: t('about.privacy_body', 'Your inputs never leave your device. Everything runs in your browser; Gawe does not store your content on a server.'),
             },
             {
-              title: 'Works offline',
-              body: 'Install Gawe as a PWA and it works without any internet connection. Your tools are always available anytime, anywhere.',
+              title: t('about.offline_title', 'Works offline'),
+              body: t('about.offline_body', 'Install Gawe as a PWA to use it without an internet connection.'),
               image: '/images/works-offline.png',
             },
             {
-              title: 'No account needed',
-              body: 'Open the app and start working. No sign-up, no email, no OAuth.',
+              title: t('about.account_title', 'No account needed'),
+              body: t('about.account_body', 'Open the app and start working. No sign-up, email, or OAuth required.'),
             },
           ].map(({ title, body, image }) => (
             <div key={title} className="rounded-lg border border-border bg-card px-4 py-3 space-y-1">
@@ -52,7 +52,7 @@ export default function AboutPage() {
               {image && (
                 <Image
                   src={image}
-                  alt={`How to install Gawe as a PWA`}
+                  alt={t('about.install_alt', 'How to install Gawe as a PWA')}
                   width={600}
                   height={400}
                   className="mt-2 rounded-md border border-border w-full h-auto"
@@ -65,10 +65,11 @@ export default function AboutPage() {
 
       {/* Categories */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">What's included</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t('about.included', "What's included")}</h2>
         <div className="space-y-2">
-          {CATEGORIES.map((cat) => {
-            const tools = TOOLS.filter((t) => t.category === cat.id)
+          {CATEGORIES.map((category) => {
+            const cat = localizedCategory(category, locale)
+            const tools = TOOLS.filter((tool) => tool.category === cat.id).map((tool) => localizedTool(tool, locale))
             return (
               <div key={cat.id} className="flex items-start gap-3">
                 <span className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${cat.accentBg}`} />
@@ -86,9 +87,9 @@ export default function AboutPage() {
 
       {/* Made by */}
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">Made by</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t('about.made_by', 'Made by')}</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Gawe is built and maintained by{' '}
+          {t('about.made_before', 'Gawe is built and maintained by ')}
           <a
             href="https://kalabaru.id"
             target="_blank"
@@ -97,44 +98,28 @@ export default function AboutPage() {
           >
             KalaBaru
           </a>
-          , a creative and IT studio from Indonesia. We build tools, apps, services, and all you need for developers and creators for more than 5 years.
+          {t('about.made_after', ', a creative and IT studio from Indonesia. We build tools and services for developers and creators.')}
         </p>
       </div>
 
       {/* Open source */}
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">Open source</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t('about.open_source', 'Open source')}</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Gawe is released under the{' '}
-          <a
-            href="https://github.com/kalabaru-apps/gawe/blob/main/LICENSE"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors"
-          >
-            MIT License
-          </a>
-          . Use it, fork it, self-host it, or ship it as part of your own project —
-          commercially or otherwise. The full source is on{' '}
-          <a
-            href="https://github.com/kalabaru-apps/gawe"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors"
-          >
-            GitHub
-          </a>
-          , and contributions are welcome.
+          {t('about.open_before_license', 'Gawe is released under the ')}
+          <a href="https://github.com/kalabaru-apps/gawe/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors">MIT License</a>
+          {t('about.open_between_links', '. Use it, fork it, host it yourself, or include it in your project. The source code is on ')}
+          <a href="https://github.com/kalabaru-apps/gawe" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors">GitHub</a>
+          {t('about.open_after_github', ', and contributions are welcome.')}
         </p>
       </div>
 
       {/* Support */}
       {SUPPORT_URL && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-5 py-4 space-y-3">
-          <h2 className="text-base font-semibold">Support this project</h2>
+          <h2 className="text-base font-semibold">{t('about.support', 'Support this project')}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Gawe is free forever and will always stay that way. If it saves you time,
-            consider buying us a coffee — it helps keep the tools maintained and new ones coming.
+            {t('about.support_body', 'Gawe is free and will stay free. If it saves you time, you can support its maintenance and development.')}
           </p>
           <a
             href={SUPPORT_URL}
@@ -142,7 +127,7 @@ export default function AboutPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400 transition-colors"
           >
-            ☕ Support on Saweria
+            {t('about.support_link', 'Support on Saweria')}
           </a>
         </div>
       )}

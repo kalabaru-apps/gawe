@@ -1,4 +1,6 @@
 import type { CategoryDefinition, CategoryId, ToolDefinition } from '@/types'
+import { categoryName, categoryDescription, toolName, toolDescription } from '@/lib/i18n/catalog'
+import type { Locale } from '@/lib/i18n/catalog'
 
 export const CATEGORIES: CategoryDefinition[] = [
   {
@@ -714,6 +716,22 @@ export const TOOLS: ToolDefinition[] = [
     keywords: ['IPK', 'GPA', 'SKS', 'nilai', 'grade', 'semester', 'kuliah', 'universitas', 'indeks prestasi'],
   },
 ]
+
+export function localizedCategory(category: CategoryDefinition, locale: Locale): CategoryDefinition {
+  return {
+    ...category,
+    label: categoryName(category.id, locale),
+    description: categoryDescription(category.id, locale),
+  }
+}
+
+export function localizedTool(tool: ToolDefinition, locale: Locale): ToolDefinition {
+  return {
+    ...tool,
+    name: toolName(tool, locale),
+    description: toolDescription(tool, locale),
+  }
+}
 
 export function getToolsByCategory(categoryId: CategoryId): ToolDefinition[] {
   return TOOLS.filter((t) => t.category === categoryId)
