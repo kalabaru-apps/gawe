@@ -4,14 +4,14 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable pnpm
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2: Build application
 FROM node:22-alpine AS builder
-RUN corepack enable pnpm
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
