@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { fromUnixTime, format, getUnixTime, formatDistanceToNow, parseISO } from 'date-fns'
-import type { ToolProps } from '@/types'
-import { ToolPanel } from '../shared/ToolPanel'
-import { CopyButton } from '../shared/CopyButton'
-import { ErrorAlert } from '../shared/ErrorAlert'
+import { fromUnixTime, format, getUnixTime, formatDistanceToNow } from 'date-fns'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Region, Column, Row, CopyBtn, Stat, Section, Field, TextInput, Btn, Notice, Scroll, Seg } from '@/components/domain'
+import { Clock, Copy } from 'lucide-react'
+
+/** Workbench: live "now" ticker, paste anything, show all formats and zones with copy */
 
 type Mode = 'ts-to-date' | 'date-to-ts'
 
@@ -16,7 +16,7 @@ interface OutputRow {
   value: string
 }
 
-export default function TimestampConverter({ onOutput, initialState }: ToolProps) {
+export default function TimestampConverter({ onOutput, initialState }: any) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<Mode>((initialState?.mode as Mode) ?? 'ts-to-date')
   const [tsInput, setTsInput] = useState((initialState?.tsInput as string) ?? String(Math.floor(Date.now() / 1000)))
@@ -24,6 +24,13 @@ export default function TimestampConverter({ onOutput, initialState }: ToolProps
   const [rows, setRows] = useState<OutputRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const firedRef = useRef(false)
+  const [now, setNow] = useState(Date.now())
+
+  // Live ticker
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     try {
@@ -33,7 +40,6 @@ export default function TimestampConverter({ onOutput, initialState }: ToolProps
         if (!raw) { setRows([]); return }
         const num = Number(raw)
         if (isNaN(num)) throw new Error('Not a valid number')
-        // Auto-detect ms vs s
         date = num > 1e10 ? new Date(num) : fromUnixTime(num)
       } else {
         if (!dateInput) { setRows([]); return }
@@ -65,72 +71,73 @@ export default function TimestampConverter({ onOutput, initialState }: ToolProps
   }, [mode, tsInput, dateInput])
 
   return (
-    <ToolPanel
-      left={
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            {(['ts-to-date', 'date-to-ts'] as Mode[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`flex-1 py-2 rounded-md text-sm border transition-colors ${
-                  mode === m ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'
-                }`}
-              >
-                {m === 'ts-to-date' ? t('dev.timestamp_to_date', 'Timestamp → Date') : t('dev.date_to_timestamp', 'Date → Timestamp')}
-              </button>
-            ))}
-          </div>
-          {mode === 'ts-to-date' ? (
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.unix_timestamp', 'Unix Timestamp')}</label>
-              <div className="flex gap-2">
-                <input
-                  value={tsInput}
-                  onChange={(e) => setTsInput(e.target.value)}
-                  className="flex-1 font-mono text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-                  placeholder="1703001600"
-                />
-                <button
-                  onClick={() => setTsInput(String(Math.floor(Date.now() / 1000)))}
-                  className="px-3 py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors"
+    <Region domain="workbench">
+      <Scroll>
+        <Column width="md">
+          <Section title={t('dev.timestamp_converter', 'Timestamp Converter')}>
+            <Seg<Mode>
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: 'ts-to-date', label: t('dev.timestamp_to_date', 'Timestamp → Date') },
+                { value: 'date-to-ts', label: t('dev.date_to_timestamp', 'Date → Timestamp') },
+              ]}
+              label={t('dev.mode', 'Mode')}
+            />
+          </Section>
+
+          <Section title={mode === 'ts-to-date' ? t('dev.unix_timestamp', 'Unix Timestamp') : t('dev.date_to_timestamp', 'Date & Time')}>
+            {mode === 'ts-to-date' ? (
+              <div className="space-y-2">
+                <Field
+                  id="ts-input"
+                  label={t('dev.unix_timestamp', 'Unix Timestamp')}
+                  hint={t('dev.auto_detect', 'Auto-detects seconds vs milliseconds')}
                 >
-                  {t('common.now', 'Now')}
-                </button>
+                  <TextInput
+                    mono
+                    value={tsInput}
+                    onChange={e => setTsInput(e.target.value)}
+                    placeholder="1703001600"
+                    aria-label="Unix timestamp input"
+                  />
+                </Field>
+                <Btn variant="secondary" onClick={() => setTsInput(String(Math.floor(now / 1000)))}>
+                  {t('common.now', 'Now')} ({format(new Date(now), 'HH:mm:ss')})
+                </Btn>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{t('dev.auto_detect', 'Auto-detects seconds vs milliseconds')}</p>
-            </div>
-          ) : (
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.date_to_timestamp', 'Date & Time')}</label>
-              <input
-                type="datetime-local"
-                value={dateInput}
-                onChange={(e) => setDateInput(e.target.value)}
-                className="w-full font-mono text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
-          )}
-          {error && <ErrorAlert message={error} />}
-        </div>
-      }
-      right={
-        <div className="space-y-2">
-          {rows.length > 0 ? (
-            rows.map((row) => (
-              <div key={row.label} className="flex items-center justify-between gap-2 py-2 border-b border-border/50 last:border-0">
-                <div>
-                  <p className="text-xs text-muted-foreground">{row.label}</p>
-                  <p className="font-mono text-sm mt-0.5">{row.value}</p>
-                </div>
-                <CopyButton value={row.value} />
+            ) : (
+              <Field
+                id="date-input"
+                label={t('dev.date_to_timestamp', 'Date & Time')}
+              >
+                <input
+                  type="datetime-local"
+                  value={dateInput}
+                  onChange={e => setDateInput(e.target.value)}
+                  className="w-full rounded-d border border-d-border bg-d-raised px-3 py-2 text-sm text-d-ink placeholder:text-d-muted/70 focus-visible:border-d-accent focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-d-accent font-mono"
+                />
+              </Field>
+            )}
+          </Section>
+
+          {error && <Notice tone="error">{error}</Notice>}
+
+          {rows.length > 0 && (
+            <Section title={t('action.result', 'Result')}>
+              <div className="space-y-2">
+                {rows.map((row) => (
+                  <Row key={row.label} label={row.label} value={row.value} copy mono />
+                ))}
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">{t('action.result', 'Enter a timestamp or date to see all formats')}</p>
+            </Section>
           )}
-        </div>
-      }
-    />
+
+          {rows.length === 0 && !error && (
+            <Notice tone="info">{t('action.result', 'Enter a timestamp or date to see all formats')}</Notice>
+          )}
+        </Column>
+      </Scroll>
+    </Region>
   )
 }

@@ -1,169 +1,223 @@
 'use client'
 
-import { useState } from 'react'
-import type { ToolProps } from '@/types'
+import { useState, useMemo, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
+import { Region, Column, Section, Field, TextInput, Scroll, Notice, Chip, Btn } from '@/components/domain'
+import { Search, X } from 'lucide-react'
 
-const STATUS_CODES = [
-  // 1xx
-  { code: 100, name: 'Continue', description: 'Server has received the request headers' },
-  { code: 101, name: 'Switching Protocols', description: 'Requester asked to switch protocols' },
-  { code: 102, name: 'Processing', description: 'Server has received and is processing the request' },
-  // 2xx
-  { code: 200, name: 'OK', description: 'Request succeeded' },
-  { code: 201, name: 'Created', description: 'Request succeeded and a new resource was created' },
-  { code: 202, name: 'Accepted', description: 'Request has been received but not yet acted upon' },
-  { code: 204, name: 'No Content', description: 'No content to send for this request' },
-  { code: 206, name: 'Partial Content', description: 'Partial GET request fulfilled' },
-  // 3xx
-  { code: 301, name: 'Moved Permanently', description: 'URL of the requested resource has been changed permanently' },
-  { code: 302, name: 'Found', description: 'URI of requested resource has been changed temporarily' },
-  { code: 304, name: 'Not Modified', description: 'Client can use cached response' },
-  { code: 307, name: 'Temporary Redirect', description: 'Redirect with same method preserved' },
-  { code: 308, name: 'Permanent Redirect', description: 'Permanent redirect, same method preserved' },
-  // 4xx
-  { code: 400, name: 'Bad Request', description: 'Server cannot process request due to client error' },
-  { code: 401, name: 'Unauthorized', description: 'Authentication is required and has failed' },
-  { code: 403, name: 'Forbidden', description: 'Server refuses to fulfill the request' },
-  { code: 404, name: 'Not Found', description: 'Requested resource could not be found' },
-  { code: 405, name: 'Method Not Allowed', description: 'HTTP method is not supported for this resource' },
-  { code: 408, name: 'Request Timeout', description: 'Server timed out waiting for the request' },
-  { code: 409, name: 'Conflict', description: 'Request conflicts with the current state of the server' },
-  { code: 410, name: 'Gone', description: 'Resource is no longer available and will not be again' },
-  { code: 413, name: 'Content Too Large', description: 'Request entity is larger than limits defined by server' },
-  { code: 414, name: 'URI Too Long', description: 'URI is longer than the server will interpret' },
-  { code: 415, name: 'Unsupported Media Type', description: 'Media format is not supported' },
-  { code: 422, name: 'Unprocessable Content', description: 'Request was well-formed but was unable to be followed' },
-  { code: 429, name: 'Too Many Requests', description: 'User has sent too many requests in a given time' },
-  // 5xx
-  { code: 500, name: 'Internal Server Error', description: 'Server encountered an unexpected condition' },
-  { code: 501, name: 'Not Implemented', description: 'Server does not support functionality required to fulfill request' },
-  { code: 502, name: 'Bad Gateway', description: 'Server received an invalid response from upstream' },
-  { code: 503, name: 'Service Unavailable', description: 'Server is not ready to handle the request' },
-  { code: 504, name: 'Gateway Timeout', description: 'Server did not get a response in time from upstream' },
-]
+/** Paper: searchable reference with status code groups, plain-language meanings */
 
-const MIME_TYPES = [
-  { type: 'text/html', description: 'HTML document', ext: '.html' },
-  { type: 'text/css', description: 'CSS stylesheet', ext: '.css' },
-  { type: 'text/javascript', description: 'JavaScript', ext: '.js' },
-  { type: 'text/plain', description: 'Plain text', ext: '.txt' },
-  { type: 'text/csv', description: 'CSV data', ext: '.csv' },
-  { type: 'text/xml', description: 'XML document', ext: '.xml' },
-  { type: 'application/json', description: 'JSON data', ext: '.json' },
-  { type: 'application/xml', description: 'XML (generic)', ext: '.xml' },
-  { type: 'application/pdf', description: 'PDF document', ext: '.pdf' },
-  { type: 'application/zip', description: 'ZIP archive', ext: '.zip' },
-  { type: 'application/gzip', description: 'Gzip archive', ext: '.gz' },
-  { type: 'application/octet-stream', description: 'Binary data', ext: '.*' },
-  { type: 'application/x-www-form-urlencoded', description: 'Form data (URL encoded)', ext: '—' },
-  { type: 'multipart/form-data', description: 'Form data with files', ext: '—' },
-  { type: 'image/jpeg', description: 'JPEG image', ext: '.jpg' },
-  { type: 'image/png', description: 'PNG image', ext: '.png' },
-  { type: 'image/gif', description: 'GIF image', ext: '.gif' },
-  { type: 'image/webp', description: 'WebP image', ext: '.webp' },
-  { type: 'image/svg+xml', description: 'SVG image', ext: '.svg' },
-  { type: 'image/avif', description: 'AVIF image', ext: '.avif' },
-  { type: 'audio/mpeg', description: 'MP3 audio', ext: '.mp3' },
-  { type: 'audio/ogg', description: 'OGG audio', ext: '.ogg' },
-  { type: 'video/mp4', description: 'MP4 video', ext: '.mp4' },
-  { type: 'video/webm', description: 'WebM video', ext: '.webm' },
-  { type: 'font/woff2', description: 'WOFF2 font', ext: '.woff2' },
-]
-
-type Tab = 'status' | 'mime'
-
-function statusColor(code: number): string {
-  if (code < 200) return 'bg-muted text-muted-foreground'
-  if (code < 300) return 'bg-emerald-500/20 text-emerald-400'
-  if (code < 400) return 'bg-sky-500/20 text-sky-400'
-  if (code < 500) return 'bg-amber-500/20 text-amber-400'
-  return 'bg-rose-500/20 text-rose-400'
+const STATUS_GROUPS = {
+  INFORMATIONAL: [
+    { code: 100, label: 'Continue' },
+    { code: 101, label: 'Switching Protocols' },
+    { code: 102, label: 'Processing' },
+  ],
+  SUCCESS: [
+    { code: 200, label: 'OK' },
+    { code: 201, label: 'Created' },
+    { code: 202, label: 'Accepted' },
+    { code: 203, label: 'Non-Authoritative Information' },
+    { code: 204, label: 'No Content' },
+    { code: 205, label: 'Reset Content' },
+    { code: 206, label: 'Partial Content' },
+    { code: 207, label: 'Multi-Status' },
+    { code: 226, label: 'IM Used' },
+  ],
+  REDIRECTION: [
+    { code: 300, label: 'Multiple Choices' },
+    { code: 301, label: 'Moved Permanently' },
+    { code: 302, label: 'Found' },
+    { code: 303, label: 'See Other' },
+    { code: 304, label: 'Not Modified' },
+    { code: 305, label: 'Use Proxy' },
+    { code: 307, label: 'Temporary Redirect' },
+    { code: 308, label: 'Permanent Redirect' },
+  ],
+  CLIENT_ERROR: [
+    { code: 400, label: 'Bad Request' },
+    { code: 401, label: 'Unauthorized' },
+    { code: 402, label: 'Payment Required' },
+    { code: 403, label: 'Forbidden' },
+    { code: 404, label: 'Not Found' },
+    { code: 405, label: 'Method Not Allowed' },
+    { code: 406, label: 'Not Acceptable' },
+    { code: 407, label: 'Proxy Authentication Required' },
+    { code: 408, label: 'Request Timeout' },
+    { code: 409, label: 'Conflict' },
+    { code: 410, label: 'Gone' },
+    { code: 411, label: 'Length Required' },
+    { code: 412, label: 'Precondition Failed' },
+    { code: 413, label: 'Payload Too Large' },
+    { code: 414, label: 'URI Too Long' },
+    { code: 415, label: 'Unsupported Media Type' },
+    { code: 416, label: 'Range Not Satisfiable' },
+    { code: 417, label: 'Expectation Failed' },
+    { code: 421, label: 'Misdirected Request' },
+    { code: 422, label: 'Unprocessable Entity' },
+    { code: 423, label: 'Locked' },
+    { code: 424, label: 'Failed Dependency' },
+    { code: 425, label: 'Too Early' },
+    { code: 426, label: 'Upgrade Required' },
+    { code: 428, label: 'Precondition Required' },
+    { code: 429, label: 'Too Many Requests' },
+    { code: 431, label: 'Request Header Fields Too Large' },
+    { code: 451, label: 'Unavailable For Legal Reasons' },
+    { code: 494, label: 'Request Header Too Large' },
+    { code: 495, label: 'Certificate Error' },
+    { code: 496, label: 'No Certificate' },
+    { code: 497, label: 'HTTP to HTTPS' },
+    { code: 498, label: 'Invalid Token' },
+    { code: 499, label: 'Client Closed Request' },
+  ],
+  SERVER_ERROR: [
+    { code: 500, label: 'Internal Server Error' },
+    { code: 501, label: 'Not Implemented' },
+    { code: 502, label: 'Bad Gateway' },
+    { code: 503, label: 'Service Unavailable' },
+    { code: 504, label: 'Gateway Timeout' },
+    { code: 505, label: 'HTTP Version Not Supported' },
+    { code: 506, label: 'Variant Also Negotiates' },
+    { code: 507, label: 'Insufficient Storage' },
+    { code: 508, label: 'Loop Detected' },
+    { code: 510, label: 'Not Extended' },
+    { code: 511, label: 'Network Authentication Required' },
+    { code: 520, label: 'Web Server Returns Unknown Error' },
+    { code: 521, label: 'Web Server Is Down' },
+    { code: 522, label: 'Connection Timed Out' },
+    { code: 523, label: 'Origin Is Unreachable' },
+    { code: 524, label: 'A Timeout Occurred' },
+    { code: 525, label: 'SSL Handshake Failed' },
+    { code: 526, label: 'Invalid SSL Certificate' },
+    { code: 527, label: 'Railgun Error' },
+    { code: 530, label: 'Site Launch' },
+    { code: 598, label: 'Network Read Timeout Error' },
+    { code: 599, label: 'Network Connect Timeout Error' },
+  ],
 }
 
-export default function HttpReference({ onOutput: _onOutput, initialState: _initialState }: ToolProps) {
+export default function HttpReference({ onOutput, initialState }: any) {
+  const ALL_CODES = useMemo(() => Object.values(STATUS_GROUPS).flat(), [])
   const { t } = useTranslation()
-  const [tab, setTab] = useState<Tab>('status')
-  const [search, setSearch] = useState('')
-  const q = search.toLowerCase()
+  const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState<number[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
-  const filteredStatus = STATUS_CODES.filter(
-    (s) => String(s.code).includes(q) || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
-  )
-  const filteredMime = MIME_TYPES.filter(
-    (m) => m.type.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || m.ext.toLowerCase().includes(q)
-  )
+  const filtered = useMemo(() => {
+    if (!query) return ALL_CODES
+    const q = query.toLowerCase()
+    return ALL_CODES.filter(c =>
+      c.label.toLowerCase().includes(q) || c.code.toString().includes(q)
+    )
+  }, [query])
+
+  function toggle(code: number) {
+    setSelected(s => s.includes(code) ? s.filter(x => x !== code) : [...s, code])
+  }
+
+  function copy() {
+    const codes = ALL_CODES.filter(c => selected.includes(c.code))
+    const text = codes.map(c => `${c.code} ${c.label}`).join('\n')
+    navigator.clipboard.writeText(text)
+    if (!firedRef.current) { analytics.buttonClick('http-reference', 'copy'); firedRef.current = true }
+    onOutput({ query, selected }, { codes })
+  }
+
+  function clear() {
+    setQuery('')
+    setSelected([])
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="flex gap-1 border border-input rounded-md p-0.5">
-          {(['status', 'mime'] as Tab[]).map((tabKey) => (
-            <button
-              key={tabKey}
-              onClick={() => setTab(tabKey)}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                tab === tabKey ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'
-              }`}
-            >
-              {tabKey === 'status' ? 'HTTP Status Codes' : 'MIME Types'}
-            </button>
-          ))}
-        </div>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-          placeholder={tab === 'status' ? 'Search codes, names, descriptions...' : 'Search MIME types, extensions...'}
-        />
-      </div>
-      {tab === 'status' ? (
-        <div className="rounded-md border border-input overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-16">Code</th>
-                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-48">Name</th>
-                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStatus.map((s) => (
-                <tr key={s.code} className="border-t border-border/50 hover:bg-muted/20">
-                  <td className="px-3 py-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold ${statusColor(s.code)}`}>
-                      {s.code}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 font-medium">{s.name}</td>
-                  <td className="px-3 py-2 text-muted-foreground text-xs">{s.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="rounded-md border border-input overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-64">MIME Type</th>
-                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
-                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-20">Ext</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMime.map((m) => (
-                <tr key={m.type} className="border-t border-border/50 hover:bg-muted/20">
-                  <td className="px-3 py-2 font-mono text-xs">{m.type}</td>
-                  <td className="px-3 py-2 text-muted-foreground text-xs">{m.description}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{m.ext}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    <Region domain="paper">
+      <Scroll>
+        <Column width="lg">
+          <Section title={t('dev.http_reference', 'HTTP Status Code Reference')}>
+            <Field id="search" label={t('dev.search', 'Search')} hint="Enter code or keyword">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="404, not found, redirect..."
+                  aria-label="Search HTTP status codes"
+                  data-testid="http-ref-search"
+                  className="w-full rounded-d border border-d-border bg-d-raised px-3 py-2.5 pl-9 text-sm outline-none focus:border-d-accent"
+                />
+                {query && (
+                  <button
+                    onClick={clear}
+                    className="absolute inset-y-0 right-2 flex items-center text-d-muted hover:text-d-ink"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                <Search className="absolute inset-y-0 left-3 h-4 w-4 text-d-muted" />
+              </div>
+            </Field>
+          </Section>
+
+          {Object.entries(STATUS_GROUPS).map(([group, codes]) => {
+            let filteredCodes = codes
+            if (query) {
+              filteredCodes = codes.filter(c =>
+                c.label.toLowerCase().includes(query.toLowerCase()) ||
+                c.code.toString().includes(query)
+              )
+            }
+
+            if (filteredCodes.length === 0 && !query) return null
+            if (filteredCodes.length === 0) return <div key={group} />
+
+            const colors = {
+              INFORMATIONAL: 'text-sky-500',
+              SUCCESS: 'text-emerald-500',
+              REDIRECTION: 'text-amber-500',
+              CLIENT_ERROR: 'text-rose-400',
+              SERVER_ERROR: 'text-rose-500',
+            }[group]
+
+            return (
+              <div key={group} className="mb-6">
+                <h3 className={`text-xs font-semibold uppercase tracking-wider ${colors} mb-2`}>{group}</h3>
+                <div className="space-y-1">
+                  {filteredCodes.map(c => (
+                    <button
+                      key={c.code}
+                      onClick={() => toggle(c.code)}
+                      className={`w-full text-left rounded-d border px-3 py-2 text-sm transition-colors ${
+                        selected.includes(c.code)
+                          ? 'border-d-accent bg-d-accent/10 text-d-accent-ink'
+                          : 'border-d-border bg-d-surface text-d-ink hover:bg-d-border/40'
+                      }`}
+                    >
+                      <span className="font-mono font-semibold">{c.code}</span>
+                      <span className="ml-2">{c.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+
+          {error && <Notice tone="error">{error}</Notice>}
+
+          {selected.length > 0 && (
+            <div className="flex gap-2 pt-4">
+              <Btn variant="primary" onClick={copy}>
+                {t('action.copy_selected', 'Copy selected codes')}
+              </Btn>
+            </div>
+          )}
+
+          {filtered.length === 0 && query && !error && (
+            <Notice tone="info">{t('dev.not_found', 'No codes match your search')}</Notice>
+          )}
+        </Column>
+      </Scroll>
+    </Region>
   )
 }

@@ -1,88 +1,105 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ToolPanel } from '@/components/tools/shared/ToolPanel'
-import { CodeEditor } from '@/components/tools/shared/CodeEditor'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
+// Domain: workbench (live two-pane text transform).
+import { useState, useMemo } from 'react'
+import { Copy, Check, AlertCircle, CheckCircle2, ArrowLeftRight } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
+import { Workbench, Toolbar, StatusBar, SplitPane, Pane, WbButton, Segmented, CodeArea } from '@/components/domain'
 
-type EncodeType = 'url' | 'html'
+type Type = 'url' | 'html'
+type Dir = 'encode' | 'decode'
 
-const HTML_ENTITIES: [string, string][] = [
-  ['&', '&amp;'], ['<', '&lt;'], ['>', '&gt;'], ['"', '&quot;'], ["'", '&#39;'],
-]
+const HTML_ENTITIES: [string, string][] = [['&', '&amp;'], ['<', '&lt;'], ['>', '&gt;'], ['"', '&quot;'], ["'", '&#39;']]
 
-function encodeHtml(str: string): string {
-  return HTML_ENTITIES.reduce((s, [char, entity]) => s.replaceAll(char, entity), str)
-}
-
-function decodeHtml(str: string): string {
+const encodeHtml = (s: string) => HTML_ENTITIES.reduce((acc, [c, e]) => acc.replaceAll(c, e), s)
+function decodeHtml(s: string) {
   const el = document.createElement('textarea')
-  el.innerHTML = str
+  el.innerHTML = s
   return el.value
 }
 
 export default function UrlHtmlEncode({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
-  const [type, setType] = useState<EncodeType>((initialState?.type as EncodeType) ?? 'url')
+  const [type, setType] = useState<Type>((initialState?.type as Type) ?? 'url')
+  const [dir, setDir] = useState<Dir>('encode')
   const [input, setInput] = useState((initialState?.input as string) ?? '')
-  const [output, setOutput] = useState('')
-  const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
-  const encode = () => {
-    if (!input) return
+  const res = useMemo(() => {
+    if (!input) return { out: '', error: '' }
     try {
-      const result = type === 'url' ? encodeURIComponent(input) : encodeHtml(input)
-      setOutput(result)
-      setError('')
-      onOutput({ input, type, mode: 'encode' }, { output: result })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Encoding failed')
+      if (dir === 'encode') return { out: type === 'url' ? encodeURIComponent(input) : encodeHtml(input), error: '' }
+      return { out: type === 'url' ? decodeURIComponent(input) : decodeHtml(input), error: '' }
+    } catch {
+      return { out: '', error: 'Cannot decode: a % sequence is incomplete or not valid UTF-8. Fix the escape or switch to Encode.' }
     }
+  }, [input, type, dir])
+
+  const copy = async () => {
+    if (!res.out) return
+    await navigator.clipboard.writeText(res.out)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+    onOutput({ input, type, mode: dir }, { output: res.out })
   }
 
-  const decode = () => {
-    if (!input) return
-    try {
-      const result = type === 'url' ? decodeURIComponent(input) : decodeHtml(input)
-      setOutput(result)
-      setError('')
-      onOutput({ input, type, mode: 'decode' }, { output: result })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Decoding failed : invalid input')
-    }
+  const swap = () => {
+    if (!res.out) return
+    setInput(res.out)
+    setDir(dir === 'encode' ? 'decode' : 'encode')
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3 flex-wrap">
-        <Tabs value={type} onValueChange={(v) => setType(v as EncodeType)}>
-          <TabsList>
-            <TabsTrigger value="url">URL encode</TabsTrigger>
-            <TabsTrigger value="html">HTML entities</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <Button size="sm" onClick={() => { analytics.buttonClick('url-html-encode', 'encode'); encode() }}>{t('common.encode', 'Encode →')}</Button>
-        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('url-html-encode', 'decode'); decode() }}>{t('common.decode', '← Decode')}</Button>
-      </div>
-      {error && <ErrorAlert message={error} />}
-      <ToolPanel
-        left={<CodeEditor value={input} onChange={setInput} language={t('action.input', 'Input')} rows={12} placeholder={type === 'url' ? 'https://example.com/search?q=hello world' : '<p>Hello & "world"</p>'} />}
+    <Workbench
+      toolbar={
+        <Toolbar>
+          <Segmented<Type>
+            label="Type"
+            value={type}
+            onChange={setType}
+            options={[{ value: 'url', label: 'URL' }, { value: 'html', label: 'HTML entities' }]}
+          />
+          <Segmented<Dir>
+            label="Direction"
+            value={dir}
+            onChange={setDir}
+            options={[{ value: 'encode', label: 'Encode' }, { value: 'decode', label: 'Decode' }]}
+          />
+          <WbButton onClick={swap} disabled={!res.out}>
+            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />Swap
+          </WbButton>
+        </Toolbar>
+      }
+      status={
+        <StatusBar>
+          {!input && <span>Paste text to {dir}. Result updates as you type.</span>}
+          {input && !res.error && <span className="flex items-center gap-1 text-d-accent"><CheckCircle2 className="h-3 w-3" aria-hidden />{dir === 'encode' ? 'Encoded' : 'Decoded'}</span>}
+          {res.error && <span role="alert" className="flex min-w-0 items-center gap-1 text-red-600 dark:text-red-400"><AlertCircle className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{res.error}</span></span>}
+          {res.out && <span className="ml-auto">{res.out.length.toLocaleString()} chars</span>}
+        </StatusBar>
+      }
+    >
+      <SplitPane
+        left={
+          <Pane label={t('encoding.input', 'Input')}>
+            <CodeArea label="Input" value={input} onChange={setInput} placeholder={type === 'url' ? 'https://example.com/search?q=hello world' : '<p>Hello & "world"</p>'} />
+          </Pane>
+        }
         right={
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
-              <CopyButton value={output} />
-            </div>
-            <CodeEditor value={output} onChange={() => {}} readOnly rows={12} />
-          </div>
+          <Pane
+            label={t('action.output', 'Output')}
+            actions={
+              <WbButton onClick={copy} disabled={!res.out} className="h-6">
+                {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+                {copied ? 'Copied' : 'Copy'}
+              </WbButton>
+            }
+          >
+            <CodeArea label="Output" value={res.out} readOnly placeholder="Result appears here" />
+          </Pane>
         }
       />
-    </div>
+    </Workbench>
   )
 }

@@ -1,9 +1,20 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+/**
+ * Statistics Calculator — Paper domain (education category).
+ * Paper: serif headings, ruled Sheet, printed Result cards, live summary table.
+ * Paste data, live compute, copy results. No Calculate button.
+ */
+
+import { useState, useCallback, useMemo } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Sheet, Page, Result, Column, Scroll, Region, Field, TextArea, Btn, Row, Notice, Empty, CopyBtn, Stat, Section } from '@/components/domain/kit'
+
+// ---------------------------------------------------------------------------
+// Statistics
+// ---------------------------------------------------------------------------
 
 interface StatsResult {
   count: number
@@ -97,49 +108,51 @@ function fmt(n: number): string {
   return parseFloat(n.toPrecision(10)).toString()
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function StatisticsCalculator({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState<string>((initialState?.input as string) ?? '')
-  const [result, setResult] = useState<StatsResult | null>(null)
-  const [errors, setErrors] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
 
-  const calculate = useCallback(() => {
-    const { values, errors: parseErrors } = parseNumbers(input)
-    setErrors(parseErrors)
+  const parsed = useMemo(() => parseNumbers(input), [input])
+  const { values, errors } = parsed
 
-    if (values.length === 0) {
-      setResult(null)
-      return
-    }
+  const result = useMemo(() => {
+    if (values.length === 0) return null
+    return computeStats(values)
+  }, [values])
 
-    const stats = computeStats(values)
-    setResult(stats)
-
+  // Fire analytics + onOutput when result changes
+  const prevResultRef = useState<StatsResult | null>(result)[0]
+  if (prevResultRef !== result && result) {
+    analytics.buttonClick('statistics-calculator', 'calculate')
     onOutput(
       { values },
       {
-        count: stats.count,
-        sum: stats.sum,
-        mean: stats.mean,
-        median: stats.median,
-        mode: stats.mode,
-        min: stats.min,
-        max: stats.max,
-        variance: stats.variance,
-        stdDev: stats.stdDev,
-        sampleVariance: stats.sampleVariance,
-        sampleStdDev: stats.sampleStdDev,
-        q1: stats.q1,
-        q3: stats.q3,
-        iqr: stats.iqr,
+        count: result.count,
+        sum: result.sum,
+        mean: result.mean,
+        median: result.median,
+        mode: result.mode,
+        min: result.min,
+        max: result.max,
+        variance: result.variance,
+        stdDev: result.stdDev,
+        sampleVariance: result.sampleVariance,
+        sampleStdDev: result.sampleStdDev,
+        q1: result.q1,
+        q3: result.q3,
+        iqr: result.iqr,
       }
     )
-  }, [input, onOutput])
+  }
 
   const copyResults = useCallback(() => {
     if (!result) return
-    const modeStr = result.mode ? result.mode.map(fmt).join(', ') : t('stats.no_mode')
+    const modeStr = result.mode ? result.mode.map(fmt).join(', ') : t('stats.no_mode', 'No mode')
     const text = [
       `${t('stats.count')}     : ${result.count}`,
       `${t('stats.sum')}        : ${fmt(result.sum)}`,
@@ -166,7 +179,7 @@ export default function StatisticsCalculator({ onOutput, initialState }: ToolPro
   const modeDisplay = result
     ? result.mode
       ? result.mode.map(fmt).join(', ')
-      : t('stats.no_mode')
+      : t('stats.no_mode', 'No mode')
     : null
 
   const statRows: { label: string; value: string }[] = result
@@ -190,85 +203,114 @@ export default function StatisticsCalculator({ onOutput, initialState }: ToolPro
     : []
 
   return (
-    <div className="space-y-4">
-      {/* Input */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">
-          {t('stats.enter_numbers')}
-        </label>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={t('stats.enter_numbers')}
-          rows={5}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono resize-y"
-          spellCheck={false}
-        />
-        {errors.length > 0 && (
-          <p className="text-xs text-destructive">
-            {t('stats.invalid_skip')}: {errors.join(', ')}
-          </p>
-        )}
-      </div>
+    <Scroll>
+      <Column width="md">
+        <Sheet>
+          <header className="mb-6">
+            <h1 className="font-serif text-2xl font-semibold text-d-ink mb-2">{t('stats.title', 'Statistics Calculator')}</h1>
+            <p className="text-d-muted text-sm">{t('stats.description', 'Paste or type numbers (comma, space, or newline separated). Results update live.')}</p>
+          </header>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => { analytics.buttonClick('statistics-calculator', 'calculate'); calculate() }}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          {t('action.calculate')}
-        </button>
-        {result && (
-          <button
-            onClick={copyResults}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-          >
-            {copied ? t('action.copied') : t('stats.copy_results')}
-          </button>
-        )}
-        {input && (
-          <button
-            onClick={() => { setInput(''); setResult(null); setErrors([]) }}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-          >
-            {t('action.reset')}
-          </button>
-        )}
-      </div>
+          {/* Input */}
+          <Section title={t('stats.enter_numbers', 'Data')} className="mb-4">
+            <Field id="stats-input" label={t('stats.enter_numbers', 'Enter numbers')} hint={t('stats.hint', 'Separate with commas, spaces, or newlines')}>
+              <TextArea
+                id="stats-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={t('stats.placeholder', 'e.g. 1, 2, 3, 4, 5 or 10\n20\n30')}
+                rows={6}
+                mono
+              />
+            </Field>
 
-      {/* Results */}
-      {result && (
-        <div className="space-y-4">
-          {/* Stats table */}
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <table className="w-full text-sm">
-              <tbody>
-                {statRows.map(({ label, value }, i) => (
-                  <tr key={label} className={i % 2 === 0 ? 'bg-muted/30' : ''}>
-                    <td className="px-4 py-2 text-muted-foreground font-medium whitespace-nowrap">{label}</td>
-                    <td className="px-4 py-2 font-mono font-semibold text-right break-all">{value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {errors.length > 0 && (
+              <Notice tone="error" className="mt-3">
+                {t('stats.invalid_skip', 'Skipped invalid entries')}: {errors.join(', ')}
+              </Notice>
+            )}
+          </Section>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Btn variant="primary" onClick={copyResults} disabled={!result} className="min-w-0">
+              <CopyBtn value="" label={copied ? t('action.copied', 'Copied') : t('stats.copy_results', 'Copy results')} size="md" />
+            </Btn>
+            {input && (
+              <Btn variant="secondary" onClick={() => { setInput('') }}>
+                {t('action.reset', 'Reset')}
+              </Btn>
+            )}
           </div>
 
-          {/* Sorted values */}
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">{t('stats.sorted')}</p>
-            <div className="rounded-md bg-muted p-4 font-mono text-sm break-all leading-relaxed">
-              {result.sorted.map(fmt).join(', ')}
-            </div>
-          </div>
-        </div>
-      )}
+          {/* Results */}
+          {result && (
+            <>
+              {/* Summary stats grid */}
+              <Section title={t('stats.summary', 'Summary')} className="mb-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Stat label={t('stats.count')} value={result.count} tone="display" />
+                  <Stat label={t('stats.mean')} value={fmt(result.mean)} tone="display" />
+                  <Stat label={t('stats.median')} value={fmt(result.median)} tone="display" />
+                  <Stat label={t('stats.std_dev')} value={fmt(result.stdDev)} tone="display" />
+                </div>
+              </Section>
 
-      {!result && !input && (
-        <p className="text-sm text-muted-foreground">
-          {t('stats.enter_numbers')}
-        </p>
-      )}
-    </div>
+              {/* Detailed results */}
+              <Page className="mb-4 space-y-3">
+                <h2 className="font-serif text-lg font-semibold">{t('stats.details', 'Detailed Statistics')}</h2>
+                <div className="space-y-2 border-t border-d-border pt-3">
+                  {statRows.map(({ label, value }, i) => (
+                    <Row key={label} label={label} value={value} mono />
+                  ))}
+                </div>
+              </Page>
+
+              {/* Quartiles box */}
+              <Page className="mb-4">
+                <h2 className="font-serif text-lg font-semibold mb-3">{t('stats.quartiles', 'Quartiles')}</h2>
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <Result label={t('stats.min', 'Min')} value={fmt(result.min)} />
+                  <Result label={t('stats.q1', 'Q1')} value={fmt(result.q1)} />
+                  <Result label={t('stats.median', 'Median')} value={fmt(result.median)} />
+                  <Result label={t('stats.q3', 'Q3')} value={fmt(result.q3)} />
+                </div>
+                <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                  <Result label={t('stats.max', 'Max')} value={fmt(result.max)} />
+                  <Result label={t('stats.iqr', 'IQR')} value={fmt(result.iqr)} />
+                  <Result label={t('stats.range', 'Range')} value={fmt(result.range)} />
+                </div>
+              </Page>
+
+              {/* Sorted values */}
+              <Page>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-serif text-lg font-semibold">{t('stats.sorted', 'Sorted Values')}</h2>
+                  <CopyBtn value={result.sorted.map(fmt).join(', ')} size="sm" />
+                </div>
+                <Region domain="workbench">
+                  <div className="rounded-d border border-d-border bg-d-surface p-4 font-mono text-sm break-all leading-relaxed max-h-60 overflow-auto">
+                    {result.sorted.map(fmt).join(', ')}
+                  </div>
+                </Region>
+              </Page>
+            </>
+          )}
+
+          {!result && !input && (
+            <Empty
+              title={t('stats.enter_numbers', 'Enter numbers')}
+              children={t('stats.results_appear', 'Statistics appear here as you type.')}
+            />
+          )}
+
+          {!result && input && (
+            <Notice tone="info">
+              {t('stats.need_valid', 'Enter at least one valid number to see statistics.')}
+            </Notice>
+          )}
+        </Sheet>
+      </Column>
+    </Scroll>
   )
 }

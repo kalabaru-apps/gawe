@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import type { ToolProps } from '@/types'
-import { ToolPanel } from '../shared/ToolPanel'
-import { CopyButton } from '../shared/CopyButton'
-import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Region, Column, Row, CopyBtn, Section, Field, Seg, Notice, Btn, Scroll } from '@/components/domain'
+
+/** Workbench: type in any base, all others update live */
 
 const BASES = [
   { label: 'Binary', base: 2, prefix: '0b' },
@@ -22,20 +21,21 @@ interface Conversion {
   value: string
 }
 
-export default function BaseConverter({ onOutput, initialState }: ToolProps) {
+export default function BaseConverter({ onOutput, initialState }: any) {
   const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '255')
-  const [fromBase, setFromBase] = useState<number>((initialState?.fromBase as number) ?? 10)
+  const [fromBase, setFromBase] = useState<string>((initialState?.fromBase as string) ?? '10')
   const [conversions, setConversions] = useState<Conversion[]>([])
   const [error, setError] = useState<string | null>(null)
   const firedRef = useRef(false)
 
   useEffect(() => {
-    const raw = input.trim().replace(/^0[xXbBoO]/, '') // strip prefix
+    const raw = input.trim().replace(/^0[xXbBoO]/, '')
     if (!raw) { setConversions([]); setError(null); return }
-    const decimal = parseInt(raw, fromBase)
+    const base = parseInt(fromBase, 10)
+    const decimal = parseInt(raw, base)
     if (isNaN(decimal) || decimal < 0) {
-      setError(`"${raw}" is not a valid base-${fromBase} number`)
+      setError(`"${raw}" is not a valid base-${base} number`)
       setConversions([])
       return
     }
@@ -43,7 +43,6 @@ export default function BaseConverter({ onOutput, initialState }: ToolProps) {
     if (!firedRef.current) { analytics.buttonClick('base-converter', 'convert'); firedRef.current = true }
     const result = BASES.map((b) => {
       let val = decimal.toString(b.base).toUpperCase()
-      // Group binary by 4 bits
       if (b.base === 2) val = val.replace(/(.{4})(?=.)/g, '$1 ')
       return { ...b, value: b.base === 16 ? val : decimal.toString(b.base) }
     })
@@ -52,57 +51,51 @@ export default function BaseConverter({ onOutput, initialState }: ToolProps) {
   }, [input, fromBase, onOutput])
 
   return (
-    <ToolPanel
-      left={
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.base_from', 'Input Base')}</label>
-            <div className="flex gap-2">
-              {BASES.map((b) => (
-                <button
-                  key={b.base}
-                  onClick={() => setFromBase(b.base)}
-                  className={`flex-1 py-2 rounded-md text-sm border transition-colors ${
-                    fromBase === b.base ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'
-                  }`}
-                >
-                  {b.label.slice(0, 3)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              {BASES.find((b) => b.base === fromBase)?.label} Number
-            </label>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="w-full font-mono text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-              placeholder={fromBase === 16 ? 'FF' : fromBase === 2 ? '11111111' : '255'}
-              spellCheck={false}
-            />
-          </div>
-          {error && <ErrorAlert message={error} />}
-        </div>
-      }
-      right={
-        <div className="space-y-3">
-          {conversions.length > 0 ? (
-            conversions.map((c) => (
-              <div key={c.base} className="rounded-md border border-input p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-muted-foreground">{c.label} (base {c.base})</span>
-                  <CopyButton value={c.value} />
-                </div>
-                <p className="font-mono text-sm break-all">{c.prefix}{c.value}</p>
+    <Region domain="workbench">
+      <Scroll>
+        <Column width="md">
+          <Section title={t('dev.base_converter', 'Base Converter')}>
+            <Field
+              id="base-input"
+              label={t('dev.base_input', 'Input Number')}
+            >
+              <div className="space-y-2">
+                <Seg<string>
+                  value={fromBase}
+                  onChange={setFromBase}
+                  options={BASES.map(b => ({ value: String(b.base), label: b.label.slice(0, 3) }))}
+                  label={t('dev.base_from', 'Input Base')}
+                />
+                <input
+                  type="text"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  data-testid="base-input"
+                  className="w-full rounded-d border border-d-border bg-d-raised px-3 py-2 text-sm text-d-ink placeholder:text-d-muted/70 focus-visible:border-d-accent focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-d-accent font-mono"
+                  placeholder={fromBase === '16' ? 'FF' : fromBase === '2' ? '11111111' : '255'}
+                  spellCheck={false}
+                />
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">{t('dev.base_input', 'Enter a number to convert it across all bases')}</p>
+            </Field>
+          </Section>
+
+          {error && <Notice tone="error">{error}</Notice>}
+
+          {conversions.length > 0 && (
+            <Section title={t('action.result', 'Results')}>
+              <div className="space-y-2">
+                {conversions.map((c) => (
+                  <Row key={c.base} label={`${c.label} (base ${c.base})`} value={c.prefix + c.value} copy mono />
+                ))}
+              </div>
+            </Section>
           )}
-        </div>
-      }
-    />
+
+          {conversions.length === 0 && !error && (
+            <Notice tone="info">{t('dev.base_input', 'Enter a number to convert it across all bases')}</Notice>
+          )}
+        </Column>
+      </Scroll>
+    </Region>
   )
 }

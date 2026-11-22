@@ -1,13 +1,29 @@
 'use client'
 
+/**
+ * Molar Mass Calculator — Paper domain (education = paper).
+ * Live formula parsing: type a formula, see element breakdown table and total in serif.
+ * Workbench region for the mono formula input, Paper for the results table.
+ */
+
 import { useState } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
-
-export interface ToolProps {
-  onOutput: (inputs: Record<string, unknown>, outputs: Record<string, unknown>) => void
-  initialState?: Record<string, unknown>
-}
+import type { ToolProps } from '@/types'
+import {
+  Scroll,
+  Column,
+  Sheet,
+  Page,
+  Region,
+  Field,
+  TextInput,
+  Btn,
+  CopyBtn,
+  Stat,
+  Notice,
+  Row,
+} from '@/components/domain'
 
 const ELEMENTS: Record<string, number> = {
   H: 1.008, He: 4.003, Li: 6.941, Be: 9.012, B: 10.811, C: 12.011,
@@ -85,6 +101,8 @@ function parseFormula(formula: string): ParseResult {
   return { elements }
 }
 
+const EXAMPLES = ['H2O', 'NaCl', 'H2SO4', 'Ca(OH)2', 'Al2(SO4)3', 'C6H12O6', 'Fe2O3', 'KMnO4']
+
 export default function MolarMassCalculator({ onOutput }: ToolProps) {
   const { t } = useTranslation()
   const [formula, setFormula] = useState('')
@@ -145,88 +163,103 @@ export default function MolarMassCalculator({ onOutput }: ToolProps) {
     if (e.key === 'Enter') calculate()
   }
 
+  function handleExampleClick(ex: string) {
+    setFormula(ex)
+    calculate()
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{t('molar.molar_mass')}</label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={formula}
-            onChange={(e) => setFormula(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('molar.formula_placeholder')}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <button
-            onClick={() => { analytics.buttonClick('molar-mass', 'calculate'); calculate() }}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap"
-          >
-            {t('action.calculate')}
-          </button>
-        </div>
-      </div>
+    <Scroll>
+      <Column width="md">
+        <Sheet>
+          <Page className="space-y-5">
+            {/* Formula input — workbench mono region */}
+            <Field label={t('molar.molar_mass')} id="molar-formula">
+              <Region domain="workbench" className="flex gap-2">
+                <TextInput
+                  type="text"
+                  value={formula}
+                  onChange={(e) => setFormula(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t('molar.formula_placeholder')}
+                  mono
+                />
+                <Btn variant="primary" onClick={() => { analytics.buttonClick('molar-mass', 'calculate'); calculate() }}>
+                  {t('action.calculate')}
+                </Btn>
+              </Region>
+            </Field>
 
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+            {error && (
+              <Notice tone="error">{error}</Notice>
+            )}
 
-      {result && (
-        <div className="space-y-3">
-          <div className="rounded-md bg-muted p-4 font-mono text-sm">
-            <div className="text-base font-semibold">
-              {t('molar.molar_mass')} = {result.molarMass.toFixed(4)} g/mol
-            </div>
-          </div>
+            {result && (
+              <>
+                {/* Total — printed result in serif */}
+                <div className="space-y-3">
+                  <Stat
+                    label={t('molar.molar_mass')}
+                    value={`${result.molarMass.toFixed(4)} g/mol`}
+                    tone="serif"
+                    className="border-l-2 border-d-accent pl-3 text-2xl"
+                  />
+                </div>
 
-          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-            <p className="text-sm font-medium">{t('molar.breakdown')}</p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="pb-2 font-medium">{t('molar.element')}</th>
-                    <th className="pb-2 font-medium text-right">{t('molar.count')}</th>
-                    <th className="pb-2 font-medium text-right">{t('molar.atomic_mass')}</th>
-                    <th className="pb-2 font-medium text-right">{t('molar.contribution')}</th>
-                    <th className="pb-2 font-medium text-right">{t('molar.percentage')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.breakdown.map((el) => (
-                    <tr key={el.symbol} className="border-b border-border/50 last:border-0">
-                      <td className="py-2 font-mono font-semibold">{el.symbol}</td>
-                      <td className="py-2 text-right">{el.count}</td>
-                      <td className="py-2 text-right">{el.atomicMass.toFixed(3)}</td>
-                      <td className="py-2 text-right">{el.contribution.toFixed(4)}</td>
-                      <td className="py-2 text-right">{el.percentage.toFixed(2)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+                {/* Breakdown table */}
+                <Page className="space-y-3">
+                  <h4 className="font-display text-sm font-semibold">{t('molar.breakdown')}</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm" role="table">
+                      <thead>
+                        <tr className="border-b border-d-border text-left">
+                          <th className="pb-2 font-medium w-24">{t('molar.element')}</th>
+                          <th className="pb-2 font-medium text-right w-20">{t('molar.count')}</th>
+                          <th className="pb-2 font-medium text-right w-32">{t('molar.atomic_mass')}</th>
+                          <th className="pb-2 font-medium text-right w-32">{t('molar.contribution')}</th>
+                          <th className="pb-2 font-medium text-right w-28">{t('molar.percentage')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.breakdown.map((el) => (
+                          <tr key={el.symbol} className="border-b border-d-border/50 last:border-0">
+                            <td className="py-2 font-mono font-semibold">{el.symbol}</td>
+                            <td className="py-2 text-right">{el.count}</td>
+                            <td className="py-2 text-right font-mono">{el.atomicMass.toFixed(3)}</td>
+                            <td className="py-2 text-right font-mono">{el.contribution.toFixed(4)}</td>
+                            <td className="py-2 text-right font-mono">{el.percentage.toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <CopyBtn
+                    value={`${formula} = ${result.molarMass.toFixed(4)} g/mol`}
+                    label={t('molar.copy_result')}
+                    className="mt-2"
+                  />
+                </Page>
+              </>
+            )}
 
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <p className="text-sm font-medium text-muted-foreground">{t('molar.examples')}</p>
-        <div className="flex flex-wrap gap-2">
-          {['H2O', 'NaCl', 'H2SO4', 'Ca(OH)2', 'Al2(SO4)3', 'C6H12O6', 'Fe2O3', 'KMnO4'].map(
-            (ex) => (
-              <button
-                key={ex}
-                onClick={() => setFormula(ex)}
-                className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors font-mono"
-              >
-                {ex}
-              </button>
-            )
-          )}
-        </div>
-      </div>
-    </div>
+            {/* Examples */}
+            <Page className="space-y-2">
+              <h4 className="font-display text-sm font-semibold text-d-muted">{t('molar.examples')}</h4>
+              <div className="flex flex-wrap gap-2">
+                {EXAMPLES.map((ex) => (
+                  <button
+                    key={ex}
+                    onClick={() => handleExampleClick(ex)}
+                    className="rounded-d border border-d-border bg-d-raised px-3 py-1.5 text-sm font-mono hover:bg-d-border/40"
+                  >
+                    {ex}
+                  </button>
+                ))}
+              </div>
+            </Page>
+          </Page>
+        </Sheet>
+      </Column>
+    </Scroll>
   )
 }

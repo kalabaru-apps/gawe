@@ -1,9 +1,31 @@
 'use client'
 
+/**
+ * GPA Calculator — Paper domain (education = paper).
+ * Ledger feel: ruled course rows, running GPA readout in serif, live calculation.
+ * No Calculate button — results update as you type.
+ */
+
 import { useState, useCallback, useEffect } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import {
+  Scroll,
+  Column,
+  Sheet,
+  Page,
+  Result,
+  Field,
+  TextInput,
+  TextArea,
+  Select,
+  Btn,
+  Seg,
+  Stat,
+  Notice,
+  Region,
+} from '@/components/domain'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,11 +38,8 @@ interface Course {
   id: string
   nama: string
   sks: string
-  // 4.00 scale
   nilaiHuruf400: Grade400
-  // 4.33 scale
   nilaiHuruf433: Grade433
-  // numeric override (for 4.00/4.33 angka mode) or 100-scale value
   nilaiAngka: string
 }
 
@@ -170,17 +189,9 @@ function parseImportText(text: string, scale: Scale): Course[] {
   return courses
 }
 
-// Reset only grade fields, preserving nama and sks
 function resetCourseGrades(course: Course): Course {
   return { ...course, nilaiHuruf400: 'A', nilaiHuruf433: 'A', nilaiAngka: '' }
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const INPUT = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
-const LABEL = 'text-sm font-medium'
-const BTN_ACTIVE = 'rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors'
-const BTN_INACTIVE = 'rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-muted transition-colors'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -199,7 +210,8 @@ export default function GpaCalculator({ onOutput, initialState }: ToolProps) {
   const [importError, setImportError] = useState('')
 
   const { ipk, totalSks } = computeIPK(semesters, scale, mode)
-  const predikat = getPredikat(ipk, scale)
+  const predikatKey = getPredikat(ipk, scale)
+  const predikat = predikatKey.startsWith('gpa.') ? t(predikatKey as Parameters<typeof t>[0]) : predikatKey
 
   useEffect(() => {
     onOutput({ semesters, scale }, { ipk: parseFloat(ipk.toFixed(2)), totalSks, predikat, scale })
@@ -210,7 +222,6 @@ export default function GpaCalculator({ onOutput, initialState }: ToolProps) {
 
   const handleScaleChange = useCallback((next: Scale) => {
     setScale(next)
-    // Reset grade values, keep names and SKS
     setSemesters((prev) =>
       prev.map((s) => ({ ...s, courses: s.courses.map(resetCourseGrades) }))
     )
@@ -267,7 +278,7 @@ export default function GpaCalculator({ onOutput, initialState }: ToolProps) {
     )
   }, [])
 
-  // ── Import ───────────────────────────────────────────────────────────────
+  // ── Import ────────────────────────────────────────────────────────────────
 
   const handleImport = useCallback(() => {
     const parsed = parseImportText(importText, scale)
@@ -283,7 +294,7 @@ export default function GpaCalculator({ onOutput, initialState }: ToolProps) {
     setImportError('')
   }, [importText, activeSem, scale])
 
-  // ── Export ───────────────────────────────────────────────────────────────
+  // ── Export ────────────────────────────────────────────────────────────────
 
   const handleExport = useCallback(() => {
     const sem = semesters.find((s) => s.id === activeSem)
@@ -317,18 +328,17 @@ export default function GpaCalculator({ onOutput, initialState }: ToolProps) {
     ? `${ipk.toFixed(2)} / 100`
     : ipk.toFixed(2)
 
-  const ipLabel = scale === '100' ? 'Nilai Rata-rata' : 'IPK'
-  const ipSemLabel = scale === '100' ? 'Rata-rata' : 'IP'
+  const ipSemLabel = scale === '100' ? t('gpa.average') : t('gpa.ip')
 
-  // ── Grade reference data ───────────────────────────────────────────────────
+  // ── Grade reference data ──────────────────────────────────────────────────
 
   const gradeRef400 = GRADE_OPTIONS_400.map((g) => ({ label: g, value: GRADE_MAP_400[g].toFixed(2) }))
   const gradeRef433 = GRADE_OPTIONS_433.map((g) => ({ label: g, value: GRADE_MAP_433[g].toFixed(2) }))
   const gradeRef100 = [
     { label: 'A', value: '≥ 85' },
-    { label: 'B', value: '70–84' },
-    { label: 'C', value: '55–69' },
-    { label: 'D', value: '40–54' },
+    { label: 'B', value: '70-84' },
+    { label: 'C', value: '55-69' },
+    { label: 'D', value: '40-54' },
     { label: 'E', value: '< 40' },
   ]
 
@@ -337,295 +347,306 @@ export default function GpaCalculator({ onOutput, initialState }: ToolProps) {
     scale === '100' ? gradeRef100 :
     gradeRef400
 
-  // ── Angka max for non-100 scales ───────────────────────────────────────────
   const angkaMax = scale === '4.33' ? 4.33 : 4
 
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-5">
-      {/* Scale selector */}
-      <div className="space-y-1.5">
-        <p className={LABEL}>{t('gpa.scale')}</p>
-        <div className="flex gap-2 flex-wrap">
-          {(['4.00', '4.33', '100'] as Scale[]).map((s) => (
-            <button
-              key={s}
-              onClick={() => handleScaleChange(s)}
-              className={scale === s ? BTN_ACTIVE : BTN_INACTIVE}
-            >
-              {s === '4.00' ? t('gpa.scale_4') : s === '4.33' ? t('gpa.scale_433') : t('gpa.scale_100')}
-            </button>
-          ))}
-        </div>
-      </div>
+    <Scroll>
+      <Column width="lg">
+        {/* Scale selector */}
+        <Sheet>
+          <Page className="space-y-5">
+            <Field label={t('gpa.scale')} id="gpa-scale">
+              <Seg<Scale>
+                value={scale}
+                onChange={handleScaleChange}
+                label={t('gpa.scale')}
+                options={[
+                  { value: '4.00', label: t('gpa.scale_4') },
+                  { value: '4.33', label: t('gpa.scale_433') },
+                  { value: '100', label: t('gpa.scale_100') },
+                ]}
+              />
+            </Field>
 
-      {/* IPK summary */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <p className={LABEL}>{t('gpa.ipk')}</p>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{t('gpa.ipk')}</p>
-            <p className="text-2xl font-bold font-mono">{ipkDisplay}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{t('gpa.total_credits')}</p>
-            <p className="text-2xl font-bold font-mono">{totalSks}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{t('gpa.predicate')}</p>
-            <p className="text-base font-semibold">{predikat.startsWith('gpa.') ? t(predikat as Parameters<typeof t>[0]) : predikat}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Mode toggle — only for 4.00 and 4.33 scales */}
-      {scale !== '100' && (
-        <div className="flex items-center gap-3">
-          <span className={LABEL}>{t('gpa.grade')}:</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setMode('huruf')}
-              className={mode === 'huruf' ? BTN_ACTIVE : BTN_INACTIVE}
-            >
-              {t('gpa.grade_letter')}
-            </button>
-            <button
-              onClick={() => setMode('angka')}
-              className={mode === 'angka' ? BTN_ACTIVE : BTN_INACTIVE}
-            >
-              {t('gpa.grade_numeric')} (0–{angkaMax})
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Semester tabs */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-2 items-center">
-          {semesters.map((sem) => (
-            <div key={sem.id} className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveSem(sem.id)}
-                className={activeSem === sem.id ? BTN_ACTIVE : BTN_INACTIVE}
-              >
-                {sem.label}
-              </button>
-              {semesters.length > 1 && (
-                <button
-                  onClick={() => removeSemester(sem.id)}
-                  className="rounded-full border border-input bg-background w-5 h-5 text-xs hover:bg-muted transition-colors flex items-center justify-center"
-                  title="Hapus semester"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            onClick={() => { analytics.buttonClick('gpa-calculator', 'add_semester'); addSemester() }}
-            className={BTN_INACTIVE}
-          >
-            + {t('gpa.add_semester')}
-          </button>
-        </div>
-
-        {/* Current semester summary */}
-        <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>
-            {ipSemLabel} {currentSemester.label}:{' '}
-            <strong className="text-foreground font-mono">
-              {scale === '100' ? `${currentIP.toFixed(2)} / 100` : currentIP.toFixed(2)}
-            </strong>
-          </span>
-          <span>SKS: <strong className="text-foreground font-mono">{currentSks}</strong></span>
-        </div>
-
-        {/* Course table */}
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <div className="space-y-2">
-            {/* Header */}
-            <div className="grid grid-cols-[1fr_80px_130px_40px] gap-2 text-xs font-medium text-muted-foreground">
-              <span>{t('gpa.course_name')}</span>
-              <span>{t('gpa.credits')}</span>
-              <span>{t('gpa.grade')}</span>
-              <span />
+            {/* IPK summary — printed result style */}
+            <div className="space-y-3">
+              <h3 className="font-display text-lg font-semibold">{t('gpa.ipk')}</h3>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Stat
+                  label={t('gpa.ipk')}
+                  value={ipkDisplay}
+                  tone="serif"
+                  className="border-l-2 border-d-accent pl-3"
+                />
+                <Stat
+                  label={t('gpa.total_credits')}
+                  value={totalSks}
+                  tone="display"
+                  className="border-l-2 border-d-muted pl-3"
+                />
+                <Stat
+                  label={t('gpa.predicate')}
+                  value={predikat}
+                  tone="serif"
+                  className="border-l-2 border-d-muted pl-3"
+                />
+              </div>
             </div>
 
-            {/* Rows */}
-            {currentSemester.courses.map((course) => (
-              <div key={course.id} className="grid grid-cols-[1fr_80px_130px_40px] gap-2 items-center">
-                <input
-                  type="text"
-                  placeholder={t('gpa.course_name')}
-                  value={course.nama}
-                  onChange={(e) => updateCourse(currentSemester.id, course.id, 'nama', e.target.value)}
-                  className={INPUT}
+            {/* Mode toggle — only for 4.00 and 4.33 scales */}
+            {scale !== '100' && (
+              <Field label={t('gpa.grade')} id="gpa-mode">
+                <Seg<InputMode>
+                  value={mode}
+                  onChange={setMode}
+                  label={t('gpa.grade')}
+                  options={[
+                    { value: 'huruf', label: t('gpa.grade_letter') },
+                    { value: 'angka', label: `${t('gpa.grade_numeric')} (0–${angkaMax})` },
+                  ]}
                 />
-                <input
-                  type="number"
-                  min={1}
-                  max={6}
-                  value={course.sks}
-                  onChange={(e) => updateCourse(currentSemester.id, course.id, 'sks', e.target.value)}
-                  className={INPUT}
-                />
+              </Field>
+            )}
 
-                {/* Grade input — varies by scale and mode */}
-                {scale === '100' ? (
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.01}
-                    placeholder="0–100"
-                    value={course.nilaiAngka}
-                    onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiAngka', e.target.value)}
-                    className={INPUT}
-                  />
-                ) : scale === '4.33' ? (
-                  mode === 'huruf' ? (
-                    <select
-                      value={course.nilaiHuruf433}
-                      onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiHuruf433', e.target.value)}
-                      className={INPUT}
-                    >
-                      {GRADE_OPTIONS_433.map((g) => (
-                        <option key={g} value={g}>{g} ({GRADE_MAP_433[g].toFixed(2)})</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="number"
-                      min={0}
-                      max={4.33}
-                      step={0.01}
-                      placeholder="0–4.33"
-                      value={course.nilaiAngka}
-                      onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiAngka', e.target.value)}
-                      className={INPUT}
-                    />
-                  )
-                ) : (
-                  // 4.00 scale
-                  mode === 'huruf' ? (
-                    <select
-                      value={course.nilaiHuruf400}
-                      onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiHuruf400', e.target.value)}
-                      className={INPUT}
-                    >
-                      {GRADE_OPTIONS_400.map((g) => (
-                        <option key={g} value={g}>{g} ({GRADE_MAP_400[g].toFixed(1)})</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="number"
-                      min={0}
-                      max={4}
-                      step={0.01}
-                      placeholder="0–4"
-                      value={course.nilaiAngka}
-                      onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiAngka', e.target.value)}
-                      className={INPUT}
-                    />
-                  )
-                )}
-
+            {/* Semester tabs */}
+            <div className="space-y-4">
+              <div role="tablist" aria-label={t('gpa.semester')} className="flex flex-wrap gap-2">
+                {semesters.map((sem) => (
+                  <button
+                    key={sem.id}
+                    role="tab"
+                    aria-selected={activeSem === sem.id}
+                    onClick={() => setActiveSem(sem.id)}
+                    className={`rounded-d px-3 py-1.5 text-sm font-medium transition-colors ${
+                      activeSem === sem.id
+                        ? 'bg-d-accent text-d-accent-ink'
+                        : 'border border-d-border bg-d-raised text-d-ink hover:bg-d-border/40'
+                    }`}
+                  >
+                    {sem.label}
+                  </button>
+                ))}
                 <button
-                  onClick={() => removeCourse(currentSemester.id, course.id)}
-                  disabled={currentSemester.courses.length === 1}
-                  className="rounded-md border border-input bg-background px-2 py-2 text-sm hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Hapus mata kuliah"
+                  onClick={() => { analytics.buttonClick('gpa-calculator', 'add_semester'); addSemester() }}
+                  className="rounded-d border border-d-border bg-d-raised px-3 py-1.5 text-sm hover:bg-d-border/40"
                 >
-                  ✕
+                  + {t('gpa.add_semester')}
                 </button>
               </div>
-            ))}
-          </div>
 
-          <button
-            onClick={() => { analytics.buttonClick('gpa-calculator', 'add_course'); addCourse(currentSemester.id) }}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-          >
-            + {t('gpa.add_course')}
-          </button>
-        </div>
+              {/* Current semester summary */}
+              <div className="flex flex-wrap gap-4 text-sm text-d-muted">
+                <span>
+                  {ipSemLabel} {currentSemester.label}:{' '}
+                  <strong className="text-d-ink font-mono">
+                    {scale === '100' ? `${currentIP.toFixed(2)} / 100` : currentIP.toFixed(2)}
+                  </strong>
+                </span>
+                <span>{t('gpa.credits_short')}: <strong className="text-d-ink font-mono">{currentSks}</strong></span>
+              </div>
 
-        {/* Import / Export */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setShowImport((v) => !v); setImportError('') }}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-          >
-            {showImport ? t('action.clear') : t('gpa.import_courses')}
-          </button>
-          <button
-            onClick={handleExport}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-          >
-            {t('gpa.export')}
-          </button>
-        </div>
+              {/* Course table — ruled ledger rows */}
+              <Page className="space-y-3">
+                <div className="space-y-2">
+                  {/* Header */}
+                  <div className="hidden sm:grid grid-cols-[1fr_80px_140px_40px] gap-2 text-xs font-medium text-d-muted border-b border-d-border pb-2">
+                    <span>{t('gpa.course_name')}</span>
+                    <span className="text-right">{t('gpa.credits')}</span>
+                    <span className="text-right">{t('gpa.grade')}</span>
+                    <span />
+                  </div>
 
-        {showImport && (
-          <div className="space-y-2">
-            <label className={LABEL}>{t('gpa.import_courses')}</label>
-            <p className="text-xs text-muted-foreground">
-              Format per baris: <span className="font-mono">Nama Mata Kuliah, SKS, Nilai</span><br />
-              {scale === '100'
-                ? 'Nilai berupa angka 0–100.'
-                : scale === '4.33'
-                ? 'Nilai bisa huruf (A+, A, A-, B+, …, F) atau angka (0–4.33).'
-                : 'Nilai bisa huruf (A, AB, B, BC, C, D, E) atau angka (0–4).'}
-            </p>
-            <textarea
-              rows={5}
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder={t('gpa.import_placeholder')}
-              className={`${INPUT} font-mono`}
-            />
-            {importError && (
-              <p className="text-sm text-destructive">{importError}</p>
-            )}
-            <button
-              onClick={handleImport}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Import ke {currentSemester.label}
-            </button>
-          </div>
-        )}
-      </div>
+                  {/* Rows */}
+                  {currentSemester.courses.map((course) => (
+                    <div key={course.id} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                      <Field label="" id={`course-name-${course.id}`} className="mb-0 basis-full min-w-0 sm:basis-0 sm:flex-1">
+                        <TextInput
+                          aria-label={t('gpa.course_name')}
+                          placeholder={t('gpa.course_name')}
+                          value={course.nama}
+                          onChange={(e) => updateCourse(currentSemester.id, course.id, 'nama', e.target.value)}
+                        />
+                      </Field>
+                      <Field label="" id={`course-sk-${course.id}`} className="mb-0 w-24 shrink-0 sm:w-20">
+                        <TextInput
+                          aria-label={t('gpa.credits')}
+                          type="number"
+                          min={1}
+                          max={6}
+                          value={course.sks}
+                          onChange={(e) => updateCourse(currentSemester.id, course.id, 'sks', e.target.value)}
+                          className="text-right"
+                        />
+                      </Field>
 
-      {/* Grade reference */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-        <p className={LABEL}>{t('gpa.grade_reference')}</p>
-        <div className={`grid gap-1 text-xs ${scale === '4.33' ? 'grid-cols-4' : 'grid-cols-4'}`}>
-          {activeGradeRef.map((g) => (
-            <div key={g.label} className="rounded-md bg-muted px-2 py-1 font-mono flex justify-between">
-              <span className="font-semibold">{g.label}</span>
-              <span className="text-muted-foreground">{g.value}</span>
+                      {/* Grade input — varies by scale and mode */}
+                      <Field label="" id={`course-grade-${course.id}`} className="mb-0 min-w-0 flex-1 sm:w-36 sm:flex-none">
+                        {scale === '100' ? (
+                          <TextInput
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.01}
+                            aria-label={t('gpa.grade')} placeholder="0–100"
+                            value={course.nilaiAngka}
+                            onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiAngka', e.target.value)}
+                            className="text-right"
+                          />
+                        ) : scale === '4.33' ? (
+                          mode === 'huruf' ? (
+                            <Select
+                              aria-label={t('gpa.grade')} value={course.nilaiHuruf433}
+                              onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiHuruf433', e.target.value)}
+                            >
+                              {GRADE_OPTIONS_433.map((g) => (
+                                <option key={g} value={g}>{g} ({GRADE_MAP_433[g].toFixed(2)})</option>
+                              ))}
+                            </Select>
+                          ) : (
+                            <TextInput
+                              type="number"
+                              min={0}
+                              max={4.33}
+                              step={0.01}
+                              aria-label={t('gpa.grade')} placeholder="0–4.33"
+                              value={course.nilaiAngka}
+                              onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiAngka', e.target.value)}
+                              className="text-right"
+                            />
+                          )
+                        ) : (
+                          // 4.00 scale
+                          mode === 'huruf' ? (
+                            <Select
+                              aria-label={t('gpa.grade')} value={course.nilaiHuruf400}
+                              onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiHuruf400', e.target.value)}
+                            >
+                              {GRADE_OPTIONS_400.map((g) => (
+                                <option key={g} value={g}>{g} ({GRADE_MAP_400[g].toFixed(1)})</option>
+                              ))}
+                            </Select>
+                          ) : (
+                            <TextInput
+                              type="number"
+                              min={0}
+                              max={4}
+                              step={0.01}
+                              aria-label={t('gpa.grade')} placeholder="0–4"
+                              value={course.nilaiAngka}
+                              onChange={(e) => updateCourse(currentSemester.id, course.id, 'nilaiAngka', e.target.value)}
+                              className="text-right"
+                            />
+                          )
+                        )}
+                      </Field>
+
+                      <button
+                        onClick={() => removeCourse(currentSemester.id, course.id)}
+                        disabled={currentSemester.courses.length === 1}
+                        className="rounded-d border border-d-border bg-d-raised p-1.5 hover:bg-d-border/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                        aria-label={t('gpa.remove_course')}
+                      >
+                        <svg className="h-4 w-4" aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => { analytics.buttonClick('gpa-calculator', 'add_course'); addCourse(currentSemester.id) }}
+                  className="rounded-d border border-d-border bg-d-raised px-4 py-2 text-sm hover:bg-d-border/40 w-full"
+                >
+                  + {t('gpa.add_course')}
+                </button>
+              </Page>
+
+              {/* Import / Export */}
+              <Page className="space-y-3">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowImport((v) => !v); setImportError('') }}
+                    className="rounded-d border border-d-border bg-d-raised px-4 py-2 text-sm hover:bg-d-border/40"
+                  >
+                    {showImport ? t('action.clear') : t('gpa.import_courses')}
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    className="rounded-d border border-d-border bg-d-raised px-4 py-2 text-sm hover:bg-d-border/40"
+                  >
+                    {t('gpa.export')}
+                  </button>
+                </div>
+
+                {showImport && (
+                  <div className="space-y-2">
+                    <Field label={t('gpa.import_courses')} id="import-text">
+                      <p className="text-xs text-d-muted mb-2">
+                        {t('gpa.import_format_line1').replace('Nama Mata Kuliah, SKS, Nilai', '<span className="font-mono">Nama Mata Kuliah, SKS, Nilai</span>')}<br />
+                        {scale === '100'
+                          ? 'Nilai berupa angka 0–100.'
+                          : scale === '4.33'
+                          ? 'Nilai bisa huruf (A+, A, A-, B+, …, F) atau angka (0–4.33).'
+                          : 'Nilai bisa huruf (A, AB, B, BC, C, D, E) atau angka (0–4).'}
+                      </p>
+                      <TextArea
+                        rows={5}
+                        value={importText}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setImportText(e.target.value)}
+                        placeholder={t('gpa.import_placeholder')}
+                        className="font-mono"
+                      />
+                      {importError && (
+                        <Notice tone="error">{importError}</Notice>
+                      )}
+                      <button
+                        onClick={handleImport}
+                        className="rounded-d bg-d-accent text-d-accent-ink px-4 py-2 text-sm font-medium hover:brightness-110 w-full"
+                      >
+                        {t('gpa.import_to')} {currentSemester.label}
+                      </button>
+                    </Field>
+                  </div>
+                )}
+              </Page>
             </div>
-          ))}
-        </div>
-        <div className="pt-1 text-xs text-muted-foreground space-y-0.5">
-          {scale === '4.00' && (
-            <>
-              <p>{t('gpa.cum_laude')}: IPK ≥ 3.51</p>
-              <p>{t('gpa.very_satisfactory')}: 3.01–3.50 &nbsp;|&nbsp; {t('gpa.satisfactory')}: 2.76–3.00 &nbsp;|&nbsp; {t('gpa.adequate')}: &lt; 2.76</p>
-            </>
-          )}
-          {scale === '4.33' && (
-            <>
-              <p>{t('gpa.cum_laude')}: IPK ≥ 3.67</p>
-              <p>{t('gpa.very_satisfactory')}: 3.34–3.66 &nbsp;|&nbsp; {t('gpa.satisfactory')}: 3.00–3.33 &nbsp;|&nbsp; {t('gpa.adequate')}: &lt; 3.00</p>
-            </>
-          )}
-          {scale === '100' && (
-            <p>A ≥ 85 &nbsp;|&nbsp; B 70–84 &nbsp;|&nbsp; C 55–69 &nbsp;|&nbsp; D 40–54 &nbsp;|&nbsp; E &lt; 40</p>
-          )}
-        </div>
-      </div>
-    </div>
+
+            {/* Grade reference */}
+            <Page className="space-y-2">
+              <h4 className="font-display text-sm font-semibold">{t('gpa.grade_reference')}</h4>
+              <div className="grid gap-1 sm:grid-cols-4">
+                {activeGradeRef.map((g) => (
+                  <div key={g.label} className="rounded-d border border-d-border bg-d-raised px-2 py-1.5 font-mono text-xs flex justify-between">
+                    <span className="font-semibold">{g.label}</span>
+                    <span className="text-d-muted">{g.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-1 text-xs text-d-muted space-y-0.5">
+                {scale === '4.00' && (
+                  <>
+                    <p>{t('gpa.cum_laude')}: IPK ≥ 3.51</p>
+                    <p>{t('gpa.very_satisfactory')}: 3.01–3.50  |  {t('gpa.satisfactory')}: 2.76–3.00  |  {t('gpa.adequate')}: {'<'} 2.76</p>
+                  </>
+                )}
+                {scale === '4.33' && (
+                  <>
+                    <p>{t('gpa.cum_laude')}: IPK ≥ 3.67</p>
+                    <p>{t('gpa.very_satisfactory')}: 3.34–3.66  |  {t('gpa.satisfactory')}: 3.00–3.33  |  {t('gpa.adequate')}: {'<'} 3.00</p>
+                  </>
+                )}
+                {scale === '100' && (
+                  <p>A ≥ 85  |  B 70–84  |  C 55–69  |  D 40–54  |  E {'<'} 40</p>
+                )}
+              </div>
+            </Page>
+          </Page>
+        </Sheet>
+      </Column>
+    </Scroll>
   )
 }

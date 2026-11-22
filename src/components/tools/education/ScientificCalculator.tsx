@@ -1,24 +1,31 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+/**
+ * Scientific Calculator — Instrument domain (override from education category).
+ * Instrument: calculator body, big Familjen Grotesk display, tactile key grid, deg/rad switch,
+ * full keyboard support, history tape. Paper tokens for palette; Instrument layout.
+ */
+
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Instrument, Readout, Key } from '@/components/domain/Instrument'
+import { Column, Scroll, Region, Notice, Section, Btn } from '@/components/domain/kit'
+import { Calculator, RotateCcw, Minus, Plus, Divide, X, Hash } from 'lucide-react'
 
-interface HistoryEntry {
-  expression: string
-  result: string
-}
+// ---------------------------------------------------------------------------
+// Expression evaluation
+// ---------------------------------------------------------------------------
 
 function evaluateExpression(raw: string, mode: 'DEG' | 'RAD'): string {
   if (!raw.trim()) throw new Error('Empty expression')
 
   let expr = raw
     .replace(/π/g, String(Math.PI))
-    // e not preceded or followed by a letter (preserve "e" in scientific notation carefully)
     .replace(/(?<![a-zA-Z0-9])e(?![a-zA-Z0-9])/g, String(Math.E))
 
-  // Replace display operators before function matching
+  // Replace display operators
   expr = expr.replace(/×/g, '*').replace(/÷/g, '/').replace(/\^/g, '**')
 
   // Replace scientific functions (longer tokens first)
@@ -33,7 +40,7 @@ function evaluateExpression(raw: string, mode: 'DEG' | 'RAD'): string {
     .replace(/ln\(/g, '__ln__(')
     .replace(/√\(/g, '__sqrt__(')
 
-  // Validate characters: digits, operators, parens, dots, whitespace, and our placeholders
+  // Validate characters
   const check = expr.replace(/__[a-z0-9]+__/g, 'f')
   if (/[^0-9+\-*/.(),%\s]/.test(check)) {
     throw new Error('Invalid characters in expression')
@@ -67,6 +74,10 @@ function evaluateExpression(raw: string, mode: 'DEG' | 'RAD'): string {
   return parseFloat(result.toPrecision(12)).toString()
 }
 
+// ---------------------------------------------------------------------------
+// Button layout
+// ---------------------------------------------------------------------------
+
 type BtnType = 'num' | 'op' | 'fn' | 'action' | 'equals'
 
 interface CalcButton {
@@ -74,9 +85,10 @@ interface CalcButton {
   value: string
   type: BtnType
   wide?: boolean
+  icon?: React.ReactNode
 }
 
-// 5-column grid layout, row by row
+// 5-column grid, row by row
 const ROWS: CalcButton[][] = [
   [
     { label: 'sin', value: 'sin(', type: 'fn' },
@@ -100,8 +112,8 @@ const ROWS: CalcButton[][] = [
     { label: 'xʸ', value: '^', type: 'op' },
   ],
   [
-    { label: 'C', value: 'C', type: 'action' },
-    { label: '⌫', value: 'BACK', type: 'action' },
+    { label: 'C', value: 'C', type: 'action', icon: <RotateCcw className="h-4 w-4" aria-hidden /> },
+    { label: '⌫', value: 'BACK', type: 'action', icon: <Minus className="h-4 w-4" aria-hidden /> },
     { label: '%', value: '%', type: 'op' },
     { label: '÷', value: '÷', type: 'op' },
     { label: '×', value: '×', type: 'op' },
@@ -117,7 +129,7 @@ const ROWS: CalcButton[][] = [
     { label: '4', value: '4', type: 'num' },
     { label: '5', value: '5', type: 'num' },
     { label: '6', value: '6', type: 'num' },
-    { label: '=', value: '=', type: 'equals' },
+    { label: '=', value: '=', type: 'equals', wide: true },
   ],
   [
     { label: '1', value: '1', type: 'num' },
@@ -130,15 +142,41 @@ const ROWS: CalcButton[][] = [
   ],
 ]
 
-function btnClass(type: BtnType, wide?: boolean) {
-  const base = `rounded-md text-sm font-medium transition-all duration-75 h-11 flex items-center justify-center select-none cursor-pointer active:scale-95 ${wide ? 'col-span-2' : ''}`
-  switch (type) {
-    case 'equals': return `${base} bg-primary text-primary-foreground hover:bg-primary/90`
-    case 'action': return `${base} border border-input bg-destructive/10 text-destructive hover:bg-destructive/20`
-    case 'fn':     return `${base} border border-input bg-muted/40 hover:bg-muted text-foreground text-xs`
-    case 'op':     return `${base} border border-input bg-muted hover:bg-muted/60 text-primary font-semibold`
-    case 'num':    return `${base} border border-input bg-background hover:bg-muted`
+// ---------------------------------------------------------------------------
+// Keyboard mapping
+// ---------------------------------------------------------------------------
+
+const KEY_MAP: Record<string, { value: string; shiftValue?: string }> = {
+  '0': { value: '0' }, '1': { value: '1' }, '2': { value: '2' }, '3': { value: '3' },
+  '4': { value: '4' }, '5': { value: '5' }, '6': { value: '6' }, '7': { value: '7' },
+  '8': { value: '8' }, '9': { value: '9' }, '.': { value: '.' },
+  '+': { value: '+' }, '-': { value: '-' },
+  '*': { value: '×' }, '/': { value: '÷' },
+  'Enter': { value: '=' }, '=': { value: '=' },
+  'Backspace': { value: 'BACK' }, 'Escape': { value: 'C' },
+  '(': { value: '(', shiftValue: '(' }, ')': { value: ')', shiftValue: ')' },
+  '%': { value: '%' }, '^': { value: '^' },
+}
+
+function handleKeyboard(e: KeyboardEvent, handleButton: (value: string) => void, expression: string) {
+  // Don't intercept typing in inputs (none here) but allow normal keys
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+  const key = e.key
+  if (key in KEY_MAP) {
+    e.preventDefault()
+    const mapped = KEY_MAP[key]
+    handleButton(e.shiftKey && mapped.shiftValue ? mapped.shiftValue : mapped.value)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+interface HistoryEntry {
+  expression: string
+  result: string
 }
 
 export default function ScientificCalculator({ onOutput, initialState }: ToolProps) {
@@ -149,10 +187,18 @@ export default function ScientificCalculator({ onOutput, initialState }: ToolPro
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [justEvaluated, setJustEvaluated] = useState(false)
+  const textareaRef = useRef<HTMLDivElement>(null)
 
-  const handleButton = useCallback((btn: CalcButton) => {
-    const { value } = btn
+  // Keyboard support
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      handleKeyboard(e, handleButtonClick, expression)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [expression])
 
+  const handleButtonClick = useCallback((value: string) => {
     if (value === 'C') {
       setExpression('')
       setDisplayResult('')
@@ -183,7 +229,7 @@ export default function ScientificCalculator({ onOutput, initialState }: ToolPro
         const result = evaluateExpression(expr, mode)
         setDisplayResult(result)
         setError(null)
-        setHistory((prev) => [{ expression: expr, result }, ...prev].slice(0, 5))
+        setHistory((prev) => [{ expression: expr, result }, ...prev].slice(0, 10))
         onOutput({ expression: expr, mode }, { result })
         setExpression(result)
         setJustEvaluated(true)
@@ -210,74 +256,122 @@ export default function ScientificCalculator({ onOutput, initialState }: ToolPro
     setError(null)
   }, [expression, mode, onOutput, justEvaluated])
 
+  const switchMode = useCallback((m: 'DEG' | 'RAD') => {
+    setMode(m)
+  }, [])
+
+  const clearAll = useCallback(() => {
+    setExpression('')
+    setDisplayResult('')
+    setHistory([])
+    setError(null)
+    setJustEvaluated(false)
+  }, [])
+
   return (
-    <div className="space-y-4 max-w-xs mx-auto w-full">
-      {/* Display */}
-      <div className="rounded-lg border border-border bg-card p-4 min-h-[5rem] flex flex-col justify-between">
-        <div className="text-xs font-mono text-muted-foreground break-all min-h-[1.25rem]">
-          {expression || <span className="opacity-30">0</span>}
-        </div>
-        <div className={`font-mono font-semibold text-right break-all mt-1 ${error ? 'text-sm text-destructive' : 'text-2xl'}`}>
-          {error ?? (displayResult || (!expression ? '0' : ''))}
-        </div>
-      </div>
+    <Scroll>
+      <Column width="sm">
+        <Instrument>
+          {/* Mode toggle */}
+          <Section title={t('sci.mode', 'Angle Mode')}>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('sci.mode', 'Angle mode')}>
+              {(['DEG', 'RAD'] as const).map((m) => (
+                <Btn
+                  key={m}
+                  variant={mode === m ? 'primary' : 'secondary'}
+                  onClick={() => switchMode(m)}
+                  className="h-10"
+                >
+                  {m}
+                </Btn>
+              ))}
+            </div>
+          </Section>
 
-      {/* DEG / RAD toggle */}
-      <div className="flex gap-2">
-        {(['DEG', 'RAD'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`flex-1 rounded-md py-1.5 text-xs font-medium border transition-colors ${
-              mode === m
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'border-input bg-background hover:bg-muted'
-            }`}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
+          {/* Display */}
+          <div className="relative">
+            <Readout label={t('sci.expression', 'Expression')}>
+              <div className="text-right text-base font-mono text-d-muted min-h-[1.5rem] break-all">
+                {expression || <span className="opacity-30">0</span>}
+              </div>
+            </Readout>
+            <Readout label={t('sci.result', 'Result')}>
+              <div className={`text-right break-all ${error ? 'text-destructive' : ''}`}>
+                {error ?? (displayResult || (!expression ? '0' : ''))}
+              </div>
+            </Readout>
+          </div>
 
-      {/* Button grid */}
-      <div className="space-y-1.5">
-        {ROWS.map((row, ri) => (
-          <div key={ri} className="grid grid-cols-5 gap-1.5">
-            {row.map((btn) => (
-              <button
-                key={btn.label}
-                onClick={() => handleButton(btn)}
-                className={btnClass(btn.type, btn.wide)}
-                title={btn.label}
-              >
-                {btn.label}
-              </button>
+          {error && (
+            <Notice tone="error" className="mb-3">
+              {error}
+            </Notice>
+          )}
+
+          {/* Button grid */}
+          <div className="space-y-2" role="group" aria-label={t('sci.keypad', 'Calculator keypad')}>
+            {ROWS.map((row, ri) => (
+              <div key={ri} className="grid grid-cols-5 gap-2">
+                {row.map((btn) => (
+                  <Key
+                    key={btn.label}
+                    onClick={() => handleButtonClick(btn.value)}
+                    accent={btn.type === 'equals'}
+                    className={btn.wide ? 'col-span-2 min-h-12' : 'min-h-12'}
+                    aria-label={btn.label}
+                  >
+                    {btn.icon ?? btn.label}
+                  </Key>
+                ))}
+              </div>
             ))}
           </div>
-        ))}
-      </div>
 
-      {/* History */}
-      {history.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('sci.history')}</p>
-          {history.map((h, i) => (
-            <button
-              key={i}
-              className="w-full rounded-md bg-muted px-3 py-2 font-mono text-xs flex justify-between gap-2 hover:bg-muted/70 transition-colors text-left"
-              onClick={() => {
-                setExpression(h.result)
-                setDisplayResult('')
-                setError(null)
-                setJustEvaluated(true)
-              }}
-            >
-              <span className="text-muted-foreground truncate">{h.expression}</span>
-              <span className="text-foreground font-semibold shrink-0">= {h.result}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+          {/* Actions */}
+          <Section title="" className="pt-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Btn variant="secondary" onClick={clearAll} className="h-10">
+                <RotateCcw className="h-4 w-4 mr-1" aria-hidden />
+                {t('sci.clear_history', 'Clear History')}
+              </Btn>
+              <Btn variant="quiet" onClick={() => { if (displayResult) navigator.clipboard.writeText(displayResult) }} disabled={!displayResult} className="h-10">
+                <Hash className="h-4 w-4 mr-1" aria-hidden />
+                {t('sci.copy_result', 'Copy Result')}
+              </Btn>
+            </div>
+          </Section>
+
+          {/* History tape */}
+          {history.length > 0 && (
+            <Section title={t('sci.history', 'History')}>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {history.map((h, i) => (
+                  <Btn
+                    key={i}
+                    variant="quiet"
+                    className="h-auto py-2 px-3 text-left justify-start gap-2 text-xs"
+                    onClick={() => {
+                      setExpression(h.result)
+                      setDisplayResult('')
+                      setError(null)
+                      setJustEvaluated(true)
+                    }}
+                  >
+                    <span className="text-d-muted truncate flex-1">{h.expression}</span>
+                    <span className="font-mono font-semibold shrink-0">= {h.result}</span>
+                  </Btn>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {!history.length && !expression && !displayResult && (
+            <p className="text-center text-d-muted text-sm py-8">
+              {t('sci.enter_expression', 'Enter an expression using the keypad or your keyboard.')}
+            </p>
+          )}
+        </Instrument>
+      </Column>
+    </Scroll>
   )
 }

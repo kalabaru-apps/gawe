@@ -7,6 +7,10 @@ import { Marked } from 'marked'
 import { markedHighlight } from 'marked-highlight'
 import hljs from 'highlight.js'
 import type { ToolProps } from '@/types'
+import {
+  FilePlus, FolderOpen, Save, Download, Bold, Italic, Strikethrough, Code, SquareCode, List, ListOrdered,
+  ListChecks, Quote, Link as LinkIcon, Image as ImageIcon, Table, Minus, FileText, X, Plus,
+} from 'lucide-react'
 
 // ─── File System Access API types ────────────────────────────────────────────
 interface FSFileHandle {
@@ -64,16 +68,6 @@ function estimateReadTime(text: string) {
   return mins < 1 ? '<1 min' : `${mins} min`
 }
 
-// ─── toolbar button ────────────────────────────────────────────────────────────
-function TBtn({ title, onClick, children, active }: { title: string; onClick: () => void; children: React.ReactNode; active?: boolean }) {
-  return (
-    <button title={title} onClick={onClick}
-      className={`px-2 py-1 rounded text-xs font-mono transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'}`}>
-      {children}
-    </button>
-  )
-}
-
 // ─── insert helpers ────────────────────────────────────────────────────────────
 function insertAround(
   textarea: HTMLTextAreaElement,
@@ -123,29 +117,29 @@ interface FileListProps {
 
 function FileList({ files, activeIdx, onSelect, onNew, onDelete }: FileListProps) {
   return (
-    <div className="flex flex-col h-full border-r border-input/60 bg-muted/10" style={{ width: 200, minWidth: 160 }}>
-      <div className="flex items-center justify-between px-3 py-2 border-b border-input/40">
-        <span className="text-xs font-medium text-muted-foreground">Files</span>
-        <button onClick={onNew} title="New file"
-          className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded px-1.5 py-0.5 transition-colors">＋</button>
+    <nav aria-label="Documents" className="flex w-52 shrink-0 flex-col border-r border-d-border bg-d-raised max-md:hidden">
+      <div className="flex h-10 items-center justify-between border-b border-d-border px-3">
+        <h2 className="font-serif text-base font-semibold">Documents</h2>
+        <button onClick={onNew} aria-label="New file" title="New file"
+          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-d hover:bg-d-border/50 focus-visible:outline-2 focus-visible:outline-d-accent"><Plus className="h-4 w-4" aria-hidden /></button>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <ul className="flex-1 overflow-y-auto">
         {files.length === 0 && (
-          <p className="text-xs text-muted-foreground px-3 py-4 text-center leading-relaxed">No files yet.<br />Create new or open from disk.</p>
+          <li className="px-3 py-4 text-sm leading-relaxed text-d-muted">Nothing here yet. Create a document or open one from disk.</li>
         )}
         {files.map((f, i) => (
-          <div key={i}
-            className={`group flex items-center gap-1.5 px-3 py-2 cursor-pointer transition-colors border-b border-input/20 ${activeIdx === i ? 'bg-primary/10 text-primary' : 'hover:bg-muted/40 text-foreground'}`}
-            onClick={() => onSelect(i)}>
-            <span className="text-[10px] text-muted-foreground shrink-0">📄</span>
-            <span className="flex-1 text-xs truncate">{f.name}</span>
-            {f.handle && <span className="text-[9px] text-emerald-400 shrink-0" title="Linked to local file">●</span>}
-            <button onClick={e => { e.stopPropagation(); onDelete(i) }}
-              className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-rose-400 transition-all shrink-0">✕</button>
-          </div>
+          <li key={i} className={`group flex items-center border-b border-d-border/60 ${activeIdx === i ? 'bg-d-accent/10' : ''}`}>
+            <button onClick={() => onSelect(i)} aria-current={activeIdx === i ? 'true' : undefined}
+              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-d-accent">
+              <FileText className={`h-4 w-4 shrink-0 ${activeIdx === i ? 'text-d-accent' : 'text-d-muted'}`} aria-hidden />
+              <span className="truncate">{f.name}</span>
+            </button>
+            <button onClick={() => onDelete(i)} aria-label={`Delete ${f.name}`} title="Delete"
+              className="mr-1 inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-d text-d-muted opacity-0 hover:bg-d-border/50 hover:text-d-ink focus-visible:opacity-100 group-hover:opacity-100 focus-visible:outline-2 focus-visible:outline-d-accent"><X className="h-3.5 w-3.5" aria-hidden /></button>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </nav>
   )
 }
 
@@ -366,169 +360,157 @@ export default function MarkdownEditor({ onOutput }: ToolProps) {
   }, [content])
 
   const activeFile = activeIdx !== null ? files[activeIdx] : null
+  const tb = 'inline-flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-d px-2 text-sm text-d-ink transition-colors hover:bg-d-border/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-d-accent disabled:cursor-not-allowed disabled:opacity-40'
+  const ic = 'h-4 w-4'
+  const sep = <span className="mx-1.5 h-5 w-px bg-d-border" aria-hidden />
 
   return (
-    <div className="flex h-full" style={{ height: 'calc(100vh - 120px)', minHeight: 500 }}>
-      {/* Sidebar file list */}
+    <div className="flex h-full min-h-0">
+      {/* Documents */}
       <FileList files={files} activeIdx={activeIdx} onSelect={selectFile} onNew={newFile} onDelete={deleteFile} />
 
-      {/* Editor area */}
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Top toolbar */}
-        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-input/60 bg-muted/10 flex-wrap">
-          {/* File ops */}
-          <div className="flex items-center gap-1 pr-2 border-r border-input/40">
-            <TBtn title="New file" onClick={newFile}>＋ New</TBtn>
-            <TBtn title="Open file from disk" onClick={openFile}>⬆ Open</TBtn>
-            <TBtn title="Save (Ctrl+S)" onClick={() => { analytics.buttonClick('markdown-editor', 'copy'); void saveFile() }}>
-              {saving ? '…' : dirty ? '● Save' : '✓ Save'}
-            </TBtn>
-            {FS_SUPPORTED && <TBtn title="Save As" onClick={saveAs}>Save As</TBtn>}
-            <TBtn title="Export as HTML" onClick={exportHtml}>⬇ HTML</TBtn>
-          </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Ribbon: file actions, then formatting, then view */}
+        <div role="toolbar" aria-label="Editor" className="flex flex-wrap items-center gap-x-1 gap-y-0.5 border-b border-d-border bg-d-raised px-3 py-1.5">
+          <button className={tb} aria-label="New file" title="New file" onClick={newFile}><FilePlus className={ic} aria-hidden /><span className="hidden xl:inline">New</span></button>
+          <button className={tb} aria-label="Open file from disk" title="Open file from disk" onClick={openFile}><FolderOpen className={ic} aria-hidden /><span className="hidden xl:inline">Open</span></button>
+          <button className={tb} aria-label="Save (Ctrl+S)" title="Save (Ctrl+S)" onClick={() => { analytics.buttonClick('markdown-editor', 'copy'); void saveFile() }}>
+            <Save className={ic} aria-hidden /><span className="hidden xl:inline">{saving ? 'Saving' : dirty ? 'Save *' : 'Save'}</span>
+          </button>
+          {FS_SUPPORTED && <button className={tb} onClick={saveAs}><span className="text-xs">Save as</span></button>}
+          <button className={tb} aria-label="Export as HTML" title="Export as HTML" onClick={exportHtml}><Download className={ic} aria-hidden /><span className="hidden xl:inline">HTML</span></button>
 
-          {/* Format ops */}
           {activeFile && (
-            <div className="flex items-center gap-0.5 pr-2 border-r border-input/40">
-              <TBtn title="Bold" onClick={() => ins('**', '**', 'bold text')}><b>B</b></TBtn>
-              <TBtn title="Italic" onClick={() => ins('*', '*', 'italic text')}><i>I</i></TBtn>
-              <TBtn title="Strikethrough" onClick={() => ins('~~', '~~', 'text')}>~~S~~</TBtn>
-              <TBtn title="Inline code" onClick={() => ins('`', '`', 'code')}>` `</TBtn>
-              <TBtn title="Code block" onClick={() => ins('```\n', '\n```', 'code')}>```</TBtn>
-              <TBtn title="Link" onClick={() => ins('[', '](url)', 'link text')}>🔗</TBtn>
-              <TBtn title="Image" onClick={() => ins('![', '](url)', 'alt text')}>🖼</TBtn>
-              <TBtn title="Blockquote" onClick={() => insLine('> ', 'quote')}>❝</TBtn>
-              <TBtn title="Heading 1" onClick={() => insLine('# ', 'Heading 1')}>H1</TBtn>
-              <TBtn title="Heading 2" onClick={() => insLine('## ', 'Heading 2')}>H2</TBtn>
-              <TBtn title="Heading 3" onClick={() => insLine('### ', 'Heading 3')}>H3</TBtn>
-              <TBtn title="Unordered list" onClick={() => insLine('- ', 'list item')}>• –</TBtn>
-              <TBtn title="Ordered list" onClick={() => insLine('1. ', 'list item')}>1.</TBtn>
-              <TBtn title="Task list item" onClick={() => insLine('- [ ] ', 'task')}>☐</TBtn>
-              <TBtn title="Horizontal rule" onClick={() => handleContentChange(content + '\n\n---\n\n')}>—</TBtn>
-              <TBtn title="Table template" onClick={() => handleContentChange(content + '\n\n| Column 1 | Column 2 |\n|---|---|\n| Cell | Cell |\n\n')}>⊞</TBtn>
-            </div>
+            <>
+              {sep}
+              <select
+                aria-label="Paragraph style"
+                defaultValue=""
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v) insLine(`${'#'.repeat(Number(v))} `, `Heading ${v}`)
+                  e.target.value = ''
+                }}
+                className="h-8 cursor-pointer rounded-d border border-d-border bg-d-raised px-2 text-sm text-d-ink focus-visible:outline-2 focus-visible:outline-d-accent"
+              >
+                <option value="" disabled>Style</option>
+                <option value="1">Heading 1</option>
+                <option value="2">Heading 2</option>
+                <option value="3">Heading 3</option>
+              </select>
+              <button className={tb} aria-label="Bold" title="Bold" onClick={() => ins('**', '**', 'bold text')}><Bold className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Italic" title="Italic" onClick={() => ins('*', '*', 'italic text')}><Italic className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Strikethrough" title="Strikethrough" onClick={() => ins('~~', '~~', 'text')}><Strikethrough className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Inline code" title="Inline code" onClick={() => ins('`', '`', 'code')}><Code className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Code block" title="Code block" onClick={() => ins('```\n', '\n```', 'code')}><SquareCode className={ic} aria-hidden /></button>
+              {sep}
+              <button className={tb} aria-label="Bulleted list" title="Bulleted list" onClick={() => insLine('- ', 'list item')}><List className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Numbered list" title="Numbered list" onClick={() => insLine('1. ', 'list item')}><ListOrdered className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Task list" title="Task list" onClick={() => insLine('- [ ] ', 'task')}><ListChecks className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Quote" title="Quote" onClick={() => insLine('> ', 'quote')}><Quote className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Link" title="Link" onClick={() => ins('[', '](url)', 'link text')}><LinkIcon className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Image" title="Image" onClick={() => ins('![', '](url)', 'alt text')}><ImageIcon className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Table" title="Table" onClick={() => handleContentChange(content + '\n\n| Column 1 | Column 2 |\n|---|---|\n| Cell | Cell |\n\n')}><Table className={ic} aria-hidden /></button>
+              <button className={tb} aria-label="Divider" title="Divider" onClick={() => handleContentChange(content + '\n\n---\n\n')}><Minus className={ic} aria-hidden /></button>
+            </>
           )}
 
-          {/* View toggle */}
-          <div className="flex items-center gap-0.5 ml-auto">
-            {(['editor', 'split', 'preview'] as const).map(v => (
-              <TBtn key={v} title={v} onClick={() => setView(v)} active={view === v}>
-                {v === 'editor' ? '✏' : v === 'preview' ? '👁' : '⊟'}
-              </TBtn>
+          <div role="radiogroup" aria-label="View" className="ml-auto inline-flex overflow-hidden rounded-d border border-d-border">
+            {([['editor', 'Write'], ['split', 'Both'], ['preview', 'Read']] as const).map(([v, label]) => (
+              <button
+                key={v}
+                role="radio"
+                aria-checked={view === v}
+                onClick={() => setView(v)}
+                className={`h-8 cursor-pointer px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-d-accent ${view === v ? 'bg-d-ink text-d-surface' : 'text-d-muted hover:bg-d-border/40'}`}
+              >{label}</button>
             ))}
           </div>
         </div>
 
-        {/* Status bar */}
-        <div className="flex items-center gap-3 px-3 py-1 border-b border-input/30 bg-muted/5">
-          <span className="text-[10px] text-muted-foreground font-mono truncate">
-            {activeFile ? (
-              <>{activeFile.handle ? '📁' : '🔵'} {activeFile.name}{dirty ? ' ●' : ''}</>
-            ) : 'No file open'}
-          </span>
-          {content && (
-            <span className="text-[10px] text-muted-foreground ml-auto whitespace-nowrap">
-              {wordCount(content)} words · {lineCount(content)} lines · {estimateReadTime(content)} read
-            </span>
-          )}
-          {status && <span className="text-[10px] text-emerald-400 whitespace-nowrap">{status}</span>}
-        </div>
-
-        {/* Empty state */}
         {!activeFile ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-            <div className="text-5xl">📝</div>
-            <div className="text-center space-y-1">
-              <p className="text-sm font-medium">No file open</p>
-              <p className="text-xs">Create a new file or open one from your disk</p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8 text-center">
+            <h2 className="font-serif text-3xl font-semibold">Start a document</h2>
+            <p className="max-w-sm text-d-muted">Write Markdown on the left and read the formatted page on the right. Nothing leaves your device.</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button onClick={newFile} className="cursor-pointer rounded-d bg-d-accent px-5 py-2.5 text-sm font-semibold text-d-accent-ink hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-d-accent">New document</button>
+              {FS_SUPPORTED && <button onClick={openFile} className="cursor-pointer rounded-d border border-d-border px-5 py-2.5 text-sm hover:bg-d-border/40 focus-visible:outline-2 focus-visible:outline-d-accent">Open from disk</button>}
             </div>
-            <div className="flex gap-2">
-              <button onClick={newFile} className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors">New file</button>
-              {FS_SUPPORTED && <button onClick={openFile} className="px-4 py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors">Open from disk</button>}
-            </div>
-            {!FS_SUPPORTED && <p className="text-xs text-amber-400">File System Access API not supported : files will download on save</p>}
+            {!FS_SUPPORTED && <p className="text-sm text-d-muted">This browser cannot save in place, so Save downloads a file.</p>}
           </div>
         ) : (
-          /* Editor + Preview panes */
-          <div className="flex flex-1 min-h-0 overflow-hidden">
-            {/* Editor pane */}
+          <div className="flex min-h-0 flex-1 overflow-hidden">
             {(view === 'editor' || view === 'split') && (
-              <div className={`flex flex-col ${view === 'split' ? 'w-1/2 border-r border-input/40' : 'w-full'}`}>
+              <div className={view === 'split' ? 'flex w-1/2 flex-col border-r border-d-border' : 'flex w-full flex-col'}>
                 <textarea
                   ref={textareaRef}
+                  aria-label="Markdown source"
                   value={content}
                   onChange={e => handleContentChange(e.target.value)}
                   spellCheck={false}
-                  className="flex-1 w-full h-full resize-none bg-background font-mono text-sm p-4 outline-none leading-relaxed"
-                  placeholder="Start writing Markdown…"
+                  className="h-full w-full flex-1 resize-none bg-d-surface p-6 font-mono text-[13px] leading-7 text-d-ink outline-none focus-visible:bg-d-raised"
+                  placeholder="Start writing Markdown"
                   onKeyDown={e => {
-                    // Tab inserts spaces
                     if (e.key === 'Tab') {
                       e.preventDefault()
-                      const ta = e.currentTarget
-                      const s = ta.selectionStart, end = ta.selectionEnd
-                      const next = ta.value.slice(0, s) + '  ' + ta.value.slice(end)
-                      handleContentChange(next)
-                      setTimeout(() => ta.setSelectionRange(s + 2, s + 2), 0)
+                      const el = e.currentTarget
+                      const s = el.selectionStart, end = el.selectionEnd
+                      handleContentChange(el.value.slice(0, s) + '  ' + el.value.slice(end))
+                      setTimeout(() => el.setSelectionRange(s + 2, s + 2), 0)
                     }
                   }}
                 />
               </div>
             )}
 
-            {/* Preview pane */}
             {(view === 'preview' || view === 'split') && (
-              <div className={`overflow-y-auto p-6 ${view === 'split' ? 'w-1/2' : 'w-full'}`}>
-                {html ? (
-                  <div
-                    className="prose prose-sm prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: html }}
-                  />
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">Preview will appear here…</p>
-                )}
+              <div className={`overflow-y-auto bg-d-surface p-6 ${view === 'split' ? 'w-1/2' : 'w-full'}`}>
+                <article className="md-page mx-auto min-h-full max-w-[44rem] rounded-d border border-d-border bg-d-raised px-8 py-10 shadow-[0_8px_24px_-16px_hsl(var(--d-ink)/0.25)]">
+                  {html
+                    ? <div dangerouslySetInnerHTML={{ __html: html }} />
+                    : <p className="text-d-muted">The formatted page appears here as you type.</p>}
+                </article>
               </div>
             )}
           </div>
         )}
+
+        {/* Document status */}
+        <div className="flex h-7 shrink-0 items-center gap-4 border-t border-d-border bg-d-raised px-3 text-xs text-d-muted" role="status">
+          <span className="truncate">{activeFile ? `${activeFile.name}${dirty ? ' (unsaved)' : ''}${activeFile.handle ? ' · on disk' : ''}` : 'No document open'}</span>
+          {status && <span className="text-d-accent">{status}</span>}
+          {content && <span className="ml-auto whitespace-nowrap tabular-nums">{wordCount(content)} words · {lineCount(content)} lines · {estimateReadTime(content)} read</span>}
+        </div>
       </div>
 
-      {/* hljs styles injected via style tag */}
       <style>{`
-        .hljs{color:#abb2bf;background:#282c34}
+        .md-page{font-family:var(--font-newsreader),Georgia,serif;font-size:1.0625rem;line-height:1.75;color:hsl(var(--d-ink))}
+        .md-page h1,.md-page h2,.md-page h3,.md-page h4{font-weight:600;line-height:1.25;margin:1.6em 0 .5em}
+        .md-page h1{font-size:2rem;margin-top:0}
+        .md-page h2{font-size:1.5rem;border-bottom:1px solid hsl(var(--d-border));padding-bottom:.2em}
+        .md-page h3{font-size:1.2rem}
+        .md-page p{margin:.8em 0}
+        .md-page a{color:hsl(var(--d-accent));text-decoration:underline;text-underline-offset:2px}
+        .md-page ul{list-style:disc;padding-left:1.5em;margin:.6em 0}
+        .md-page ol{list-style:decimal;padding-left:1.5em;margin:.6em 0}
+        .md-page blockquote{border-left:3px solid hsl(var(--d-border));padding-left:1em;color:hsl(var(--d-muted));margin:1em 0;font-style:italic}
+        .md-page code{background:hsl(var(--d-surface));padding:.15em .4em;border-radius:3px;font-size:.85em;font-family:var(--font-plex-mono),monospace}
+        .md-page pre{background:#282c34;color:#abb2bf;border-radius:4px;padding:1em;overflow-x:auto;margin:1em 0}
+        .md-page pre code{background:none;padding:0;color:inherit}
+        .md-page table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.95em}
+        .md-page th,.md-page td{border:1px solid hsl(var(--d-border));padding:.4em .75em;text-align:left}
+        .md-page th{background:hsl(var(--d-surface));font-weight:600}
+        .md-page hr{border:none;border-top:1px solid hsl(var(--d-border));margin:2em 0}
+        .md-page img{max-width:100%}
+        .md-page input[type=checkbox]{margin-right:.4em}
         .hljs-comment,.hljs-quote{color:#5c6370;font-style:italic}
         .hljs-doctag,.hljs-keyword,.hljs-formula{color:#c678dd}
         .hljs-section,.hljs-name,.hljs-selector-tag,.hljs-deletion,.hljs-subst{color:#e06c75}
         .hljs-literal{color:#56b6c2}
-        .hljs-string,.hljs-regexp,.hljs-addition,.hljs-attribute,.hljs-meta .hljs-string{color:#98c379}
-        .hljs-attr,.hljs-variable,.hljs-template-variable,.hljs-type,.hljs-selector-class,.hljs-selector-attr,.hljs-selector-pseudo,.hljs-number{color:#d19a66}
+        .hljs-string,.hljs-regexp,.hljs-addition,.hljs-attribute{color:#98c379}
+        .hljs-attr,.hljs-variable,.hljs-type,.hljs-selector-class,.hljs-number{color:#d19a66}
         .hljs-symbol,.hljs-bullet,.hljs-link,.hljs-meta,.hljs-selector-id,.hljs-title{color:#61aeee}
-        .hljs-built_in,.hljs-title.class_,.hljs-class .hljs-title{color:#e6c07b}
-        .hljs-emphasis{font-style:italic}
-        .hljs-strong{font-weight:bold}
-        .hljs-link{text-decoration:underline}
-        .prose h1,.prose h2,.prose h3,.prose h4{font-weight:600;margin-top:1.5em;margin-bottom:.5em;line-height:1.3}
-        .prose h1{font-size:1.75em;border-bottom:1px solid #3f3f46;padding-bottom:.3em}
-        .prose h2{font-size:1.4em;border-bottom:1px solid #3f3f46;padding-bottom:.2em}
-        .prose h3{font-size:1.1em}
-        .prose p{margin:.75em 0;line-height:1.75}
-        .prose a{color:#60a5fa;text-decoration:underline}
-        .prose strong{font-weight:700}
-        .prose em{font-style:italic}
-        .prose ul{list-style:disc;padding-left:1.5em;margin:.5em 0}
-        .prose ol{list-style:decimal;padding-left:1.5em;margin:.5em 0}
-        .prose li{margin:.25em 0}
-        .prose blockquote{border-left:3px solid #4b5563;padding-left:1em;color:#9ca3af;margin:1em 0}
-        .prose code{background:#27272a;padding:.15em .4em;border-radius:4px;font-size:.875em;font-family:monospace}
-        .prose pre{background:#1c1c1e;border:1px solid #3f3f46;border-radius:8px;padding:1em;overflow-x:auto;margin:1em 0}
-        .prose pre code{background:none;padding:0;font-size:.85em}
-        .prose table{border-collapse:collapse;width:100%;margin:1em 0}
-        .prose th,.prose td{border:1px solid #3f3f46;padding:.4em .75em;text-align:left}
-        .prose th{background:#27272a;font-weight:600}
-        .prose tr:nth-child(even){background:#1c1c1e}
-        .prose hr{border:none;border-top:1px solid #3f3f46;margin:2em 0}
-        .prose img{max-width:100%;border-radius:6px}
-        input[type=checkbox]{margin-right:.4em}
+        .hljs-built_in{color:#e6c07b}
       `}</style>
     </div>
   )

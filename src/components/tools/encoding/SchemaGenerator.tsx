@@ -1,15 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+// Domain: workbench (live input pane to generated-code pane).
+import { useState, useMemo } from 'react'
 import Papa from 'papaparse'
-import { Button } from '@/components/ui/button'
-import { ToolPanel } from '@/components/tools/shared/ToolPanel'
-import { CodeEditor } from '@/components/tools/shared/CodeEditor'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
+import { Copy, Check, AlertCircle, CheckCircle2 } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
+import { Workbench, Toolbar, StatusBar, SplitPane, Pane, WbButton, Segmented, CodeArea, TextInput } from '@/components/domain'
 
 type InputMode = 'csv' | 'json'
 type OutputTab = 'typescript' | 'zod' | 'jsonschema'
@@ -44,42 +41,37 @@ function buildFields(obj: Record<string, unknown>): FieldDef[] {
 }
 
 function safeKey(name: string): string {
-  // Quote keys that aren't valid JS identifiers
   return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name) ? name : JSON.stringify(name)
 }
 
-function generateTsInterface(fields: FieldDef[], name: string, indent = 0): string {
-  const pad = '  '.repeat(indent)
-  const inner = fields
-    .map((f) => {
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function generateTsInterface(fields: FieldDef[], name: string): string {
+  function buildNested(fs: FieldDef[], prefix: string): string[] {
+    const out: string[] = []
+    for (const f of fs) {
       if (f.type === 'object' && f.nested) {
-        const nestedName = name + capitalize(f.name)
-        const nestedInterface = generateTsInterface(f.nested, nestedName, indent)
-        return `${nestedInterface}\n${pad}  ${safeKey(f.name)}: ${nestedName}`
+        const nestedName = prefix + capitalize(f.name)
+        out.push(...buildNested(f.nested, nestedName))
+        out.push(`interface ${nestedName} {\n  ${f.nested.map(n => `${safeKey(n.name)}: ${n.type}`).join('\n  ')}\n}`)
       }
-      return `${pad}  ${safeKey(f.name)}: ${f.type}`
-    })
-    .join('\n')
+    }
+    return out
+  }
 
-  // Collect nested interfaces separately
-  const nestedInterfaces = fields
-    .filter((f) => f.type === 'object' && f.nested)
-    .map((f) => generateTsInterface(f.nested!, name + capitalize(f.name), indent))
-
+  const nested = buildNested(fields, name).join('\n\n')
   const body = fields
     .map((f) => {
       if (f.type === 'object' && f.nested) {
-        return `${pad}  ${safeKey(f.name)}: ${name + capitalize(f.name)}`
+        return `  ${safeKey(f.name)}: ${name + capitalize(f.name)}`
       }
-      return `${pad}  ${safeKey(f.name)}: ${f.type}`
+      return `  ${safeKey(f.name)}: ${f.type}`
     })
     .join('\n')
 
-  const selfInterface = `${pad}interface ${name} {\n${body}\n${pad}}`
-
-  return nestedInterfaces.length > 0
-    ? nestedInterfaces.join('\n\n') + '\n\n' + selfInterface
-    : selfInterface
+  return (nested ? nested + '\n\n' : '') + `interface ${name} {\n${body}\n}`
 }
 
 function generateZodSchema(fields: FieldDef[], name: string): string {
@@ -101,9 +93,7 @@ function generateZodSchema(fields: FieldDef[], name: string): string {
 
     const def = `const ${schemaName}Schema = z.object({\n${props}\n})`
 
-    if (nestedDefs.length > 0) {
-      lines.push(...nestedDefs)
-    }
+    if (nestedDefs.length > 0) lines.push(...nestedDefs)
     return def
   }
 
@@ -160,179 +150,112 @@ function toJsonSchemaType(type: FieldDef['type']): unknown {
   }
 }
 
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
 export default function SchemaGenerator({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [inputMode, setInputMode] = useState<InputMode>((initialState?.inputMode as InputMode) ?? 'json')
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [schemaName, setSchemaName] = useState((initialState?.schemaName as string) ?? 'MyType')
   const [outputTab, setOutputTab] = useState<OutputTab>('typescript')
-  const [fields, setFields] = useState<FieldDef[] | null>(null)
-  const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
-  const [outputs, setOutputs] = useState<{ typescript: string; zod: string; jsonschema: string } | null>(null)
-
-  const generate = () => {
-    setError('')
-    setFields(null)
-    setOutputs(null)
-
-    if (!input.trim()) {
-      setError('Input is empty.')
-      return
-    }
-
-    const name = schemaName.trim() || 'MyType'
-
+  const { result, error } = useMemo(() => {
+    if (!input.trim()) return { result: null, error: '' }
     try {
       let parsedFields: FieldDef[]
-
       if (inputMode === 'csv') {
-        const result = Papa.parse<Record<string, string>>(input, { header: true, skipEmptyLines: true })
-        if (result.errors.length > 0 && result.data.length === 0) {
-          setError(result.errors[0].message)
-          return
-        }
-        if (result.data.length === 0) {
-          setError('CSV has no data rows.')
-          return
-        }
-        parsedFields = buildFields(result.data[0] as Record<string, unknown>)
+        const r = Papa.parse<Record<string, string>>(input, { header: true, skipEmptyLines: true })
+        if (r.errors.length > 0 && r.data.length === 0) throw new Error(r.errors[0].message)
+        if (r.data.length === 0) throw new Error('CSV has no data rows. Add a header line and at least one row.')
+        parsedFields = buildFields(r.data[0] as Record<string, unknown>)
       } else {
         let parsed: unknown
-        try {
-          parsed = JSON.parse(input)
-        } catch (e) {
-          setError('Invalid JSON: ' + (e instanceof Error ? e.message : String(e)))
-          return
-        }
+        try { parsed = JSON.parse(input) } catch (e) { throw new Error('Invalid JSON: ' + (e instanceof Error ? e.message : String(e))) }
         const obj = Array.isArray(parsed) ? parsed[0] : parsed
-        if (typeof obj !== 'object' || obj === null) {
-          setError('JSON must be an object or array of objects.')
-          return
-        }
+        if (typeof obj !== 'object' || obj === null) throw new Error('JSON must be an object or an array of objects.')
         parsedFields = buildFields(obj as Record<string, unknown>)
       }
-
-      setFields(parsedFields)
-
-      const typescript = generateTsInterface(parsedFields, name)
-      const zod = generateZodSchema(parsedFields, name)
-      const jsonschema = generateJsonSchema(parsedFields, name)
-
-      setOutputs({ typescript, zod, jsonschema })
-      onOutput(
-        { input, inputMode, schemaName: name },
-        { typescript, zod, jsonschema, fieldCount: parsedFields.length }
-      )
+      const name = schemaName.trim() || 'MyType'
+      return {
+        result: {
+          fields: parsedFields,
+          outputs: {
+            typescript: generateTsInterface(parsedFields, name),
+            zod: generateZodSchema(parsedFields, name),
+            jsonschema: generateJsonSchema(parsedFields, name),
+          },
+        },
+        error: '',
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to generate schema')
+      return { result: null, error: e instanceof Error ? e.message : 'Failed to generate schema' }
     }
+  }, [input, inputMode, schemaName])
+
+  const currentOutput = result ? result.outputs[outputTab] : ''
+
+  const copy = async () => {
+    if (!currentOutput) return
+    await navigator.clipboard.writeText(currentOutput)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+    onOutput({ input, inputMode, schemaName, outputTab }, { output: currentOutput })
   }
 
-  const currentOutput = outputs ? outputs[outputTab] : ''
-
-  const OUTPUT_TABS: { key: OutputTab; label: string }[] = [
-    { key: 'typescript', label: 'TypeScript Interface' },
-    { key: 'zod', label: 'Zod Schema' },
-    { key: 'jsonschema', label: 'JSON Schema' },
-  ]
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* Controls row */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Input mode tabs */}
-        <div className="flex rounded-md border border-border overflow-hidden">
-          {(['csv', 'json'] as InputMode[]).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setInputMode(mode)}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                inputMode === mode
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {mode.toUpperCase()}
-            </button>
-          ))}
-        </div>
-
-        {/* Schema name */}
-        <input
-          value={schemaName}
-          onChange={(e) => setSchemaName(e.target.value)}
-          placeholder={t('encoding.schema_type', 'Type name (e.g. MyType)')}
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-
-        <Button size="sm" onClick={() => { analytics.buttonClick('schema-generator', 'generate'); generate() }} disabled={!input.trim()}>
-          {t('action.generate', 'Generate')}
-        </Button>
-      </div>
-
-      {error && <ErrorAlert message={error} />}
-
-      <ToolPanel
+    <Workbench
+      toolbar={
+        <Toolbar>
+          <Segmented<InputMode>
+            label="Input mode"
+            value={inputMode}
+            onChange={setInputMode}
+            options={[{ value: 'json', label: 'JSON' }, { value: 'csv', label: 'CSV' }]}
+          />
+          <Segmented<OutputTab>
+            label="Output format"
+            value={outputTab}
+            onChange={setOutputTab}
+            options={[{ value: 'typescript', label: 'TypeScript' }, { value: 'zod', label: 'Zod' }, { value: 'jsonschema', label: 'JSON Schema' }]}
+          />
+          <label className="flex items-center gap-2 text-xs text-d-muted">
+            Type name
+            <TextInput value={schemaName} onChange={(e) => setSchemaName(e.target.value)} placeholder="MyType" mono className="h-7 w-32 py-0 text-xs" />
+          </label>
+        </Toolbar>
+      }
+      status={
+        <StatusBar>
+          {!input.trim() && <span>Paste a sample {inputMode.toUpperCase()}. The schema builds as you type.</span>}
+          {result && <span className="flex items-center gap-1 text-d-accent"><CheckCircle2 className="h-3 w-3" aria-hidden />{result.fields.length} field{result.fields.length !== 1 ? 's' : ''} detected</span>}
+          {error && <span role="alert" className="flex min-w-0 items-center gap-1 text-red-600 dark:text-red-400"><AlertCircle className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{error}</span></span>}
+        </StatusBar>
+      }
+    >
+      <SplitPane
         left={
-          <div className="flex flex-col gap-1">
-            <div className="text-xs text-muted-foreground">
-              {inputMode === 'csv' ? t('encoding.json_input', 'Paste CSV (first row = headers)') : t('encoding.json_input', 'Paste JSON object or array')}
-            </div>
-            <CodeEditor
+          <Pane label={inputMode === 'csv' ? 'CSV (first row is headers)' : 'JSON object or array'}>
+            <CodeArea
+              label="Input"
               value={input}
               onChange={setInput}
-              language={inputMode === 'csv' ? 'csv' : 'json'}
-              rows={18}
-              placeholder={
-                inputMode === 'csv'
-                  ? 'name,age,email\nAlice,30,alice@example.com'
-                  : '{\n  "name": "Alice",\n  "age": 30,\n  "email": "alice@example.com"\n}'
-              }
+              placeholder={inputMode === 'csv' ? 'name,age,email\nAlice,30,alice@example.com' : '{\n  "name": "Alice",\n  "age": 30\n}'}
             />
-          </div>
+          </Pane>
         }
         right={
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              {/* Output tabs */}
-              <div className="flex rounded-md border border-border overflow-hidden">
-                {OUTPUT_TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setOutputTab(tab.key)}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                      outputTab === tab.key
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <CopyButton value={currentOutput} />
-            </div>
-            <CodeEditor
-              value={currentOutput}
-              onChange={() => {}}
-              language={outputTab === 'jsonschema' ? 'json' : outputTab === 'typescript' ? 'typescript' : 'typescript'}
-              rows={17}
-              readOnly
-              placeholder={t('common.no_output', 'Generated schema appears here…')}
-            />
-            {fields && (
-              <div className="text-xs text-muted-foreground">
-                {fields.length} field{fields.length !== 1 ? 's' : ''} detected
-              </div>
-            )}
-          </div>
+          <Pane
+            label={t('action.output', 'Output')}
+            actions={
+              <WbButton onClick={copy} disabled={!currentOutput} className="h-6">
+                {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+                {copied ? 'Copied' : 'Copy'}
+              </WbButton>
+            }
+          >
+            <CodeArea label="Generated schema" value={currentOutput} readOnly placeholder="Generated code appears here" />
+          </Pane>
         }
       />
-    </div>
+    </Workbench>
   )
 }

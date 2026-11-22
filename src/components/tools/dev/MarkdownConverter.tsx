@@ -2,86 +2,79 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { marked } from 'marked'
-import type { ToolProps } from '@/types'
-import { ToolPanel } from '../shared/ToolPanel'
-import { CopyButton } from '../shared/CopyButton'
-import { CodeEditor } from '../shared/CodeEditor'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Workbench, Toolbar, Pane, CodeArea, Chip, Row, Notice, SplitPane, Region, CopyBtn, Column, Section, Btn } from '@/components/domain'
+import { FileText, Download, Copy } from 'lucide-react'
 
-const SAMPLE = `# Hello, World!
+/** Paper + Workbench: markdown pane and a rendered/HTML result */
 
-This is **bold** and _italic_ text.
-
-## Code Example
-
-\`\`\`js
-const greet = (name) => \`Hello, \${name}!\`
-\`\`\`
-
-## List
-
-- Item one
-- Item two
-- Item three
-
-> A blockquote with some wisdom.
-`
-
-type Tab = 'preview' | 'html'
-
-export default function MarkdownConverter({ onOutput, initialState }: ToolProps) {
+export default function MarkdownConverter({ onOutput, initialState }: any) {
   const { t } = useTranslation()
-  const [input, setInput] = useState((initialState?.input as string) ?? SAMPLE)
-  const [tab, setTab] = useState<Tab>('preview')
+  const [markdown, setMarkdown] = useState((initialState?.markdown as string) ?? '')
   const [html, setHtml] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const firedRef = useRef(false)
 
   useEffect(() => {
-    const result = marked.parse(input, { async: false }) as string
-    setHtml(result)
-    if (input) {
+    try {
+      const rawHtml = marked.parse(markdown, { async: false }) as string
+      setHtml(rawHtml)
+      setError(null)
       if (!firedRef.current) { analytics.buttonClick('markdown-converter', 'convert'); firedRef.current = true }
-      onOutput({ markdown: input }, { html: result })
+      onOutput({ markdown }, { html: rawHtml })
+    } catch (e) {
+      setError((e as Error).message)
+      setHtml('')
     }
-  }, [input, onOutput])
+  }, [markdown, onOutput])
 
   return (
-    <ToolPanel
-      left={
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground block">{t('dev.markdown_input', 'Markdown')}</label>
-          <CodeEditor value={input} onChange={setInput} language="markdown" />
-        </div>
-      }
-      right={
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-1 border border-input rounded-md p-0.5">
-              {(['preview', 'html'] as Tab[]).map((tabVal) => (
-                <button
-                  key={tabVal}
-                  onClick={() => setTab(tabVal)}
-                  className={`px-3 py-1 rounded text-xs capitalize transition-colors ${
-                    tab === tabVal ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'
-                  }`}
-                >
-                  {tabVal === 'preview' ? t('dev.markdown_preview', 'Preview') : tabVal}
-                </button>
-              ))}
+    <Region domain="workbench">
+      <Workbench
+        toolbar={
+          <Toolbar>
+            <div className="flex items-center gap-2">
+              <Btn variant="secondary" onClick={() => navigator.clipboard.writeText(html)}>
+                <Copy className="h-3.5 w-3.5" aria-hidden /> {t('action.copy_html', 'Copy HTML')}
+              </Btn>
+              <Btn variant="secondary" onClick={() => {
+                const blob = new Blob([html], { type: 'text/html' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'output.html'
+                a.click()
+                URL.revokeObjectURL(url)
+              }}>
+                <Download className="h-3.5 w-3.5" aria-hidden /> {t('action.download', 'Download HTML')}
+              </Btn>
             </div>
-            <CopyButton value={tab === 'preview' ? input : html} />
-          </div>
-          {tab === 'preview' ? (
-            <div
-              className="border border-input rounded-md p-4 min-h-[300px] text-sm [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-medium [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_li]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/50 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_blockquote]:my-3 [&_code]:font-mono [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-md [&_pre]:overflow-auto [&_pre]:my-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
-          ) : (
-            <CodeEditor value={html} onChange={() => {}} language="html" readOnly />
-          )}
-        </div>
-      }
-    />
+          </Toolbar>
+        }
+      >
+        <Region domain="paper">
+          <SplitPane
+            left={
+              <Pane label={t('dev.markdown_input', 'Markdown')}>
+                <CodeArea
+                  value={markdown}
+                  onChange={setMarkdown}
+                  label={t('dev.markdown_input', 'Markdown')}
+                  placeholder="Write markdown here..."
+                />
+              </Pane>
+            }
+            right={
+              <Pane label={t('dev.preview', 'Preview')}>
+                <div className="flex-1 overflow-auto p-4 prose prose-stone dark:prose-invert max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: html || `<p class="text-d-muted">${t('dev.preview_empty', 'Markdown preview appears here')}</p>` }} />
+                </div>
+              </Pane>
+            }
+          />
+        </Region>
+      </Workbench>
+    </Region>
   )
 }

@@ -1,18 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+// Domain: workbench (live code formatter, two panes).
+import { useState, useMemo } from 'react'
 import { format } from 'sql-formatter'
-import { Button } from '@/components/ui/button'
-import { ToolPanel } from '@/components/tools/shared/ToolPanel'
-import { CodeEditor } from '@/components/tools/shared/CodeEditor'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
+import { Copy, Check, AlertCircle, CheckCircle2 } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
+import { Workbench, Toolbar, StatusBar, SplitPane, Pane, WbButton, Segmented, CodeArea } from '@/components/domain'
+import { Select } from '@/components/domain'
 
 type Dialect = 'sql' | 'mysql' | 'postgresql' | 'sqlite' | 'tsql' | 'plsql'
-
+type Action = 'format' | 'minify'
 const DIALECTS: { value: Dialect; label: string }[] = [
   { value: 'sql', label: 'SQL' },
   { value: 'mysql', label: 'MySQL' },
@@ -23,115 +21,80 @@ const DIALECTS: { value: Dialect; label: string }[] = [
 ]
 
 function minifySql(sql: string): string {
-  return sql
-    .replace(/--[^\n]*/g, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return sql.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').trim()
 }
 
 export default function SqlFormatter({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
-  const [output, setOutput] = useState('')
   const [dialect, setDialect] = useState<Dialect>((initialState?.dialect as Dialect) ?? 'sql')
-  const [error, setError] = useState('')
+  const [action, setAction] = useState<Action>('format')
+  const [copied, setCopied] = useState(false)
 
-  const inputLines = input ? input.split('\n').length : 0
-  const outputLines = output ? output.split('\n').length : 0
-
-  const handleFormat = () => {
-    setError('')
-    if (!input.trim()) return
+  const res = useMemo(() => {
+    if (!input.trim()) return { out: '', error: '' }
     try {
-      const result = format(input, {
-        language: dialect,
-        keywordCase: 'upper',
-        indentStyle: 'standard',
-        tabWidth: 2,
-      })
-      setOutput(result)
-      onOutput(
-        { input, dialect, action: 'format' },
-        { output: result, inputLines: inputLines, outputLines: result.split('\n').length }
-      )
+      const out = action === 'format'
+        ? format(input, { language: dialect, keywordCase: 'upper', indentStyle: 'standard', tabWidth: 2 })
+        : minifySql(input)
+      return { out, error: '' }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to format SQL')
+      return { out: '', error: e instanceof Error ? e.message.split('\n')[0] : 'Failed to format SQL' }
     }
-  }
+  }, [input, dialect, action])
 
-  const handleMinify = () => {
-    setError('')
-    if (!input.trim()) return
-    try {
-      const result = minifySql(input)
-      setOutput(result)
-      onOutput(
-        { input, dialect, action: 'minify' },
-        { output: result, inputLines: inputLines, outputLines: 1 }
-      )
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to minify SQL')
-    }
+  const copy = async () => {
+    if (!res.out) return
+    await navigator.clipboard.writeText(res.out)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+    onOutput({ input, dialect, action }, { output: res.out, inputLines: input.split('\n').length, outputLines: res.out.split('\n').length })
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={dialect}
-          onChange={(e) => setDialect(e.target.value as Dialect)}
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          {DIALECTS.map((d) => (
-            <option key={d.value} value={d.value}>
-              {d.label}
-            </option>
-          ))}
-        </select>
-        <Button size="sm" onClick={() => { analytics.buttonClick('sql-formatter', 'format'); handleFormat() }} disabled={!input.trim()}>
-          {t('common.format', 'Format')}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('sql-formatter', 'minify'); handleMinify() }} disabled={!input.trim()}>
-          {t('common.minify', 'Minify')}
-        </Button>
-      </div>
-
-      {error && <ErrorAlert message={error} />}
-
-      <ToolPanel
+    <Workbench
+      toolbar={
+        <Toolbar>
+          <Select aria-label="SQL dialect" value={dialect} onChange={(e) => setDialect(e.target.value as Dialect)} className="h-7 w-auto py-0 text-xs">
+            {DIALECTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+          </Select>
+          <Segmented<Action>
+            label="Action"
+            value={action}
+            onChange={setAction}
+            options={[{ value: 'format', label: t('common.format', 'Format') }, { value: 'minify', label: t('common.minify', 'Minify') }]}
+          />
+        </Toolbar>
+      }
+      status={
+        <StatusBar>
+          {!input.trim() && <span>Paste SQL. It formats as you type.</span>}
+          {res.out && <span className="flex items-center gap-1 text-d-accent"><CheckCircle2 className="h-3 w-3" aria-hidden />{action === 'format' ? 'Formatted' : 'Minified'}</span>}
+          {res.error && <span role="alert" className="flex min-w-0 items-center gap-1 text-red-600 dark:text-red-400"><AlertCircle className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{res.error}</span></span>}
+          {res.out && <span className="ml-auto">{res.out.split('\n').length} lines</span>}
+        </StatusBar>
+      }
+    >
+      <SplitPane
         left={
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{t('encoding.json_input', 'Input SQL')}</span>
-              <span>{inputLines} lines</span>
-            </div>
-            <CodeEditor
-              value={input}
-              onChange={setInput}
-              language="sql"
-              rows={18}
-              placeholder={t('common.input_placeholder', 'Paste your SQL here…')}
-            />
-          </div>
+          <Pane label="Input SQL">
+            <CodeArea label="Input SQL" value={input} onChange={setInput} placeholder="select * from users where id = 1" />
+          </Pane>
         }
         right={
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>{outputLines} lines</span>
-              <CopyButton value={output} />
-            </div>
-            <CodeEditor
-              value={output}
-              onChange={() => {}}
-              language="sql"
-              rows={18}
-              readOnly
-              placeholder={t('encoding.formatted', 'Formatted SQL appears here…')}
-            />
-          </div>
+          <Pane
+            label={t('action.output', 'Output')}
+            actions={
+              <WbButton onClick={copy} disabled={!res.out} className="h-6">
+                {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+                {copied ? 'Copied' : 'Copy'}
+              </WbButton>
+            }
+          >
+            <CodeArea label="Formatted SQL" value={res.out} readOnly placeholder="Formatted SQL appears here" />
+          </Pane>
         }
       />
-    </div>
+    </Workbench>
   )
 }

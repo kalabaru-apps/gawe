@@ -1,14 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+// Domain: workbench (live chip operations on a string → output pane).
+import { useState, useMemo } from 'react'
 import slugifyFn from 'slugify'
-import { Button } from '@/components/ui/button'
-import { ToolPanel } from '@/components/tools/shared/ToolPanel'
-import { CodeEditor } from '@/components/tools/shared/CodeEditor'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
+import { Copy, Check } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
+import { Workbench, Toolbar, StatusBar, SplitPane, Pane, WbButton, Segmented, CodeArea } from '@/components/domain'
+import { Chip, CopyBtn } from '@/components/domain'
 
 type Operation =
   | 'slugify'
@@ -31,16 +30,13 @@ const OPERATIONS: { key: Operation; label: string }[] = [
 
 function applyOperation(input: string, op: Operation): string {
   switch (op) {
-    case 'slugify':
-      return slugifyFn(input, { lower: true, strict: true })
-    case 'json-escape':
-      return JSON.stringify(input).slice(1, -1)
+    case 'slugify': return slugifyFn(input, { lower: true, strict: true })
+    case 'json-escape': return JSON.stringify(input).slice(1, -1)
     case 'json-unescape':
       try { return JSON.parse(`"${input}"`) } catch { return input }
-    case 'regex-escape':
-      return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    case 'regex-escape': return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     case 'html-escape': {
-      const entities: [string, string][] = [['&','&amp;'],['<','&lt;'],['>','&gt;'],['"','&quot;'],["'",'&#39;']]
+      const entities: [string, string][] = [['&', '&amp;'], ['<', '&lt;'], ['>', '&gt;'], ['"', '&quot;'], ["'", '&#39;']]
       return entities.reduce((s, [c, e]) => s.replaceAll(c, e), input)
     }
     case 'html-unescape': {
@@ -56,36 +52,73 @@ function applyOperation(input: string, op: Operation): string {
 export default function StringTools({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
-  const [output, setOutput] = useState('')
+  const [ops, setOps] = useState<Operation[]>([])
+  const [copied, setCopied] = useState(false)
+
+  const output = useMemo(() => {
+    if (!input || !ops.length) return ''
+    return ops.reduce<string>((acc, op) => applyOperation(acc, op), input)
+  }, [input, ops])
 
   const apply = (op: Operation) => {
     if (!input) return
-    const result = applyOperation(input, op)
-    setOutput(result)
-    onOutput({ input, operation: op }, { output: result })
+    setOps((p) => (p.includes(op) ? p.filter((x) => x !== op) : [...p, op]))
+    onOutput({ input, operation: op }, { output })
+  }
+
+  const copy = async () => {
+    if (!output) return
+    await navigator.clipboard.writeText(output)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
-        {OPERATIONS.map((op) => (
-          <Button key={op.key} size="sm" variant="outline" onClick={() => { analytics.buttonClick('string-tools', 'apply'); apply(op.key) }}>
-            {op.label}
-          </Button>
-        ))}
-      </div>
-      <ToolPanel
-        left={<CodeEditor value={input} onChange={setInput} language={t('action.input', 'Input')} rows={14} placeholder={t('common.input_placeholder', 'Enter string to transform…')} />}
-        right={
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
-              <CopyButton value={output} />
-            </div>
-            <CodeEditor value={output} onChange={() => {}} readOnly rows={14} />
+    <Workbench
+      toolbar={
+        <Toolbar>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="String operations">
+            {OPERATIONS.map((op) => (
+              <Chip
+                key={op.key}
+                on={ops.includes(op.key)}
+                onClick={() => apply(op.key)}
+                title={op.label}
+              >
+                {op.label}
+              </Chip>
+            ))}
           </div>
+        </Toolbar>
+      }
+      status={
+        <StatusBar>
+          {!input && <span>Type a string, then click an operation.</span>}
+          {ops.length > 0 && <span className="flex items-center gap-1 text-d-accent"><Check className="h-3 w-3" aria-hidden />Applied: {ops.map((k) => OPERATIONS.find((o) => o.key === k)?.label).join(', ')}</span>}
+          {output && <span className="ml-auto">{output.length} chars</span>}
+        </StatusBar>
+      }
+    >
+      <SplitPane
+        left={
+          <Pane label="Input">
+            <CodeArea label="Input string" value={input} onChange={setInput} placeholder="Enter string to transform…" />
+          </Pane>
+        }
+        right={
+          <Pane
+            label={t('action.output', 'Output')}
+            actions={
+              <WbButton onClick={copy} disabled={!output} className="h-6">
+                {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+                {copied ? 'Copied' : 'Copy'}
+              </WbButton>
+            }
+          >
+            <CodeArea label="Output" value={output} readOnly placeholder="Click an operation above" />
+          </Pane>
         }
       />
-    </div>
+    </Workbench>
   )
 }

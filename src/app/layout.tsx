@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Public_Sans, Newsreader, IBM_Plex_Mono, Familjen_Grotesk } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { AppShell } from '@/components/shell/AppShell'
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
-const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
+const publicSans = Public_Sans({ subsets: ['latin'], variable: '--font-public-sans' })
+const newsreader = Newsreader({ subsets: ['latin'], variable: '--font-newsreader' })
+const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-plex-mono' })
+const familjen = Familjen_Grotesk({ subsets: ['latin'], variable: '--font-familjen' })
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gawe.app'
 const OG_IMAGE = `${SITE_URL}/og-image.png`
@@ -100,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${publicSans.variable} ${newsreader.variable} ${plexMono.variable} ${familjen.variable} font-sans antialiased`}>
         <AppShell>{children}</AppShell>
         {umamiId && (
           <Script

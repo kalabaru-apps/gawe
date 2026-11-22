@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Instrument, Readout, Key } from '@/components/domain/Instrument'
 
 type Mode = 'work' | 'short' | 'long'
 const DURATIONS: Record<Mode, number> = { work: 25 * 60, short: 5 * 60, long: 15 * 60 }
@@ -63,56 +64,38 @@ export default function Pomodoro({ onOutput, initialState: _initialState }: Tool
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [isRunning, mode, completed, onOutput])
 
-  const total = DURATIONS[mode]
-  const progress = (total - secondsLeft) / total
-  const radius = 80
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference * (1 - progress)
+  const MODES: Mode[] = ['work', 'short', 'long']
 
   return (
-    <div className="flex flex-col items-center gap-8 py-8">
-      <div className="flex gap-2">
-        {(['work', 'short', 'long'] as Mode[]).map((m) => (
-          <button key={m} onClick={() => switchMode(m)}
-            className={`px-4 py-2 rounded-full text-sm border transition-colors ${mode === m ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'}`}>
+    <Instrument>
+      <div role="radiogroup" aria-label={t('office.mode', 'Mode')} className="mb-4 grid grid-cols-3 gap-2">
+        {MODES.map((m) => (
+          <Key key={m} role="radio" aria-checked={mode === m} accent={mode === m} onClick={() => switchMode(m)} className="min-h-10 px-2 text-xs">
             {LABELS[m]}
-          </button>
+          </Key>
         ))}
       </div>
-      <div className="relative">
-        <svg width="200" height="200" className="-rotate-90">
-          <circle cx="100" cy="100" r={radius} fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
-          <circle cx="100" cy="100" r={radius} fill="none" stroke="currentColor" strokeWidth="8"
-            className={mode === 'work' ? 'text-primary' : mode === 'short' ? 'text-emerald-400' : 'text-sky-400'}
-            strokeDasharray={circumference} strokeDashoffset={offset}
-            strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s linear' }} />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-mono text-4xl font-bold tabular-nums">{formatTime(secondsLeft)}</span>
-          <span className="text-xs text-muted-foreground mt-1">{LABELS[mode]}</span>
-        </div>
+      <Readout label={LABELS[mode]}>{formatTime(secondsLeft)}</Readout>
+      <div
+        className="mt-3 h-1.5 overflow-hidden rounded-full bg-d-border"
+        role="progressbar" aria-valuemin={0} aria-valuemax={100}
+        aria-valuenow={Math.round(((DURATIONS[mode] - secondsLeft) / DURATIONS[mode]) * 100)}
+      >
+        <div className="h-full bg-d-accent transition-[width] duration-1000 ease-linear" style={{ width: `${((DURATIONS[mode] - secondsLeft) / DURATIONS[mode]) * 100}%` }} />
       </div>
-      <div className="flex gap-3">
-        <button onClick={() => { if (!isRunning) analytics.buttonClick('pomodoro', 'start'); setIsRunning((r) => !r) }}
-          className="px-8 py-3 rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+      <div className="mt-5 grid grid-cols-[2fr_1fr] gap-2">
+        <Key accent onClick={() => { if (!isRunning) analytics.buttonClick('pomodoro', 'start'); setIsRunning((r) => !r) }}>
           {isRunning ? t('common.pause', 'Pause') : t('common.start', 'Start')}
-        </button>
-        <button onClick={() => { setSecondsLeft(DURATIONS[mode]); setIsRunning(false) }}
-          className="px-6 py-3 rounded-full border border-input hover:bg-muted/50 transition-colors text-sm">
+        </Key>
+        <Key onClick={() => { setSecondsLeft(DURATIONS[mode]); setIsRunning(false) }}>
           {t('office.timer_reset', 'Reset')}
-        </button>
+        </Key>
       </div>
-      {completed > 0 && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{t('office.completed_today', 'Completed today')}:</span>
-          <div className="flex gap-1">
-            {Array.from({ length: completed }).map((_, i) => (
-              <span key={i} className="w-3 h-3 rounded-full bg-primary" />
-            ))}
-          </div>
-          <span className="font-medium text-foreground">{completed} {completed !== 1 ? t('office.pomodoros', 'pomodoros') : t('office.pomodoro', 'pomodoro')}</span>
-        </div>
-      )}
-    </div>
+      <p className="mt-4 text-center text-sm text-d-muted" aria-live="polite">
+        {completed > 0
+          ? `${completed} ${completed !== 1 ? t('office.pomodoros', 'pomodoros') : t('office.pomodoro', 'pomodoro')} ${t('office.completed_today', 'completed today').toLowerCase()}`
+          : t('office.pomodoro_empty', 'Finish a focus round and it is counted here.')}
+      </p>
+    </Instrument>
   )
 }

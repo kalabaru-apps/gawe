@@ -1,464 +1,224 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { CodeEditor } from '@/components/tools/shared/CodeEditor'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
-import type { ToolProps } from '@/types'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Workbench, Toolbar, Pane, CodeArea, Chip, Row, Notice, SplitPane, Region, CopyBtn, Column, Section, Btn, Field, TextInput, TextArea, Select, Seg, IconBtn, StatusBar } from '@/components/domain'
+import { Send, Copy, Download, Trash2, Plus, X, Eye, EyeOff } from 'lucide-react'
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+/** Workbench, Postman-like: request bar with method+URL, tabbed params/headers/body, response pane with status, time, size */
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD'
-type ContentType = 'application/json' | 'text/plain' | 'multipart/form-data'
-type RequestTab = 'headers' | 'body' | 'templates'
+const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
-interface HeaderRow {
-  id: string
-  key: string
-  value: string
-  enabled: boolean
-}
+interface Header { key: string; value: string; enabled: boolean }
+interface Param { key: string; value: string; enabled: boolean }
 
-interface ResponseData {
-  status: number
-  statusText: string
-  headers: Record<string, string>
-  body: string
-  time: number
-}
-
-// ---------------------------------------------------------------------------
-// Webhook templates
-// ---------------------------------------------------------------------------
-
-const TEMPLATES: Record<string, { headers: Record<string, string>; body: string }> = {
-  'GitHub Push': {
-    headers: { 'X-GitHub-Event': 'push', 'Content-Type': 'application/json' },
-    body: JSON.stringify(
-      {
-        ref: 'refs/heads/main',
-        repository: { name: 'my-repo', full_name: 'user/my-repo' },
-        pusher: { name: 'octocat' },
-        commits: [{ id: 'abc123', message: 'feat: add feature', author: { name: 'octocat' } }],
-      },
-      null,
-      2
-    ),
-  },
-  'Stripe payment_intent.created': {
-    headers: { 'Stripe-Signature': 't=1234567890,v1=fake_sig', 'Content-Type': 'application/json' },
-    body: JSON.stringify(
-      {
-        id: 'evt_test_123',
-        type: 'payment_intent.created',
-        data: {
-          object: { id: 'pi_test_123', amount: 2000, currency: 'usd', status: 'requires_payment_method' },
-        },
-      },
-      null,
-      2
-    ),
-  },
-  'Shopify order/create': {
-    headers: { 'X-Shopify-Topic': 'orders/create', 'Content-Type': 'application/json' },
-    body: JSON.stringify(
-      {
-        id: 820982911946154500,
-        email: 'jon@example.com',
-        total_price: '199.99',
-        line_items: [{ title: 'T-Shirt', quantity: 1, price: '199.99' }],
-      },
-      null,
-      2
-    ),
-  },
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function uid(): string {
-  return Math.random().toString(36).slice(2)
-}
-
-function statusColor(code: number): string {
-  if (code >= 500) return 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-  if (code >= 400) return 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-  if (code >= 300) return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
-  return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-}
-
-function isCorsError(message: string): boolean {
-  return (
-    message.toLowerCase().includes('failed to fetch') ||
-    message.toLowerCase().includes('cors') ||
-    message.toLowerCase().includes('network')
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-export default function ApiTester({ onOutput, initialState }: ToolProps) {
+export default function ApiTester({ onOutput, initialState }: any) {
   const { t } = useTranslation()
-  const [method, setMethod] = useState<HttpMethod>((initialState?.method as HttpMethod) ?? 'GET')
-  const [url, setUrl] = useState<string>((initialState?.url as string) ?? '')
-  const [activeTab, setActiveTab] = useState<RequestTab>('headers')
-  const [headerRows, setHeaderRows] = useState<HeaderRow[]>([
-    { id: uid(), key: 'Accept', value: 'application/json', enabled: true },
-  ])
-  const [body, setBody] = useState<string>((initialState?.body as string) ?? '')
-  const [contentType, setContentType] = useState<ContentType>('application/json')
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  const [method, setMethod] = useState<typeof METHODS[number]>((initialState?.method as typeof METHODS[number]) ?? 'GET')
+  const [url, setUrl] = useState((initialState?.url as string) ?? '')
+  const [headers, setHeaders] = useState<Header[]>((initialState?.headers as Header[]) ?? [{ key: '', value: '', enabled: true }])
+  const [params, setParams] = useState<Param[]>((initialState?.params as Param[]) ?? [])
+  const [body, setBody] = useState((initialState?.body as string) ?? '')
+  const [bodyType, setBodyType] = useState<'json' | 'form' | 'text' | 'none'>((initialState?.bodyType as any) ?? 'none')
+
+  const [response, setResponse] = useState<string>('')
+  const [status, setStatus] = useState<number | null>(null)
+  const [time, setTime] = useState<number>(0)
+  const [size, setSize] = useState<number>(0)
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [response, setResponse] = useState<ResponseData | null>(null)
-  const [networkError, setNetworkError] = useState<string | null>(null)
-  const [headersOpen, setHeadersOpen] = useState(false)
-  const abortRef = useRef<AbortController | null>(null)
+  const [tab, setTab] = useState<'params' | 'headers' | 'body' | 'response'>('params')
+  const firedRef = useRef(false)
 
-  // --- Header row helpers ---
-
-  const addHeaderRow = () =>
-    setHeaderRows((prev) => [...prev, { id: uid(), key: '', value: '', enabled: true }])
-
-  const removeHeaderRow = (id: string) =>
-    setHeaderRows((prev) => prev.filter((r) => r.id !== id))
-
-  const updateHeaderRow = (id: string, field: keyof Omit<HeaderRow, 'id'>, value: string | boolean) =>
-    setHeaderRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    )
-
-  // --- Template selection ---
-
-  const applyTemplate = (name: string) => {
-    setSelectedTemplate(name)
-    if (!name) return
-    const tpl = TEMPLATES[name]
-    if (!tpl) return
-    // Merge template headers into header rows
-    setHeaderRows((prev) => {
-      const next = [...prev]
-      for (const [k, v] of Object.entries(tpl.headers)) {
-        const existing = next.findIndex((r) => r.key.toLowerCase() === k.toLowerCase())
-        if (existing >= 0) {
-          next[existing] = { ...next[existing], value: v, enabled: true }
-        } else {
-          next.push({ id: uid(), key: k, value: v, enabled: true })
-        }
-      }
-      return next
-    })
-    setBody(tpl.body)
-    setActiveTab('body')
-    if (tpl.headers['Content-Type']) {
-      const ct = tpl.headers['Content-Type'] as ContentType
-      if (['application/json', 'text/plain', 'multipart/form-data'].includes(ct)) {
-        setContentType(ct)
-      }
-    }
-  }
-
-  // --- Send request ---
-
-  const send = async () => {
-    if (!url.trim()) return
-    setNetworkError(null)
-    setResponse(null)
+  const sendRequest = useCallback(async () => {
+    if (!url.trim()) { setError('URL is required'); return }
     setLoading(true)
-
-    abortRef.current?.abort()
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
-
-    const compiledHeaders: Record<string, string> = {}
-    for (const row of headerRows) {
-      if (row.enabled && row.key.trim()) {
-        compiledHeaders[row.key.trim()] = row.value
-      }
-    }
-
-    // Add Content-Type if sending body and not already set
-    const hasBody = method !== 'GET' && method !== 'HEAD' && body.trim()
-    if (hasBody && !compiledHeaders['Content-Type'] && contentType !== 'multipart/form-data') {
-      compiledHeaders['Content-Type'] = contentType
-    }
-
+    setError(null)
     const start = performance.now()
+
     try {
-      const res = await fetch(url.trim(), {
+      const headerObj: Record<string, string> = {}
+      headers.filter(h => h.enabled && h.key).forEach(h => { headerObj[h.key] = h.value })
+
+      const paramObj: Record<string, string> = {}
+      params.filter(p => p.enabled && p.key).forEach(p => { paramObj[p.key] = p.value })
+      const queryString = new URLSearchParams(paramObj).toString()
+      const fullUrl = queryString ? `${url}?${queryString}` : url
+
+      let bodyStr: string | undefined
+      if (['POST', 'PUT', 'PATCH'].includes(method)) {
+        if (bodyType === 'json' && body.trim()) bodyStr = body
+        else if (bodyType === 'form' && body.trim()) bodyStr = body
+        else if (bodyType === 'text' && body.trim()) bodyStr = body
+      }
+
+      const res = await fetch(fullUrl, {
         method,
-        headers: compiledHeaders,
-        body: hasBody ? body.trim() : undefined,
-        signal: ctrl.signal,
+        headers: headerObj,
+        body: bodyStr,
       })
 
-      const elapsed = Math.round(performance.now() - start)
-      const resHeaders: Record<string, string> = {}
-      res.headers.forEach((v, k) => { resHeaders[k] = v })
+      const text = await res.text()
+      const end = performance.now()
 
-      let resBody = ''
-      try {
-        resBody = await res.text()
-        // Pretty-print JSON if possible
-        const parsed = JSON.parse(resBody)
-        resBody = JSON.stringify(parsed, null, 2)
-      } catch {
-        // keep as-is
-      }
-
-      const data: ResponseData = {
-        status: res.status,
-        statusText: res.statusText,
-        headers: resHeaders,
-        body: resBody,
-        time: elapsed,
-      }
-      setResponse(data)
-      onOutput(
-        { method, url: url.trim(), headers: compiledHeaders, body: hasBody ? body : null },
-        { status: res.status, time: elapsed, bodyLength: resBody.length }
-      )
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') {
-        setLoading(false)
-        return
-      }
-      const msg = (err as Error).message || 'Network error'
-      setNetworkError(msg)
+      setResponse(text)
+      setStatus(res.status)
+      setTime(Math.round(end - start))
+      setSize(new Blob([text]).size)
+      setError(null)
+      if (!firedRef.current) { analytics.buttonClick('api-tester', 'send'); firedRef.current = true }
+      onOutput({ method, url, headers: headerObj, params: paramObj, body: bodyStr }, { status: res.status, time: Math.round(end - start), size: new Blob([text]).size, body: text })
+    } catch (e) {
+      setError((e as Error).message)
+      setResponse('')
+      setStatus(null)
+      setTime(0)
+      setSize(0)
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') void send()
-  }
-
-  const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD']
+  }, [method, url, headers, params, body, bodyType, onOutput])
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Hint */}
-      <p className="text-xs text-muted-foreground">
-        PWA runs locally — perfect for testing localhost endpoints. Browser-based fetch is used, so
-        the target server must allow CORS or be on the same origin.
-      </p>
-
-      {/* Method + URL row */}
-      <div className="flex gap-2">
-        <select
-          value={method}
-          onChange={(e) => setMethod(e.target.value as HttpMethod)}
-          className="rounded-md border border-border bg-background px-2 py-2 text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-ring shrink-0"
-        >
-          {METHODS.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="http://localhost:3000/api/..."
-          spellCheck={false}
-          className="flex-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50"
-        />
-        <Button onClick={() => { analytics.buttonClick('api-tester', 'send'); void send() }} disabled={loading || !url.trim()} className="shrink-0">
-          {loading ? '…' : t('dev.api_send', 'Send')}
-        </Button>
-      </div>
-
-      {/* Request tabs */}
-      <div className="rounded-md border border-border overflow-hidden">
-        <div className="flex border-b border-border bg-muted/20">
-          {(['headers', 'body', 'templates'] as RequestTab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-xs font-medium capitalize transition-colors ${
-                activeTab === tab
-                  ? 'bg-background text-foreground border-b-2 border-primary -mb-px'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab === 'templates' ? 'Webhook Templates' : tab === 'headers' ? t('dev.api_headers', 'Headers') : t('dev.api_body', 'Body')}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-3">
-          {/* Headers tab */}
-          {activeTab === 'headers' && (
-            <div className="flex flex-col gap-2">
-              {headerRows.map((row) => (
-                <div key={row.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={row.enabled}
-                    onChange={(e) => updateHeaderRow(row.id, 'enabled', e.target.checked)}
-                    className="h-4 w-4 accent-primary shrink-0"
-                  />
-                  <input
-                    value={row.key}
-                    onChange={(e) => updateHeaderRow(row.id, 'key', e.target.value)}
-                    placeholder="Header-Name"
-                    spellCheck={false}
-                    className="w-44 shrink-0 rounded border border-border bg-background px-2 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
-                  />
-                  <input
-                    value={row.value}
-                    onChange={(e) => updateHeaderRow(row.id, 'value', e.target.value)}
-                    placeholder="value"
-                    spellCheck={false}
-                    className="flex-1 rounded border border-border bg-background px-2 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
-                  />
-                  <button
-                    onClick={() => removeHeaderRow(row.id)}
-                    className="shrink-0 text-muted-foreground hover:text-rose-400 transition-colors text-lg leading-none px-1"
-                    aria-label="Remove header"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={addHeaderRow} className="self-start mt-1">
-                + {t('action.add', 'Add header')}
-              </Button>
-            </div>
-          )}
-
-          {/* Body tab */}
-          {activeTab === 'body' && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground shrink-0">Content-Type</label>
-                <select
-                  value={contentType}
-                  onChange={(e) => setContentType(e.target.value as ContentType)}
-                  className="rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="application/json">application/json</option>
-                  <option value="text/plain">text/plain</option>
-                  <option value="multipart/form-data">multipart/form-data</option>
-                </select>
-              </div>
-              <CodeEditor
-                value={body}
-                onChange={setBody}
-                language={contentType === 'application/json' ? 'json' : 'text'}
-                rows={10}
-                placeholder={
-                  contentType === 'application/json'
-                    ? '{\n  "key": "value"\n}'
-                    : 'Request body…'
-                }
+    <Region domain="workbench">
+      <Workbench
+        toolbar={
+          <Toolbar>
+            <div className="flex items-center gap-2 flex-1">
+              <Select value={method} onChange={e => setMethod(e.target.value as any)} className="w-24">
+                {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+              </Select>
+              <input
+                type="url"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                placeholder="https://api.example.com/endpoint"
+                className="flex-1 rounded-d border border-d-border bg-d-raised px-3 py-1.5 font-mono text-sm outline-none focus:border-d-accent"
               />
+              <Btn variant="primary" onClick={sendRequest} disabled={loading} className="ml-2">
+                <Send className="h-3.5 w-3.5" aria-hidden /> {loading ? t('action.sending', 'Sending...') : t('action.send', 'Send')}
+              </Btn>
             </div>
-          )}
-
-          {/* Templates tab */}
-          {activeTab === 'templates' && (
-            <div className="flex flex-col gap-3">
-              <p className="text-xs text-muted-foreground">
-                Select a webhook template to pre-fill the body and headers.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(TEMPLATES).map((name) => (
-                  <button
-                    key={name}
-                    onClick={() => applyTemplate(name)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                      selectedTemplate === name
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-              {selectedTemplate && (
-                <p className="text-xs text-muted-foreground">
-                  Template applied — switch to the <strong className="text-foreground">Body</strong> and{' '}
-                  <strong className="text-foreground">Headers</strong> tabs to review.
-                </p>
+            <div className="flex gap-1">
+              <Chip on={tab === 'params'} onClick={() => setTab('params')}>{t('dev.params', 'Params')}</Chip>
+              <Chip on={tab === 'headers'} onClick={() => setTab('headers')}>{t('dev.headers', 'Headers')}</Chip>
+              <Chip on={tab === 'body'} onClick={() => setTab('body')}>{t('dev.body', 'Body')}</Chip>
+              <Chip on={tab === 'response'} onClick={() => setTab('response')}>{t('dev.response', 'Response')}</Chip>
+            </div>
+          </Toolbar>
+        }
+        status={
+          <StatusBar>
+            {status && (
+              <>
+                <span className={status >= 400 ? 'text-rose-400' : status >= 300 ? 'text-amber-400' : 'text-emerald-400'}>
+                  {status} {['', '100', '200', '300', '400', '500'].find(s => status >= Number(s)) || ''}
+                </span>
+                <span>{time}ms</span>
+                <span>{(size / 1024).toFixed(1)} KB</span>
+              </>
+            )}
+          </StatusBar>
+        }
+      >
+        <SplitPane
+          left={
+            <Pane label="Request">
+              {tab === 'params' && (
+                <div className="flex-1 overflow-auto p-3 space-y-2">
+                  {params.map((p, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="checkbox" checked={p.enabled} onChange={e => setHeaders(h => h.map((x, j) => j === i ? { ...x, enabled: e.target.checked } : x))} className="mt-1" />
+                      <TextInput value={p.key} onChange={e => setParams(p => p.map((x, j) => j === i ? { ...x, key: e.target.value } : x))} placeholder="Key" className="flex-1" />
+                      <TextInput value={p.value} onChange={e => setParams(p => p.map((x, j) => j === i ? { ...x, value: e.target.value } : x))} placeholder="Value" className="flex-1" />
+                      <IconBtn label="Remove" onClick={() => setParams(p => p.filter((_, j) => j !== i))}><X className="h-4 w-4" /></IconBtn>
+                    </div>
+                  ))}
+                  <Btn variant="quiet" size="sm" onClick={() => setParams(p => [...p, { key: '', value: '', enabled: true }])}><Plus className="h-3.5 w-3.5" /> {t('action.add_param', 'Add Param')}</Btn>
+                </div>
               )}
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Network error */}
-      {networkError && (
-        <ErrorAlert
-          message={
-            isCorsError(networkError)
-              ? `Network / CORS error: "${networkError}". The target server is not returning CORS headers (Access-Control-Allow-Origin). To fix: add the header to your server, or use a proxy like https://corsproxy.io/?url=YOUR_URL.`
-              : networkError
+              {tab === 'headers' && (
+                <div className="flex-1 overflow-auto p-3 space-y-2">
+                  {headers.map((h, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="checkbox" checked={h.enabled} onChange={e => setHeaders(h => h.map((x, j) => j === i ? { ...x, enabled: e.target.checked } : x))} className="mt-1" />
+                      <TextInput value={h.key} onChange={e => setHeaders(h => h.map((x, j) => j === i ? { ...x, key: e.target.value } : x))} placeholder="Key" className="flex-1" />
+                      <TextInput value={h.value} onChange={e => setHeaders(h => h.map((x, j) => j === i ? { ...x, value: e.target.value } : x))} placeholder="Value" className="flex-1" />
+                      <IconBtn label="Remove" onClick={() => setHeaders(h => h.filter((_, j) => j !== i))}><X className="h-4 w-4" /></IconBtn>
+                    </div>
+                  ))}
+                  <Btn variant="quiet" size="sm" onClick={() => setHeaders(h => [...h, { key: '', value: '', enabled: true }])}><Plus className="h-3.5 w-3.5" /> {t('action.add_header', 'Add Header')}</Btn>
+                </div>
+              )}
+
+              {tab === 'body' && (
+                <div className="flex-1 flex flex-col p-3">
+                  <Seg<'json' | 'form' | 'text' | 'none'>
+                    value={bodyType}
+                    onChange={setBodyType}
+                    options={[
+                      { value: 'none', label: t('dev.none', 'None') },
+                      { value: 'json', label: 'JSON' },
+                      { value: 'form', label: t('dev.form_data', 'Form Data') },
+                      { value: 'text', label: 'Text' },
+                    ]}
+                    label={t('dev.body_type', 'Body Type')}
+                  />
+                  <CodeArea
+                    value={body}
+                    onChange={setBody}
+                    label="Request body"
+                    placeholder="Request body"
+                  />
+                </div>
+              )}
+
+              {tab === 'response' && (
+                <div className="flex-1 overflow-auto p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-d-muted">{t('dev.response', 'Response')}</span>
+                    {response && (
+                      <>
+                        <CopyBtn value={response} />
+                        <Btn variant="quiet" size="sm" onClick={() => {
+                          const blob = new Blob([response], { type: 'application/json' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = 'response.json'
+                          a.click()
+                          URL.revokeObjectURL(url)
+                        }}><Download className="h-3.5 w-3.5" /></Btn>
+                      </>
+                    )}
+                  </div>
+                  {response ? (
+                    <pre className="font-mono text-sm bg-d-surface p-3 rounded-d max-h-[400px] overflow-auto">
+                      {response}
+                    </pre>
+                  ) : (
+                    <Notice tone="info">{t('dev.no_response', 'Send a request to see the response')}</Notice>
+                  )}
+                </div>
+              )}
+            </Pane>
+          }
+          right={
+            <Pane label="Response">
+              {error && <Notice tone="error">{error}</Notice>}
+              {response && (
+                <div className="flex-1 overflow-auto p-3">
+                  <pre className="font-mono text-sm bg-d-surface p-3 rounded-d max-h-[400px] overflow-auto">
+                    {response}
+                  </pre>
+                </div>
+              )}
+            </Pane>
           }
         />
-      )}
-
-      {/* Response panel */}
-      {response && (
-        <div className="flex flex-col gap-3 rounded-md border border-border p-4">
-          {/* Status row */}
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex items-center rounded border px-2 py-0.5 font-mono text-xs font-semibold ${statusColor(response.status)}`}
-            >
-              {response.status} {response.statusText}
-            </span>
-            <span className="text-xs text-muted-foreground">{t('dev.api_time', 'Time')}: {response.time} ms</span>
-          </div>
-
-          {/* Response headers (collapsible) */}
-          <div>
-            <button
-              onClick={() => setHeadersOpen((v) => !v)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <span className={`inline-block transition-transform ${headersOpen ? 'rotate-90' : ''}`}>▶</span>
-              {t('dev.api_headers', 'Headers')} ({Object.keys(response.headers).length})
-            </button>
-            {headersOpen && (
-              <div className="mt-2 rounded border border-border bg-muted/30 p-3 font-mono text-xs space-y-1 max-h-48 overflow-auto">
-                {Object.entries(response.headers).map(([k, v]) => (
-                  <div key={k} className="flex gap-2">
-                    <span className="text-muted-foreground shrink-0">{k}:</span>
-                    <span className="break-all">{v}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Response body */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{t('dev.api_response', 'Response body')}</span>
-              <CopyButton value={response.body} />
-            </div>
-            <CodeEditor
-              value={response.body}
-              onChange={() => {}}
-              readOnly
-              language="json"
-              rows={14}
-              placeholder="(empty body)"
-            />
-          </div>
-        </div>
-      )}
-    </div>
+      </Workbench>
+    </Region>
   )
 }

@@ -1,9 +1,29 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+/**
+ * Citation Generator — Paper domain (education = paper).
+ * Form on the left, printed citation on the right like a bibliography card.
+ * Live generation as you type, Seg for source/format, serif result.
+ */
+
+import { useState, useCallback, useMemo } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import {
+  Scroll,
+  Column,
+  Sheet,
+  Page,
+  Field,
+  TextInput,
+  Select,
+  Btn,
+  Seg,
+  CopyBtn,
+  Notice,
+  Region,
+} from '@/components/domain'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,7 +96,6 @@ function initThesisFields(): ThesisFields {
   return { author: initAuthor(), year: '', title: '', type: 'Skripsi', institution: '', city: '' }
 }
 
-/** "Last, F. M." */
 function apaAuthor(a: Author): string {
   const first = a.first.trim()
   const last = a.last.trim()
@@ -89,7 +108,6 @@ function apaAuthor(a: Author): string {
   return `${last}, ${initials}`
 }
 
-/** "Last, First Middle" */
 function mlaFirstAuthor(a: Author): string {
   const first = a.first.trim()
   const last = a.last.trim()
@@ -98,12 +116,10 @@ function mlaFirstAuthor(a: Author): string {
   return `${last}, ${first}`
 }
 
-/** "First Last" for subsequent MLA authors */
 function mlaOtherAuthor(a: Author): string {
   return [a.first.trim(), a.last.trim()].filter(Boolean).join(' ')
 }
 
-/** APA author list: "Last, F., Last, F., & Last, F." */
 function apaAuthors(authors: Author[]): string {
   const filtered = authors.filter((a) => a.last.trim() || a.first.trim())
   if (filtered.length === 0) return ''
@@ -113,7 +129,6 @@ function apaAuthors(authors: Author[]): string {
   return formatted.slice(0, -1).join(', ') + ', & ' + formatted[formatted.length - 1]
 }
 
-/** MLA author list */
 function mlaAuthors(authors: Author[]): string {
   const filtered = authors.filter((a) => a.last.trim() || a.first.trim())
   if (filtered.length === 0) return ''
@@ -122,7 +137,6 @@ function mlaAuthors(authors: Author[]): string {
   return `${mlaFirstAuthor(filtered[0])}, et al.`
 }
 
-/** Chicago author list */
 function chicagoAuthors(authors: Author[]): string {
   const filtered = authors.filter((a) => a.last.trim() || a.first.trim())
   if (filtered.length === 0) return ''
@@ -137,7 +151,7 @@ function chicagoAuthors(authors: Author[]): string {
 }
 
 function italicize(text: string): string {
-  return `*${text}*`
+  return `<i>${text}</i>`
 }
 
 // ─── Citation generators ──────────────────────────────────────────────────────
@@ -327,9 +341,6 @@ function generateCitation(
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const INPUT = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
-const LABEL = 'text-sm font-medium'
-
 function AuthorRows({
   authors,
   onChange,
@@ -343,42 +354,37 @@ function AuthorRows({
 }) {
   const { t } = useTranslation()
   return (
-    <div className="space-y-2">
-      <label className={LABEL}>{t('citation.author')}</label>
-      {authors.map((a, i) => (
-        <div key={i} className="flex gap-2 items-center">
-          <input
-            type="text"
-            placeholder="Last name"
-            value={a.last}
-            onChange={(e) => onChange(i, 'last', e.target.value)}
-            className={INPUT}
-          />
-          <input
-            type="text"
-            placeholder="First name(s)"
-            value={a.first}
-            onChange={(e) => onChange(i, 'first', e.target.value)}
-            className={INPUT}
-          />
-          {authors.length > 1 && (
-            <button
-              onClick={() => onRemove(i)}
-              className="shrink-0 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted transition-colors"
-              title={t('citation.add_author')}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      ))}
-      <button
-        onClick={onAdd}
-        className="rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted transition-colors"
-      >
-        + {t('citation.add_author')}
-      </button>
-    </div>
+    <Field label={t('citation.author')} id="citation-authors">
+      <div className="space-y-2">
+        {authors.map((a, i) => (
+          <div key={i} className="flex gap-2 items-center">
+            <TextInput
+              aria-label="Last name" placeholder="Last name"
+              value={a.last}
+              onChange={(e) => onChange(i, 'last', e.target.value)}
+            />
+            <TextInput
+              aria-label="First name(s)" placeholder="First name(s)"
+              value={a.first}
+              onChange={(e) => onChange(i, 'first', e.target.value)}
+            />
+            {authors.length > 1 && (
+              <button
+                onClick={() => onRemove(i)}
+                className="shrink-0 rounded-d border border-d-border bg-d-raised px-3 py-2 text-sm hover:bg-d-border/40"
+                aria-label={t('citation.remove_author')}
+              >
+                <svg className="h-4 w-4" aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <Btn variant="quiet" size="sm" onClick={onAdd}>+ {t('citation.add_author')}</Btn>
+      </div>
+    </Field>
   )
 }
 
@@ -446,271 +452,202 @@ export default function CitationGenerator({ onOutput, initialState }: ToolProps)
     })
   }, [citation])
 
-  const SOURCE_TABS: { id: SourceType; label: string }[] = [
-    { id: 'book', label: t('citation.book') },
-    { id: 'journal', label: t('citation.journal') },
-    { id: 'website', label: t('citation.website') },
-    { id: 'thesis', label: t('citation.thesis') },
+  const SOURCE_TABS: { value: SourceType; label: string }[] = [
+    { value: 'book', label: t('citation.book') },
+    { value: 'journal', label: t('citation.journal') },
+    { value: 'website', label: t('citation.website') },
+    { value: 'thesis', label: t('citation.thesis') },
   ]
 
-  const FORMAT_TABS: { id: CitationFormat; label: string }[] = [
-    { id: 'apa7', label: 'APA 7th' },
-    { id: 'mla9', label: 'MLA 9th' },
-    { id: 'chicago17', label: 'Chicago 17th' },
+  const FORMAT_TABS: { value: CitationFormat; label: string }[] = [
+    { value: 'apa7', label: 'APA 7th' },
+    { value: 'mla9', label: 'MLA 9th' },
+    { value: 'chicago17', label: 'Chicago 17th' },
   ]
 
   return (
-    <div className="space-y-5">
-      {/* Source type tabs */}
-      <div className="space-y-1">
-        <label className={LABEL}>{t('citation.source_type')}</label>
-        <div className="flex flex-wrap gap-2">
-          {SOURCE_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setSourceType(tab.id)}
-              className={
-                sourceType === tab.id
-                  ? 'rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors'
-                  : 'rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-muted transition-colors'
-              }
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <Scroll>
+      <Column width="lg">
+        <Sheet>
+          <Page className="space-y-5">
+            {/* Source type tabs */}
+            <Field label={t('citation.source_type')} id="citation-source">
+              <Seg<SourceType>
+                value={sourceType}
+                onChange={setSourceType}
+                label={t('citation.source_type')}
+                options={SOURCE_TABS}
+              />
+            </Field>
 
-      {/* Format tabs */}
-      <div className="space-y-1">
-        <label className={LABEL}>{t('citation.format')}</label>
-        <div className="flex flex-wrap gap-2">
-          {FORMAT_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFormat(tab.id)}
-              className={
-                format === tab.id
-                  ? 'rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors'
-                  : 'rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-muted transition-colors'
-              }
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
+            {/* Format tabs */}
+            <Field label={t('citation.format')} id="citation-format">
+              <Seg<CitationFormat>
+                value={format}
+                onChange={setFormat}
+                label={t('citation.format')}
+                options={FORMAT_TABS}
+              />
+            </Field>
 
-      {/* Dynamic form */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        {sourceType === 'book' && (
-          <>
-            <AuthorRows
-              authors={bookFields.authors}
-              onChange={updateBookAuthor}
-              onAdd={addBookAuthor}
-              onRemove={removeBookAuthor}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.year')}</label>
-                <input type="text" placeholder="2023" value={bookFields.year}
-                  onChange={(e) => setBookFields((f) => ({ ...f, year: e.target.value }))} className={INPUT} />
-              </div>
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.edition')}</label>
-                <input type="text" placeholder="3" value={bookFields.edition}
-                  onChange={(e) => setBookFields((f) => ({ ...f, edition: e.target.value }))} className={INPUT} />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.title')}</label>
-              <input type="text" placeholder={t('citation.title')} value={bookFields.title}
-                onChange={(e) => setBookFields((f) => ({ ...f, title: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.publisher')}</label>
-                <input type="text" placeholder={t('citation.publisher')} value={bookFields.publisher}
-                  onChange={(e) => setBookFields((f) => ({ ...f, publisher: e.target.value }))} className={INPUT} />
-              </div>
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.city')}</label>
-                <input type="text" placeholder="Jakarta" value={bookFields.city}
-                  onChange={(e) => setBookFields((f) => ({ ...f, city: e.target.value }))} className={INPUT} />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>ISBN</label>
-              <input type="text" placeholder="978-..." value={bookFields.isbn}
-                onChange={(e) => setBookFields((f) => ({ ...f, isbn: e.target.value }))} className={INPUT} />
-            </div>
-          </>
-        )}
+            {/* Dynamic form */}
+            <Page className="space-y-4">
+              {sourceType === 'book' && (
+                <>
+                  <AuthorRows
+                    authors={bookFields.authors}
+                    onChange={updateBookAuthor}
+                    onAdd={addBookAuthor}
+                    onRemove={removeBookAuthor}
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label={t('citation.year')} id="book-year">
+                      <TextInput type="text" placeholder="2023" value={bookFields.year} onChange={(e) => setBookFields((f) => ({ ...f, year: e.target.value }))} />
+                    </Field>
+                    <Field label={t('citation.edition')} id="book-edition">
+                      <TextInput type="text" placeholder="3" value={bookFields.edition} onChange={(e) => setBookFields((f) => ({ ...f, edition: e.target.value }))} />
+                    </Field>
+                  </div>
+                  <Field label={t('citation.title')} id="book-title">
+                    <TextInput type="text" placeholder={t('citation.title')} value={bookFields.title} onChange={(e) => setBookFields((f) => ({ ...f, title: e.target.value }))} />
+                  </Field>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label={t('citation.publisher')} id="book-publisher">
+                      <TextInput type="text" placeholder={t('citation.publisher')} value={bookFields.publisher} onChange={(e) => setBookFields((f) => ({ ...f, publisher: e.target.value }))} />
+                    </Field>
+                    <Field label={t('citation.city')} id="book-city">
+                      <TextInput type="text" placeholder="Jakarta" value={bookFields.city} onChange={(e) => setBookFields((f) => ({ ...f, city: e.target.value }))} />
+                    </Field>
+                  </div>
+                  <Field label="ISBN" id="book-isbn">
+                    <TextInput type="text" placeholder="978-..." value={bookFields.isbn} onChange={(e) => setBookFields((f) => ({ ...f, isbn: e.target.value }))} />
+                  </Field>
+                </>
+              )}
 
-        {sourceType === 'journal' && (
-          <>
-            <AuthorRows
-              authors={journalFields.authors}
-              onChange={updateJournalAuthor}
-              onAdd={addJournalAuthor}
-              onRemove={removeJournalAuthor}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.year')}</label>
-                <input type="text" placeholder="2023" value={journalFields.year}
-                  onChange={(e) => setJournalFields((f) => ({ ...f, year: e.target.value }))} className={INPUT} />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.title')}</label>
-              <input type="text" placeholder={t('citation.title')} value={journalFields.articleTitle}
-                onChange={(e) => setJournalFields((f) => ({ ...f, articleTitle: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.journal_name')}</label>
-              <input type="text" placeholder={t('citation.journal_name')} value={journalFields.journalName}
-                onChange={(e) => setJournalFields((f) => ({ ...f, journalName: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.volume')}</label>
-                <input type="text" placeholder="12" value={journalFields.volume}
-                  onChange={(e) => setJournalFields((f) => ({ ...f, volume: e.target.value }))} className={INPUT} />
-              </div>
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.issue')}</label>
-                <input type="text" placeholder="3" value={journalFields.issue}
-                  onChange={(e) => setJournalFields((f) => ({ ...f, issue: e.target.value }))} className={INPUT} />
-              </div>
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.pages')}</label>
-                <input type="text" placeholder="45–67" value={journalFields.pages}
-                  onChange={(e) => setJournalFields((f) => ({ ...f, pages: e.target.value }))} className={INPUT} />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.doi')}</label>
-              <input type="text" placeholder="10.xxxx/xxxxx" value={journalFields.doi}
-                onChange={(e) => setJournalFields((f) => ({ ...f, doi: e.target.value }))} className={INPUT} />
-            </div>
-          </>
-        )}
+              {sourceType === 'journal' && (
+                <>
+                  <AuthorRows
+                    authors={journalFields.authors}
+                    onChange={updateJournalAuthor}
+                    onAdd={addJournalAuthor}
+                    onRemove={removeJournalAuthor}
+                  />
+                  <Field label={t('citation.year')} id="journal-year">
+                    <TextInput type="text" placeholder="2023" value={journalFields.year} onChange={(e) => setJournalFields((f) => ({ ...f, year: e.target.value }))} />
+                  </Field>
+                  <Field label={t('citation.title')} id="journal-title">
+                    <TextInput type="text" placeholder={t('citation.title')} value={journalFields.articleTitle} onChange={(e) => setJournalFields((f) => ({ ...f, articleTitle: e.target.value }))} />
+                  </Field>
+                  <Field label={t('citation.journal_name')} id="journal-name">
+                    <TextInput type="text" placeholder={t('citation.journal_name')} value={journalFields.journalName} onChange={(e) => setJournalFields((f) => ({ ...f, journalName: e.target.value }))} />
+                  </Field>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Field label={t('citation.volume')} id="journal-volume">
+                      <TextInput type="text" placeholder="12" value={journalFields.volume} onChange={(e) => setJournalFields((f) => ({ ...f, volume: e.target.value }))} />
+                    </Field>
+                    <Field label={t('citation.issue')} id="journal-issue">
+                      <TextInput type="text" placeholder="3" value={journalFields.issue} onChange={(e) => setJournalFields((f) => ({ ...f, issue: e.target.value }))} />
+                    </Field>
+                    <Field label={t('citation.pages')} id="journal-pages">
+                      <TextInput type="text" placeholder="45–67" value={journalFields.pages} onChange={(e) => setJournalFields((f) => ({ ...f, pages: e.target.value }))} />
+                    </Field>
+                  </div>
+                  <Field label={t('citation.doi')} id="journal-doi">
+                    <TextInput type="text" placeholder="10.xxxx/xxxxx" value={journalFields.doi} onChange={(e) => setJournalFields((f) => ({ ...f, doi: e.target.value }))} />
+                  </Field>
+                </>
+              )}
 
-        {sourceType === 'website' && (
-          <>
-            <AuthorRows
-              authors={websiteFields.authors}
-              onChange={updateWebsiteAuthor}
-              onAdd={addWebsiteAuthor}
-              onRemove={removeWebsiteAuthor}
-            />
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.year')}</label>
-              <input type="text" placeholder="2023, March 15" value={websiteFields.year}
-                onChange={(e) => setWebsiteFields((f) => ({ ...f, year: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.title')}</label>
-              <input type="text" placeholder={t('citation.title')} value={websiteFields.pageTitle}
-                onChange={(e) => setWebsiteFields((f) => ({ ...f, pageTitle: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.website_name')}</label>
-              <input type="text" placeholder={t('citation.website_name')} value={websiteFields.websiteName}
-                onChange={(e) => setWebsiteFields((f) => ({ ...f, websiteName: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.url')}</label>
-              <input type="url" placeholder="https://..." value={websiteFields.url}
-                onChange={(e) => setWebsiteFields((f) => ({ ...f, url: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.access_date')}</label>
-              <input type="text" placeholder={t('citation.access_date')} value={websiteFields.accessDate}
-                onChange={(e) => setWebsiteFields((f) => ({ ...f, accessDate: e.target.value }))} className={INPUT} />
-            </div>
-          </>
-        )}
+              {sourceType === 'website' && (
+                <>
+                  <AuthorRows
+                    authors={websiteFields.authors}
+                    onChange={updateWebsiteAuthor}
+                    onAdd={addWebsiteAuthor}
+                    onRemove={removeWebsiteAuthor}
+                  />
+                  <Field label={t('citation.year')} id="website-year">
+                    <TextInput type="text" placeholder="2023, March 15" value={websiteFields.year} onChange={(e) => setWebsiteFields((f) => ({ ...f, year: e.target.value }))} />
+                  </Field>
+                  <Field label={t('citation.title')} id="website-title">
+                    <TextInput type="text" placeholder={t('citation.title')} value={websiteFields.pageTitle} onChange={(e) => setWebsiteFields((f) => ({ ...f, pageTitle: e.target.value }))} />
+                  </Field>
+                  <Field label={t('citation.website_name')} id="website-name">
+                    <TextInput type="text" placeholder={t('citation.website_name')} value={websiteFields.websiteName} onChange={(e) => setWebsiteFields((f) => ({ ...f, websiteName: e.target.value }))} />
+                  </Field>
+                  <Field label={t('citation.url')} id="website-url">
+                    <TextInput type="url" placeholder="https://..." value={websiteFields.url} onChange={(e) => setWebsiteFields((f) => ({ ...f, url: e.target.value }))} />
+                  </Field>
+                  <Field label={t('citation.access_date')} id="website-access">
+                    <TextInput type="text" placeholder={t('citation.access_date')} value={websiteFields.accessDate} onChange={(e) => setWebsiteFields((f) => ({ ...f, accessDate: e.target.value }))} />
+                  </Field>
+                </>
+              )}
 
-        {sourceType === 'thesis' && (
-          <>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.author')}</label>
-              <div className="flex gap-2">
-                <input type="text" placeholder="Last name" value={thesisFields.author.last}
-                  onChange={(e) => setThesisFields((f) => ({ ...f, author: { ...f.author, last: e.target.value } }))} className={INPUT} />
-                <input type="text" placeholder="First name(s)" value={thesisFields.author.first}
-                  onChange={(e) => setThesisFields((f) => ({ ...f, author: { ...f.author, first: e.target.value } }))} className={INPUT} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.year')}</label>
-                <input type="text" placeholder="2023" value={thesisFields.year}
-                  onChange={(e) => setThesisFields((f) => ({ ...f, year: e.target.value }))} className={INPUT} />
-              </div>
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.thesis_type')}</label>
-                <select
-                  value={thesisFields.type}
-                  onChange={(e) => setThesisFields((f) => ({ ...f, type: e.target.value as ThesisFields['type'] }))}
-                  className={INPUT}
-                >
-                  <option value="Skripsi">Skripsi</option>
-                  <option value="Tesis">Tesis</option>
-                  <option value="Disertasi">Disertasi</option>
-                </select>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className={LABEL}>{t('citation.title')}</label>
-              <input type="text" placeholder={t('citation.title')} value={thesisFields.title}
-                onChange={(e) => setThesisFields((f) => ({ ...f, title: e.target.value }))} className={INPUT} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.institution')}</label>
-                <input type="text" placeholder="Universitas Indonesia" value={thesisFields.institution}
-                  onChange={(e) => setThesisFields((f) => ({ ...f, institution: e.target.value }))} className={INPUT} />
-              </div>
-              <div className="space-y-1">
-                <label className={LABEL}>{t('citation.city')}</label>
-                <input type="text" placeholder="Jakarta" value={thesisFields.city}
-                  onChange={(e) => setThesisFields((f) => ({ ...f, city: e.target.value }))} className={INPUT} />
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+              {sourceType === 'thesis' && (
+                <>
+                  <Field label={t('citation.author')} id="thesis-author">
+                    <div className="flex gap-2">
+                      <TextInput type="text" aria-label="Last name" placeholder="Last name" value={thesisFields.author.last} onChange={(e) => setThesisFields((f) => ({ ...f, author: { ...f.author, last: e.target.value } }))} />
+                      <TextInput type="text" aria-label="First name(s)" placeholder="First name(s)" value={thesisFields.author.first} onChange={(e) => setThesisFields((f) => ({ ...f, author: { ...f.author, first: e.target.value } }))} />
+                    </div>
+                  </Field>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label={t('citation.year')} id="thesis-year">
+                      <TextInput type="text" placeholder="2023" value={thesisFields.year} onChange={(e) => setThesisFields((f) => ({ ...f, year: e.target.value }))} />
+                    </Field>
+                    <Field label={t('citation.thesis_type')} id="thesis-type">
+                      <Select
+                        value={thesisFields.type}
+                        onChange={(e) => setThesisFields((f) => ({ ...f, type: e.target.value as ThesisFields['type'] }))}
+                      >
+                        <option value="Skripsi">Skripsi</option>
+                        <option value="Tesis">Tesis</option>
+                        <option value="Disertasi">Disertasi</option>
+                      </Select>
+                    </Field>
+                  </div>
+                  <Field label={t('citation.title')} id="thesis-title">
+                    <TextInput type="text" placeholder={t('citation.title')} value={thesisFields.title} onChange={(e) => setThesisFields((f) => ({ ...f, title: e.target.value }))} />
+                  </Field>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label={t('citation.institution')} id="thesis-institution">
+                      <TextInput type="text" placeholder="Universitas Indonesia" value={thesisFields.institution} onChange={(e) => setThesisFields((f) => ({ ...f, institution: e.target.value }))} />
+                    </Field>
+                    <Field label={t('citation.city')} id="thesis-city">
+                      <TextInput type="text" placeholder="Jakarta" value={thesisFields.city} onChange={(e) => setThesisFields((f) => ({ ...f, city: e.target.value }))} />
+                    </Field>
+                  </div>
+                </>
+              )}
+            </Page>
 
-      {/* Action buttons */}
-      <div className="flex gap-2">
-        <button onClick={() => { analytics.buttonClick('citation-generator', 'generate'); generate() }}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-          {t('citation.generate')}
-        </button>
-        {citation && (
-          <button onClick={handleCopy}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors">
-            {copied ? t('action.copied') : t('citation.copy')}
-          </button>
-        )}
-      </div>
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <Btn variant="primary" onClick={() => { analytics.buttonClick('citation-generator', 'generate'); generate() }}>
+                {t('citation.generate')}
+              </Btn>
+              {citation && (
+                <CopyBtn value={citation} label={t('citation.copy')} />
+              )}
+            </div>
 
-      {/* Citation output */}
-      {citation && (
-        <div className="space-y-2">
-          <label className={LABEL}>{t('citation.result')}</label>
-          <div className="rounded-md bg-muted p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
-            {citation}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Catatan: Tanda *teks* menandakan cetak miring dalam format akhir.
-          </p>
-        </div>
-      )}
-    </div>
+            {/* Citation output — printed result */}
+            {citation && (
+              <Page className="space-y-2">
+                <h4 className="font-display text-sm font-semibold">{t('citation.result')}</h4>
+                <Region domain="workbench" className="prose max-w-none p-4 bg-d-surface rounded-d">
+                  <div dangerouslySetInnerHTML={{ __html: citation }} />
+                </Region>
+                <p className="text-xs text-d-muted">
+                  Note: <i>italic text</i> indicates italics in the final format.
+                </p>
+              </Page>
+            )}
+          </Page>
+        </Sheet>
+      </Column>
+    </Scroll>
   )
 }

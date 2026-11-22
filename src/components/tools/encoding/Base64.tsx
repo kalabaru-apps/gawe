@@ -1,110 +1,134 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ToolPanel } from '@/components/tools/shared/ToolPanel'
-import { CodeEditor } from '@/components/tools/shared/CodeEditor'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
-import { FileDropzone } from '@/components/tools/shared/FileDropzone'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
+// Domain: workbench (live two-pane text transform); file drop reuses the same panes.
+import { useState, useMemo, useRef } from 'react'
+import { Copy, Check, FileUp, AlertCircle, CheckCircle2, ArrowLeftRight } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
+import { Workbench, Toolbar, StatusBar, SplitPane, Pane, WbButton, Segmented, CodeArea } from '@/components/domain'
 
-type Mode = 'text' | 'file'
+type Dir = 'auto' | 'encode' | 'decode'
+
+const looksBase64 = (s: string) => {
+  const c = s.replace(/\s+/g, '')
+  return c.length > 0 && c.length % 4 === 0 && /^[A-Za-z0-9+/]+=*$/.test(c)
+}
+const encode = (text: string) => {
+  const bytes = new TextEncoder().encode(text)
+  let bin = ''
+  bytes.forEach((b) => { bin += String.fromCharCode(b) })
+  return btoa(bin)
+}
+const decode = (b64: string) => {
+  const bin = atob(b64.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/'))
+  return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)))
+}
 
 export default function Base64({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
-  const [mode, setMode] = useState<Mode>((initialState?.mode as Mode) ?? 'text')
   const [input, setInput] = useState((initialState?.input as string) ?? '')
-  const [output, setOutput] = useState('')
-  const [error, setError] = useState('')
-  const [fileName, setFileName] = useState('')
+  const [dir, setDir] = useState<Dir>('auto')
+  const [file, setFile] = useState<{ name: string; b64: string } | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [over, setOver] = useState(false)
+  const picker = useRef<HTMLInputElement>(null)
 
-  const encode = () => {
+  const effective: 'encode' | 'decode' = dir === 'auto' ? (looksBase64(input) ? 'decode' : 'encode') : dir
+
+  const res = useMemo(() => {
+    if (file) return { out: file.b64, error: '' }
+    if (!input) return { out: '', error: '' }
     try {
-      const encoded = btoa(unescape(encodeURIComponent(input.trim())))
-      setOutput(encoded)
-      setError('')
-      onOutput({ input, mode: 'encode' }, { output: encoded })
+      return { out: effective === 'decode' ? decode(input) : encode(input), error: '' }
     } catch {
-      setError(t('encoding.encoding_failed', 'Encoding failed : input may contain unsupported characters'))
+      // Auto mode fell on a string that only looked like Base64: encode it instead.
+      if (dir === 'auto') return { out: encode(input), error: '' }
+      return { out: '', error: 'Not valid Base64 (or not UTF-8 text). Check for stray characters, or switch to Encode.' }
     }
+  }, [input, effective, dir, file])
+
+  const shownDir = file ? 'encode' : dir === 'auto' && !res.error && effective === 'decode' && !res.out ? 'encode' : effective
+
+  const readFile = (f?: File) => {
+    if (!f) return
+    const r = new FileReader()
+    r.onload = () => {
+      const b64 = String(r.result).split(',')[1] ?? ''
+      setFile({ name: f.name, b64 })
+      onOutput({ fileName: f.name }, { output: b64 })
+    }
+    r.readAsDataURL(f)
   }
 
-  const decode = () => {
-    try {
-      const decoded = decodeURIComponent(escape(atob(input.trim())))
-      setOutput(decoded)
-      setError('')
-      onOutput({ input, mode: 'decode' }, { output: decoded })
-    } catch {
-      setError(t('encoding.invalid_base64', 'Invalid Base64 string'))
-    }
+  const copy = async () => {
+    if (!res.out) return
+    await navigator.clipboard.writeText(res.out)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+    onOutput({ input, mode: shownDir }, { output: res.out })
   }
 
-  const handleFile = (file: File) => {
-    setFileName(file.name)
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string
-      const base64 = dataUrl.split(',')[1]
-      setOutput(base64)
-      setError('')
-      onOutput({ fileName: file.name, fileType: file.type }, { output: base64, dataUrl })
-    }
-    reader.onerror = () => {
-      setError(t('encoding.file_read_failed', 'Failed to read file'))
-    }
-    reader.readAsDataURL(file)
+  const swap = () => {
+    if (!res.out || file) return
+    setInput(res.out)
+    setDir(shownDir === 'encode' ? 'decode' : 'encode')
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-        <TabsList>
-          <TabsTrigger value="text">{t('encoding.text_tab', 'Text')}</TabsTrigger>
-          <TabsTrigger value="file">{t('encoding.file_tab', 'File / Image')}</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {mode === 'text' ? (
-        <>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => { analytics.buttonClick('base64', 'encode'); encode() }}>{t('encoding.encode_text', 'Encode →')}</Button>
-            <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('base64', 'decode'); decode() }}>{t('encoding.decode_text', '← Decode')}</Button>
-          </div>
-          {error && <ErrorAlert message={error} />}
-          <ToolPanel
-            left={<CodeEditor value={input} onChange={setInput} language={t('action.input', 'Input')} rows={12} placeholder={t('common.input_placeholder', 'Enter text to encode or Base64 to decode…')} />}
-            right={
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
-                  <CopyButton value={output} />
-                </div>
-                <CodeEditor value={output} onChange={() => {}} readOnly rows={12} />
-              </div>
-            }
+    <Workbench
+      toolbar={
+        <Toolbar>
+          <Segmented<Dir>
+            label={t('encoding.mode', 'Direction')}
+            value={dir}
+            onChange={(v) => { setDir(v); setFile(null) }}
+            options={[{ value: 'auto', label: 'Auto' }, { value: 'encode', label: 'Encode' }, { value: 'decode', label: 'Decode' }]}
           />
-        </>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <FileDropzone accept="*/*" onFile={handleFile} label={t('encoding.drop_image', 'Drop any file or image to convert to Base64')} />
-          {fileName && <p className="text-xs text-muted-foreground">File: {fileName}</p>}
-          {error && <ErrorAlert message={error} />}
-          {output && (
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('encoding.base64_output', 'Base64 output')}</span>
-                <CopyButton value={output} />
-              </div>
-              <CodeEditor value={output} onChange={() => {}} readOnly rows={10} />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+          <WbButton onClick={swap} disabled={!res.out || !!file} aria-label="Use output as input">
+            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />Swap
+          </WbButton>
+          <WbButton onClick={() => picker.current?.click()}>
+            <FileUp className="h-3.5 w-3.5" aria-hidden />{t('encoding.choose_file', 'Encode a file')}
+          </WbButton>
+          <input ref={picker} type="file" className="sr-only" aria-label="Choose file to encode" onChange={(e) => { readFile(e.target.files?.[0]); e.target.value = '' }} />
+        </Toolbar>
+      }
+      status={
+        <StatusBar>
+          {!input && !file && <span>Paste text or Base64. Direction is detected for you.</span>}
+          {(input || file) && !res.error && <span className="flex items-center gap-1 text-d-accent"><CheckCircle2 className="h-3 w-3" aria-hidden />{file ? `Encoded ${file.name}` : shownDir === 'decode' ? 'Decoded Base64' : 'Encoded to Base64'}</span>}
+          {res.error && <span role="alert" className="flex min-w-0 items-center gap-1 text-red-600 dark:text-red-400"><AlertCircle className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{res.error}</span></span>}
+          {res.out && <span className="ml-auto">{res.out.length.toLocaleString()} chars</span>}
+        </StatusBar>
+      }
+    >
+      <SplitPane
+        left={
+          <div
+            className={'flex min-h-0 flex-1 flex-col ' + (over ? 'bg-d-accent/10' : '')}
+            onDragOver={(e) => { e.preventDefault(); setOver(true) }}
+            onDragLeave={() => setOver(false)}
+            onDrop={(e) => { e.preventDefault(); setOver(false); readFile(e.dataTransfer.files[0]) }}
+          >
+            <Pane label={t('encoding.input', 'Input')}>
+              <CodeArea label="Input" value={file ? '' : input} onChange={(v) => { setFile(null); setInput(v) }} placeholder={file ? `File: ${file.name}` : 'Type or paste text or Base64, or drop a file here'} />
+            </Pane>
+          </div>
+        }
+        right={
+          <Pane
+            label={t('action.output', 'Output')}
+            actions={
+              <WbButton onClick={copy} disabled={!res.out} className="h-6">
+                {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+                {copied ? 'Copied' : 'Copy'}
+              </WbButton>
+            }
+          >
+            <CodeArea label="Output" value={res.out} readOnly placeholder="Result appears here as you type" />
+          </Pane>
+        }
+      />
+    </Workbench>
   )
 }

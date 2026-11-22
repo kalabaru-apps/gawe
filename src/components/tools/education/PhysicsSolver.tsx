@@ -1,13 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+/**
+ * Physics Solver — Paper domain (education = paper).
+ * Pick topic (Seg), fill knowns (Field + TextInput), solved unknown with formula + steps (Stat serif + Region workbench).
+ * Live solve as you type (no Solve button). Keyboard friendly.
+ */
+
+import { useState, useEffect } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import type { ToolProps } from '@/types'
+import {
+  Scroll,
+  Column,
+  Sheet,
+  Page,
+  Region,
+  Field,
+  TextInput,
+  Select,
+  Btn,
+  Notice,
+  CopyBtn,
+  Empty,
+  Result,
+} from '@/components/domain'
+import { RotateCcw } from 'lucide-react'
 
-export interface ToolProps {
-  onOutput: (inputs: Record<string, unknown>, outputs: Record<string, unknown>) => void
-  initialState?: Record<string, unknown>
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Variable {
   symbol: string
@@ -39,6 +59,15 @@ interface Category {
   name: string
   formulas: Formula[]
 }
+
+interface SolveResult {
+  solvedFor: string
+  result: number
+  unit: string
+  extra?: string
+}
+
+// ─── Physics Data ─────────────────────────────────────────────────────────────
 
 const CATEGORIES: Category[] = [
   {
@@ -84,7 +113,6 @@ const CATEGORIES: Category[] = [
           if (v0 === undefined) return { solvedFor: 'v0', result: (s - 0.5 * a * t * t) / t }
           if (a === undefined) return { solvedFor: 'a', result: (2 * (s - v0 * t)) / (t * t) }
           if (t === undefined) {
-            // quadratic: ½a·t² + v0·t - s = 0
             if (a === 0) {
               if (v0 === 0) return { error: 'Tidak dapat diselesaikan (a=0, v0=0).' }
               return { solvedFor: 't', result: s / v0 }
@@ -650,6 +678,8 @@ const CATEGORIES: Category[] = [
   },
 ]
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function getAllFormulas(): Formula[] {
   return CATEGORIES.flatMap((c) => c.formulas)
 }
@@ -666,23 +696,19 @@ function formatNumber(n: number): string {
   return String(fixed)
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function PhysicsSolver({ onOutput }: ToolProps) {
   const { t } = useTranslation()
   const [categoryId, setCategoryId] = useState(CATEGORIES[0].id)
   const [formulaId, setFormulaId] = useState(CATEGORIES[0].formulas[0].id)
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [extras, setExtras] = useState<Record<string, string>>({})
-  const [solveResult, setSolveResult] = useState<{
-    solvedFor: string
-    result: number
-    unit: string
-    extra?: string
-  } | null>(null)
+  const [solveResult, setSolveResult] = useState<SolveResult | null>(null)
   const [error, setError] = useState('')
 
   const category = CATEGORIES.find((c) => c.id === categoryId) ?? CATEGORIES[0]
-  const formula =
-    getAllFormulas().find((f) => f.id === formulaId) ?? CATEGORIES[0].formulas[0]
+  const formula = getAllFormulas().find((f) => f.id === formulaId) ?? CATEGORIES[0].formulas[0]
 
   function handleCategoryChange(id: string) {
     const cat = CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[0]
@@ -704,17 +730,12 @@ export default function PhysicsSolver({ onOutput }: ToolProps) {
 
   function handleInput(symbol: string, value: string) {
     setInputs((prev) => ({ ...prev, [symbol]: value }))
-    setSolveResult(null)
-    setError('')
   }
 
   function handleExtra(key: string, value: string) {
     setExtras((prev) => ({ ...prev, [key]: value }))
-    setSolveResult(null)
-    setError('')
   }
 
-  // Build extras with defaults for dropdowns
   function getEffectiveExtras(): Record<string, string> {
     const result: Record<string, string> = {}
     for (const dd of formula.extraDropdowns ?? []) {
@@ -723,7 +744,8 @@ export default function PhysicsSolver({ onOutput }: ToolProps) {
     return result
   }
 
-  function solve() {
+  // Live solve effect
+  useEffect(() => {
     setError('')
     setSolveResult(null)
 
@@ -738,10 +760,12 @@ export default function PhysicsSolver({ onOutput }: ToolProps) {
         }
         known[v.symbol] = num
       } else if (v.defaultValue !== undefined && (inputs[v.symbol] === undefined || inputs[v.symbol].trim() === '')) {
-        // use defaultValue only if field is untouched/empty
         known[v.symbol] = v.defaultValue
       }
     }
+
+    // Not enough knowns yet: stay idle instead of showing an error while typing.
+    if (Object.keys(known).length < formula.variables.length - 1) return
 
     const effectiveExtras = getEffectiveExtras()
     const result = formula.solve(known, effectiveExtras)
@@ -759,139 +783,135 @@ export default function PhysicsSolver({ onOutput }: ToolProps) {
       { formula: formula.name, inputs: known },
       { solvedFor: result.solvedFor, result: result.result, unit }
     )
-  }
-
-  function reset() {
-    setInputs({})
-    setExtras({})
-    setSolveResult(null)
-    setError('')
-  }
+  }, [inputs, formula, extras])
 
   const effectiveExtras = getEffectiveExtras()
 
+  const solvedVar = solveResult ? formula.variables.find((v) => v.symbol === solveResult.solvedFor) : undefined
+  const unitSuffix = solveResult?.unit ? ` ${solveResult.unit}` : ''
+  const answer = solveResult ? `${solveResult.solvedFor} = ${formatNumber(solveResult.result)}${unitSuffix}` : ''
+  const knownList = formula.variables
+    .map((v) => {
+      const raw = inputs[v.symbol]?.trim()
+      const n = raw ? parseFloat(raw) : v.defaultValue
+      return n === undefined || isNaN(n) ? null : `${v.symbol} = ${formatNumber(n)}${v.unit ? ` ${v.unit}` : ''}`
+    })
+    .filter(Boolean)
+    .join(', ')
+  const missing = formula.variables.length - 1 - formula.variables.filter((v) => (inputs[v.symbol]?.trim() ?? '') !== '' || v.defaultValue !== undefined).length
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <label className="text-sm font-medium">{t('physics.category')}</label>
-          <select
-            value={categoryId}
-            onChange={(e) => handleCategoryChange(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+    <Scroll>
+      <Column width="md">
+        <Sheet>
+          <header className="mb-6">
+            <h1 className="mb-2 font-serif text-2xl font-semibold text-d-ink">{t('physics.solver', 'Physics Solver')}</h1>
+            <p className="text-sm text-d-muted">{t('physics.leave_blank')}</p>
+          </header>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium">{t('physics.formula')}</label>
-          <select
-            value={formulaId}
-            onChange={(e) => handleFormulaChange(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {category.formulas.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{t('physics.formula')}:</span>
-          <span className="rounded-md bg-muted px-2 py-1 font-mono text-sm">{formula.equation}</span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t('physics.leave_blank')}
-        </p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {formula.variables.map((v) => (
-          <div key={v.symbol} className="space-y-1">
-            <label className="text-sm font-medium flex items-center gap-1.5">
-              <span className="font-mono">{v.symbol}</span>
-              <span className="text-muted-foreground">— {v.name}</span>
-              {v.unit && <span className="ml-auto text-xs text-muted-foreground">({v.unit})</span>}
-            </label>
-            <input
-              type="number"
-              value={inputs[v.symbol] ?? ''}
-              onChange={(e) => handleInput(v.symbol, e.target.value)}
-              placeholder={v.defaultValue !== undefined ? `default: ${v.defaultValue}` : `${v.symbol}${v.unit ? ` dalam ${v.unit}` : ''}`}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        ))}
-      </div>
-
-      {formula.extraDropdowns && formula.extraDropdowns.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {formula.extraDropdowns.map((dd) => (
-            <div key={dd.key} className="space-y-1">
-              <label className="text-sm font-medium">{dd.label}</label>
-              <select
-                value={effectiveExtras[dd.key]}
-                onChange={(e) => handleExtra(dd.key, e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {dd.options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
+          <div className="mb-5 grid gap-4 sm:grid-cols-2">
+            <Field label={t('physics.category')} id="physics-category">
+              <Select id="physics-category" value={categoryId} onChange={(e) => handleCategoryChange(e.target.value)}>
+                {CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-              </select>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          onClick={() => { analytics.buttonClick('physics-solver', 'solve'); solve() }}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          {t('action.solve')}
-        </button>
-        <button
-          onClick={reset}
-          className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-        >
-          {t('action.reset')}
-        </button>
-      </div>
-
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {solveResult && (
-        <div className="rounded-md bg-muted p-4 font-mono text-sm space-y-1">
-          <div className="text-xs text-muted-foreground font-sans mb-2">{t('physics.result')}:</div>
-          <div className="text-base font-semibold">
-            {solveResult.solvedFor} = {formatNumber(solveResult.result)}{' '}
-            {solveResult.unit}
+              </Select>
+            </Field>
+            <Field label={t('physics.formula')} id="physics-formula">
+              <Select id="physics-formula" value={formulaId} onChange={(e) => handleFormulaChange(e.target.value)}>
+                {category.formulas.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </Select>
+            </Field>
           </div>
-          <div className="text-xs text-muted-foreground font-sans mt-1">
-            {formula.variables.find((v) => v.symbol === solveResult.solvedFor)?.name}
-          </div>
-          {solveResult.extra && (
-            <div className="text-sm text-muted-foreground font-sans mt-2 border-t border-border pt-2">
-              {solveResult.extra}
+
+          <Region domain="workbench" className="mb-5">
+            <div role="note" aria-label={t('physics.formula')} className="break-words rounded-d border border-d-border bg-d-surface px-4 py-3 font-mono text-sm">
+              {formula.equation}
             </div>
+          </Region>
+
+          <Page className="mb-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {formula.variables.map((v) => (
+                <Field
+                  key={v.symbol}
+                  id={`physics-${v.symbol}`}
+                  label={`${v.symbol}, ${v.name}${v.unit ? ` (${v.unit})` : ''}`}
+                  hint={v.defaultValue !== undefined ? `${t('physics.default', 'Default')}: ${v.defaultValue}` : undefined}
+                >
+                  <TextInput
+                    id={`physics-${v.symbol}`}
+                    type="number"
+                    step="any"
+                    inputMode="decimal"
+                    mono
+                    value={inputs[v.symbol] ?? ''}
+                    onChange={(e) => handleInput(v.symbol, e.target.value)}
+                    placeholder={v.defaultValue !== undefined ? String(v.defaultValue) : v.symbol}
+                  />
+                </Field>
+              ))}
+              {(formula.extraDropdowns ?? []).map((dd) => (
+                <Field key={dd.key} label={dd.label} id={`physics-${dd.key}`}>
+                  <Select id={`physics-${dd.key}`} value={effectiveExtras[dd.key]} onChange={(e) => handleExtra(dd.key, e.target.value)}>
+                    {dd.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </Select>
+                </Field>
+              ))}
+            </div>
+            <div className="mt-4">
+              <Btn variant="quiet" size="sm" onClick={() => { setInputs({}); setExtras({}) }}>
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                {t('action.reset')}
+              </Btn>
+            </div>
+          </Page>
+
+          {error && <Notice tone="error" className="mb-5">{error}</Notice>}
+
+          {!error && !solveResult && (
+            <Empty title={t('physics.enter_values', 'Enter the known values')}>
+              {`${t('physics.fill_more', 'Fill')} ${Math.max(missing, 1)} ${t('physics.more_fields', 'more field(s) and leave one blank. The answer appears here as you type.')}`}
+            </Empty>
           )}
-        </div>
-      )}
-    </div>
+
+          {solveResult && (
+            <Page className="space-y-4">
+              <div role="status" aria-live="polite">
+                <Result
+                  label={`${t('physics.solved_for', 'Solved for')} ${solveResult.solvedFor}${solvedVar ? `, ${solvedVar.name}` : ''}`}
+                  value={`${formatNumber(solveResult.result)}${unitSuffix}`}
+                  note={solveResult.extra}
+                />
+              </div>
+
+              <div>
+                <h2 className="mb-1 font-serif text-base font-semibold">{t('physics.steps', 'Steps')}</h2>
+                <ol className="divide-y divide-d-border border-y border-d-border text-sm">
+                  <li className="flex gap-3 py-2">
+                    <span className="w-5 shrink-0 text-d-muted">1.</span>
+                    <span className="min-w-0 break-words">{t('physics.known', 'Known')}: <span className="font-mono">{knownList}</span></span>
+                  </li>
+                  <li className="flex gap-3 py-2">
+                    <span className="w-5 shrink-0 text-d-muted">2.</span>
+                    <span className="min-w-0 break-words">{t('physics.formula')}: <span className="font-mono">{formula.equation}</span></span>
+                  </li>
+                  <li className="flex gap-3 py-2">
+                    <span className="w-5 shrink-0 text-d-muted">3.</span>
+                    <span className="min-w-0 break-words">{t('physics.solved_for', 'Solved for')}: <span className="font-mono font-semibold">{answer}</span></span>
+                  </li>
+                </ol>
+              </div>
+
+              <CopyBtn value={answer} label={t('action.copy', 'Copy')} />
+            </Page>
+          )}
+        </Sheet>
+      </Column>
+    </Scroll>
   )
 }

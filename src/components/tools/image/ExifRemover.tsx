@@ -1,23 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
-import { ToolPanel } from '@/components/tools/shared/ToolPanel'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
-import { FileDropzone } from '@/components/tools/shared/FileDropzone'
+import { useCallback, useState } from 'react'
+import { Shield, ShieldCheck, Loader2, Download } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
-
-function isHeic(buf: ArrayBuffer): boolean {
-  // ISOBMFF: bytes 4–7 are 'ftyp', bytes 8–11 identify the brand
-  const bytes = new Uint8Array(buf, 0, Math.min(buf.byteLength, 16))
-  const ftyp = String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7])
-  if (ftyp !== 'ftyp') return false
-  const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11])
-  return ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand)
-}
+import { DropHero, StudioWorkspace, PrimaryAction, Btn, Section, Row, Seg, Notice } from '@/components/domain'
 
 async function scanExif(file: File): Promise<string[]> {
   const buf = await file.arrayBuffer()
@@ -26,11 +14,16 @@ async function scanExif(file: File): Promise<string[]> {
   const bytes = new Uint8Array(buf)
   const str = new TextDecoder('latin1').decode(bytes.slice(0, Math.min(bytes.length, 65536)))
 
-  // JPEG: starts with FFD8
-  const isJpeg = view.getUint16(0) === 0xffd8
-  const heic = isHeic(buf)
+  const isJpeg = bytes.length > 2 && view.getUint16(0) === 0xffd8
+  const isHeic = (() => {
+    if (bytes.length < 12) return false
+    const ftyp = String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7])
+    if (ftyp !== 'ftyp') return false
+    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11])
+    return ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand)
+  })()
 
-  if (!isJpeg && !heic) return found
+  if (!isJpeg && !isHeic) return found
 
   if (str.includes('Exif')) found.push('EXIF data')
   if (str.includes('GPS') || str.includes('GPSInfo')) found.push('GPS location')
@@ -39,8 +32,7 @@ async function scanExif(file: File): Promise<string[]> {
   if (str.includes('Software')) found.push('Software info')
   if (str.includes('XMP') || str.includes('adobe.com')) found.push('XMP metadata')
 
-  // HEIC always embeds metadata
-  if (heic && found.length === 0) found.push('Container metadata')
+  if (isHeic && found.length === 0) found.push('Container metadata')
 
   return found
 }
@@ -75,7 +67,7 @@ export default function ExifRemover({ onOutput }: ToolProps) {
     const name = file.name.toLowerCase()
     const isHeicFile = type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif')
     if (!type.startsWith('image/') && !isHeicFile) {
-      setError(t('image.failed_load', 'Please upload a JPEG, PNG, or HEIC/HEIF image.'))
+      setError(t('image.invalid_format', 'Please upload a JPEG, PNG, or HEIC/HEIF image.'))
       return
     }
     setError('')
@@ -90,19 +82,16 @@ export default function ExifRemover({ onOutput }: ToolProps) {
       img.onerror = () => res(false)
     })
 
+    const exifTags = await scanExif(file)
     if (!loaded) {
-      // HEIC not supported in this browser — still show metadata scan
-      const exifTags = await scanExif(file)
       setFileInfo({ file, width: 0, height: 0, exifTags, objectUrl })
       if (isHeicFile) {
-        setError(t('image.failed_load', 'HEIC preview not supported in this browser. Use Safari on macOS/iOS to strip & download, or convert to JPEG first on other browsers.'))
+        setError(t('image.heic_no_preview', 'HEIC preview not supported in this browser. Use Safari on macOS/iOS to strip & download, or convert to JPEG first on other browsers.'))
       }
       return
     }
-
-    const exifTags = await scanExif(file)
     setFileInfo({ file, width: img.naturalWidth, height: img.naturalHeight, exifTags, objectUrl })
-  }, [])
+  }, [t])
 
   const stripAndDownload = useCallback(() => {
     if (!fileInfo) return
@@ -135,104 +124,131 @@ export default function ExifRemover({ onOutput }: ToolProps) {
         setProcessing(false)
         onOutput(
           { fileName: fileInfo.file.name, format: outputFormat, quality },
-          { originalSize: fileInfo.file.size, outputSize: blob.size, exifRemoved: fileInfo.exifTags }
+          { originalSize: fileInfo.file.size, outputSize: blob.size, exifRemoved: fileInfo.exifTags },
         )
+        analytics.buttonClick('exif-remover', 'remove')
       }, mime, q)
     }
     img.onerror = () => {
       setError(t('image.failed_load', 'Failed to load image.'))
       setProcessing(false)
     }
-  }, [fileInfo, outputFormat, quality, onOutput])
+  }, [fileInfo, outputFormat, quality, onOutput, t])
+
+  const clearFile = () => {
+    if (fileInfo) URL.revokeObjectURL(fileInfo.objectUrl)
+    setFileInfo(null)
+    setOutputSize(null)
+    setError('')
+  }
+
+  if (!fileInfo) {
+    return (
+      <div className="flex h-full flex-col">
+        {error && <div className="p-4 pb-0"><Notice tone="error">{error}</Notice></div>}
+        <DropHero
+          accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
+          onFiles={handleFiles}
+          title={t('image.strip_exif', 'Strip EXIF')}
+          hint={t('image.jpeg_png_heic_hint', 'JPEG, PNG, or HEIC/HEIF. Stays on your device.')}
+        />
+      </div>
+    )
+  }
+
+  const hasMeta = fileInfo.exifTags.length > 0
 
   return (
-    <div className="flex flex-col gap-4">
-      {error && <ErrorAlert message={error} />}
-      <ToolPanel
-        left={
-          <div className="flex flex-col gap-4">
-            <FileDropzone
-              onFile={(f) => handleFiles([f])}
-              accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
-              label={t('image.drop_image', 'Drop a JPEG, PNG, or HEIC/HEIF image here')}
+    <StudioWorkspace
+      rail={
+        <div className="flex h-full flex-col gap-5">
+          <div>
+            <h2 className="font-display text-lg font-semibold">{t('image.strip_exif', 'Strip EXIF')}</h2>
+            <p className="mt-1 break-all text-sm text-d-muted">{fileInfo.file.name}</p>
+          </div>
+          <Section title={t('common.output_format', 'Output format')}>
+            <Seg<'jpeg' | 'png'>
+              value={outputFormat}
+              onChange={setOutputFormat}
+              label={t('common.output_format', 'Output format')}
+              options={[{ value: 'jpeg', label: 'JPEG' }, { value: 'png', label: 'PNG' }]}
             />
-            {fileInfo && (
-              <div className="flex flex-col gap-3">
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
-                  <div className="font-medium text-foreground truncate">{fileInfo.file.name}</div>
-                  <div className="text-muted-foreground">{formatBytes(fileInfo.file.size)} · {fileInfo.width}×{fileInfo.height}px</div>
-                </div>
-                <div className="rounded-lg border border-border p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('image.exif_removed', 'Detected metadata')}</div>
-                  {fileInfo.exifTags.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">{t('image.no_exif', 'No EXIF metadata detected')}</div>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {fileInfo.exifTags.map((tag) => (
-                        <span key={tag} className="inline-flex items-center rounded-full bg-destructive/15 text-destructive text-xs px-2 py-0.5 font-medium">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          </Section>
+          {outputFormat === 'jpeg' && (
+            <Section title={t('common.quality', 'Quality')}>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={70}
+                  max={100}
+                  value={Math.round(quality * 100)}
+                  onChange={(e) => setQuality(Number(e.target.value) / 100)}
+                  className="flex-1 accent-d-accent"
+                  aria-label={t('common.quality', 'Quality')}
+                />
+                <span className="w-12 text-right font-mono text-sm tabular-nums text-d-muted">{Math.round(quality * 100)}%</span>
               </div>
-            )}
+            </Section>
+          )}
+          {outputSize !== null && (
+            <Section title={t('common.sizes', 'Sizes')}>
+              <dl>
+                <Row label={t('common.original_size', 'Original')} value={formatBytes(fileInfo.file.size)} />
+                <Row label={t('common.output_size', 'Clean copy')} value={formatBytes(outputSize)} />
+              </dl>
+            </Section>
+          )}
+          {error && <Notice tone="error">{error}</Notice>}
+          <div className="mt-auto flex flex-col gap-2">
+            <PrimaryAction onClick={stripAndDownload} disabled={processing}>
+              <span className="inline-flex items-center justify-center gap-2">
+                {processing
+                  ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                  : <Download className="h-5 w-5" aria-hidden />}
+                {processing ? t('common.processing', 'Processing') : t('image.strip_download', 'Strip and download')}
+              </span>
+            </PrimaryAction>
+            <Btn variant="secondary" onClick={clearFile}>{t('common.choose_another', 'Choose another file')}</Btn>
           </div>
-        }
-        right={
-          <div className="flex flex-col gap-4">
-            <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('common.output_format', 'Output format')}</div>
-                <div className="flex gap-2">
-                  {(['jpeg', 'png'] as const).map((fmt) => (
-                    <Button
-                      key={fmt}
-                      size="sm"
-                      variant={outputFormat === fmt ? 'default' : 'outline'}
-                      onClick={() => setOutputFormat(fmt)}
-                    >
-                      {fmt.toUpperCase()}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              {outputFormat === 'jpeg' && (
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    {t('common.quality', 'Quality')}: {Math.round(quality * 100)}%
-                  </div>
-                  <input
-                    type="range"
-                    min={70}
-                    max={100}
-                    value={Math.round(quality * 100)}
-                    onChange={(e) => setQuality(Number(e.target.value) / 100)}
-                    className="w-full accent-primary"
-                  />
-                </div>
-              )}
+        </div>
+      }
+    >
+      <div className="mx-auto flex max-w-3xl flex-col gap-5">
+        <div className="flex items-center justify-center rounded-d border border-d-border bg-d-raised p-3">
+          {fileInfo.width > 0 ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={fileInfo.objectUrl} alt={fileInfo.file.name} className="max-h-[50vh] max-w-full rounded-sm object-contain" />
+          ) : (
+            <div className="px-6 py-12 text-center text-d-muted">
+              <Shield className="mx-auto mb-3 h-10 w-10" aria-hidden />
+              <p className="font-display text-base font-semibold text-d-ink">{t('image.no_preview_available', 'No preview available')}</p>
             </div>
-            {fileInfo && outputSize !== null && (
-              <div className="rounded-lg border border-border p-3 text-sm space-y-1">
-                <div className="text-muted-foreground">{t('common.original_size', 'Before')}: <span className="text-foreground">{formatBytes(fileInfo.file.size)}</span></div>
-                <div className="text-muted-foreground">{t('common.output_size', 'After')}: <span className="text-foreground">{formatBytes(outputSize)}</span></div>
-                <div className="text-muted-foreground">
-                  {t('common.saved', 'Saved')}: <span className="text-green-500">{formatBytes(fileInfo.file.size - outputSize)} ({Math.round((1 - outputSize / fileInfo.file.size) * 100)}%)</span>
-                </div>
-              </div>
-            )}
-            <Button
-              onClick={() => { analytics.buttonClick('exif-remover', 'remove'); stripAndDownload() }}
-              disabled={!fileInfo || processing}
-              className="w-full"
-            >
-              {processing ? t('common.processing', 'Processing…') : t('image.exif_removed', 'Strip & Download')}
-            </Button>
-          </div>
-        }
-      />
-    </div>
+          )}
+        </div>
+        <p className="text-xs text-d-muted">
+          {fileInfo.width > 0 ? `${fileInfo.width}×${fileInfo.height}px` : t('image.unknown_dimensions', 'Unknown dimensions')} · {formatBytes(fileInfo.file.size)}
+        </p>
+
+        <Section title={t('image.metadata_found', 'Metadata found')}>
+          {hasMeta ? (
+            <>
+              <ul className="flex flex-wrap gap-2" aria-label={t('image.detected_tags', 'Detected tags')}>
+                {fileInfo.exifTags.map((tag) => (
+                  <li key={tag} className="inline-flex items-center gap-1.5 rounded-d border border-d-border bg-d-raised px-3 py-1.5 text-sm">
+                    <Shield className="h-3.5 w-3.5 text-d-accent" aria-hidden />
+                    {tag}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-d-muted">{t('image.metadata_will_be_removed', 'All detected metadata is removed in the clean download.')}</p>
+            </>
+          ) : (
+            <Notice tone="ok">
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" aria-hidden />{t('image.no_exif_found', 'No EXIF metadata detected')}. {t('image.image_already_clean', 'This image appears to be clean.')}</span>
+            </Notice>
+          )}
+        </Section>
+      </div>
+    </StudioWorkspace>
   )
 }

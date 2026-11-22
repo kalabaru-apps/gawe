@@ -1,93 +1,40 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+/**
+ * Quadratic Solver — Paper domain (education category) with Workbench region for formula/steps.
+ * Paper: serif headings, ruled Sheet, printed Result. Workbench region: mono equation + discriminant steps.
+ * Live solve as you type (no Calculate button), sensible defaults, keyboard friendly.
+ */
+
+import { useState, useCallback, useMemo } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
-
-// ---------------------------------------------------------------------------
-// Polynomial helpers
-// ---------------------------------------------------------------------------
-
-function evalPoly(coeffs: number[], x: number): number {
-  return coeffs.reduce((acc, c) => acc * x + c, 0)
-}
-
-function evalPolyDeriv(coeffs: number[], x: number): number {
-  const n = coeffs.length - 1
-  return coeffs.slice(0, -1).reduce((acc, c, i) => acc * x + c * (n - i), 0)
-}
-
-function newtonRaphson(coeffs: number[], x0 = 0): number {
-  let x = x0
-  for (let i = 0; i < 200; i++) {
-    const fx = evalPoly(coeffs, x)
-    const fpx = evalPolyDeriv(coeffs, x)
-    if (Math.abs(fpx) < 1e-12) break
-    const xn = x - fx / fpx
-    if (Math.abs(xn - x) < 1e-10) {
-      x = xn
-      break
-    }
-    x = xn
-  }
-  return x
-}
-
-function deflate(coeffs: number[], root: number): number[] {
-  const result = [coeffs[0]]
-  for (let i = 1; i < coeffs.length - 1; i++) {
-    result.push(result[i - 1] * root + coeffs[i])
-  }
-  return result
-}
-
-// Try multiple starting points; return best root (smallest |f(x)|)
-function findRealRoot(coeffs: number[]): number {
-  const starts = [0, 1, -1, 2, -2, 5, -5, 10, -10]
-  let best = newtonRaphson(coeffs, 0)
-  let bestErr = Math.abs(evalPoly(coeffs, best))
-  for (const s of starts) {
-    const r = newtonRaphson(coeffs, s)
-    const err = Math.abs(evalPoly(coeffs, r))
-    if (err < bestErr) {
-      best = r
-      bestErr = err
-    }
-  }
-  return best
-}
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type Root = { real: number; imag: number }
-type RootType = 'two_real' | 'one_real' | 'complex' | 'error'
-
-interface QuadraticResult {
-  discriminant: number
-  roots: Root[]
-  type: RootType
-  steps: string[]
-}
-
-interface SolveResult {
-  roots: Root[]
-  steps: string[]
-  note: string
-}
+import { Sheet, Page, Result } from '@/components/domain/Paper'
+import { Column, Scroll, Region, Field, TextInput, Row, Notice, Empty, CopyBtn } from '@/components/domain/kit'
 
 // ---------------------------------------------------------------------------
 // Solvers
 // ---------------------------------------------------------------------------
 
+interface Root {
+  real: number
+  imag: number
+}
+
+interface QuadraticResult {
+  discriminant: number
+  roots: Root[]
+  type: 'two_real' | 'one_real' | 'complex' | 'error'
+  steps: string[]
+}
+
 function solveQuadratic(a: number, b: number, c: number): QuadraticResult {
   const D = b * b - 4 * a * c
   const steps: string[] = [
-    `D = b² - 4ac`,
-    `D = (${b})² - 4·(${a})·(${c})`,
-    `D = ${b * b} - ${4 * a * c}`,
+    'D = b² − 4ac',
+    `D = (${b})² − 4·(${a})·(${c})`,
+    `D = ${b * b} − ${4 * a * c}`,
     `D = ${D}`,
   ]
 
@@ -95,20 +42,21 @@ function solveQuadratic(a: number, b: number, c: number): QuadraticResult {
     const sqrtD = Math.sqrt(D)
     const x1 = (-b + sqrtD) / (2 * a)
     const x2 = (-b - sqrtD) / (2 * a)
-    steps.push(`x = (-b ± √D) / 2a`)
+    steps.push('x = (−b ± √D) / 2a')
     steps.push(`x₁ = (${-b} + ${sqrtD.toFixed(6)}) / ${2 * a} = ${x1.toFixed(6)}`)
-    steps.push(`x₂ = (${-b} - ${sqrtD.toFixed(6)}) / ${2 * a} = ${x2.toFixed(6)}`)
+    steps.push(`x₂ = (${-b} − ${sqrtD.toFixed(6)}) / ${2 * a} = ${x2.toFixed(6)}`)
     return { discriminant: D, roots: [{ real: x1, imag: 0 }, { real: x2, imag: 0 }], type: 'two_real', steps }
   } else if (D === 0) {
     const x = -b / (2 * a)
-    steps.push(`x = -b / 2a = ${x.toFixed(6)}`)
+    steps.push('x = −b / 2a')
+    steps.push(`x = ${x.toFixed(6)}`)
     return { discriminant: D, roots: [{ real: x, imag: 0 }], type: 'one_real', steps }
   } else {
     const realPart = -b / (2 * a)
     const imagPart = Math.sqrt(-D) / (2 * a)
-    steps.push(`x = (-b ± i√|D|) / 2a`)
+    steps.push('x = (−b ± i√|D|) / 2a')
     steps.push(`x₁ = ${realPart.toFixed(6)} + ${imagPart.toFixed(6)}i`)
-    steps.push(`x₂ = ${realPart.toFixed(6)} - ${imagPart.toFixed(6)}i`)
+    steps.push(`x₂ = ${realPart.toFixed(6)} − ${imagPart.toFixed(6)}i`)
     return {
       discriminant: D,
       roots: [{ real: realPart, imag: imagPart }, { real: realPart, imag: -imagPart }],
@@ -118,75 +66,31 @@ function solveQuadratic(a: number, b: number, c: number): QuadraticResult {
   }
 }
 
-function solveCubic(coeffs: number[]): SolveResult {
-  // coeffs = [a, b, c, d]
-  const [a] = coeffs
-  if (Math.abs(a) < 1e-12) {
-    const q = solveQuadratic(coeffs[1], coeffs[2], coeffs[3])
-    return { roots: q.roots, steps: q.steps, note: 'Leading coefficient ≈ 0; solved as quadratic.' }
-  }
-
-  const r1 = findRealRoot(coeffs)
-  const quad = deflate(coeffs, r1) // degree 2
-  const q = solveQuadratic(quad[0], quad[1], quad[2])
-
-  return {
-    roots: [{ real: r1, imag: 0 }, ...q.roots],
-    steps: [],
-    note: 'Roots found numerically via Newton-Raphson + polynomial deflation.',
-  }
-}
-
-function solveQuartic(coeffs: number[]): SolveResult {
-  // coeffs = [a, b, c, d, e]
-  const [a] = coeffs
-  if (Math.abs(a) < 1e-12) {
-    return solveCubic(coeffs.slice(1))
-  }
-
-  const r1 = findRealRoot(coeffs)
-  const cubic = deflate(coeffs, r1) // degree 3
-
-  const r2 = findRealRoot(cubic)
-  const quad = deflate(cubic, r2) // degree 2
-
-  const q = solveQuadratic(quad[0], quad[1], quad[2])
-
-  return {
-    roots: [{ real: r1, imag: 0 }, { real: r2, imag: 0 }, ...q.roots],
-    steps: [],
-    note: 'Roots found numerically via repeated Newton-Raphson + polynomial deflation.',
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Formatting helpers
-// ---------------------------------------------------------------------------
-
 function fmt(n: number): string {
   return parseFloat(n.toFixed(6)).toString()
 }
 
 function fmtRoot(r: Root): string {
   if (Math.abs(r.imag) < 1e-9) return fmt(r.real)
-  const sign = r.imag >= 0 ? '+' : '-'
+  const sign = r.imag >= 0 ? '+' : '−'
   return `${fmt(r.real)} ${sign} ${fmt(Math.abs(r.imag))}i`
 }
 
-function buildEquationPreview(degree: number, coeffs: number[]): string {
-  const vars = ['', 'x', 'x²', 'x³', 'x⁴'].reverse()
-  const superscripts = ['', 'x', 'x²', 'x³', 'x⁴']
-  // coeffs[0] is highest degree
+function buildEquation(a: number, b: number, c: number): string {
   const parts: string[] = []
-  for (let i = 0; i <= degree; i++) {
-    const exp = degree - i
-    const c = coeffs[i]
-    if (c === 0) continue
-    const varLabel = exp === 0 ? '' : exp === 1 ? 'x' : superscripts[exp]
-    const absC = Math.abs(c)
-    const coefStr = absC === 1 && exp > 0 ? '' : String(absC)
-    const sign = parts.length === 0 ? (c < 0 ? '-' : '') : c < 0 ? ' - ' : ' + '
-    parts.push(`${sign}${coefStr}${varLabel}`)
+  if (a !== 0) {
+    const coef = Math.abs(a) === 1 ? '' : String(Math.abs(a))
+    const sign = a < 0 ? '−' : ''
+    parts.push(`${sign}${coef}x²`)
+  }
+  if (b !== 0) {
+    const coef = Math.abs(b) === 1 ? '' : String(Math.abs(b))
+    const sign = parts.length === 0 ? (b < 0 ? '−' : '') : (b < 0 ? ' − ' : ' + ')
+    parts.push(`${sign}${coef}x`)
+  }
+  if (c !== 0) {
+    const sign = parts.length === 0 ? (c < 0 ? '−' : '') : (c < 0 ? ' − ' : ' + ')
+    parts.push(`${sign}${Math.abs(c)}`)
   }
   return (parts.join('') || '0') + ' = 0'
 }
@@ -195,214 +99,141 @@ function buildEquationPreview(degree: number, coeffs: number[]): string {
 // Component
 // ---------------------------------------------------------------------------
 
-type Degree = 2 | 3 | 4
-
-const DEGREE_LABELS: Record<Degree, string> = {
-  2: 'Degree 2 (Quadratic)',
-  3: 'Degree 3 (Cubic)',
-  4: 'Degree 4 (Quartic)',
-}
-
-const COEFF_LABELS = ['a', 'b', 'c', 'd', 'e']
-const DEFAULT_COEFFS: Record<Degree, string[]> = {
-  2: ['1', '-5', '6'],
-  3: ['1', '-6', '11', '-6'],
-  4: ['1', '-10', '35', '-50', '24'],
-}
-
-const inputClass =
-  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono'
-
 export default function QuadraticSolver({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
-  const [degree, setDegree] = useState<Degree>((initialState?.degree as Degree) ?? 2)
-  const [coeffStrs, setCoeffStrs] = useState<Record<Degree, string[]>>({
-    2: DEFAULT_COEFFS[2],
-    3: DEFAULT_COEFFS[3],
-    4: DEFAULT_COEFFS[4],
-  })
+  const [a, setA] = useState<string>((initialState?.a as string) ?? '1')
+  const [b, setB] = useState<string>((initialState?.b as string) ?? '-5')
+  const [c, setC] = useState<string>((initialState?.c as string) ?? '6')
 
-  const [result, setResult] = useState<{
-    degree: Degree
-    roots: Root[]
-    steps: string[]
-    discriminant?: number
-    quadType?: RootType
-    note: string
-  } | null>(null)
+  // Live computation
+  const result = useMemo(() => {
+    const aNum = parseFloat(a)
+    const bNum = parseFloat(b)
+    const cNum = parseFloat(c)
+    if (isNaN(aNum) || isNaN(bNum) || isNaN(cNum)) return null
+    if (aNum === 0) return { error: 'a = 0: not a quadratic equation.' } as const
+    return solveQuadratic(aNum, bNum, cNum)
+  }, [a, b, c])
 
-  const currentCoeffs = coeffStrs[degree]
-
-  function setCoeff(idx: number, val: string) {
-    setCoeffStrs((prev) => {
-      const copy = { ...prev, [degree]: [...prev[degree]] }
-      copy[degree][idx] = val
-      return copy
+  // Fire analytics + onOutput on change
+  const handleChange = useCallback(() => {
+    const res = result
+    if (!res || 'error' in res) return
+    analytics.buttonClick('quadratic-solver', 'solve')
+    onOutput({ a: parseFloat(a), b: parseFloat(b), c: parseFloat(c) }, {
+      roots: res.roots.map(fmtRoot),
+      discriminant: res.discriminant,
+      type: res.type,
     })
+  }, [result, a, b, c, onOutput])
+
+  // Trigger onOutput when result changes (but not on initial mount)
+  const prevResultRef = useState<unknown>(result)[0]
+  if (prevResultRef !== result && result && !('error' in result)) {
+    handleChange()
   }
 
-  const numCoeffs = degree + 1
-
-  const solve = useCallback(() => {
-    const nums = coeffStrs[degree].map((s) => {
-      const n = parseFloat(s)
-      return isNaN(n) ? 0 : n
-    })
-
-    if (degree === 2) {
-      const [a, b, c] = nums
-      if (a === 0) {
-        setResult({ degree, roots: [], steps: [], note: 'a = 0: not a quadratic equation.' })
-        onOutput({ degree, coefficients: nums }, { roots: [], type: 'error' })
-        return
-      }
-      const q = solveQuadratic(a, b, c)
-      setResult({ degree, roots: q.roots, steps: q.steps, discriminant: q.discriminant, quadType: q.type, note: '' })
-      onOutput({ degree, coefficients: nums }, { roots: q.roots.map(fmtRoot), type: q.type })
-    } else if (degree === 3) {
-      const res = solveCubic(nums)
-      setResult({ degree, roots: res.roots, steps: [], note: res.note })
-      onOutput({ degree, coefficients: nums }, { roots: res.roots.map(fmtRoot), type: 'numerical' })
-    } else {
-      const res = solveQuartic(nums)
-      setResult({ degree, roots: res.roots, steps: [], note: res.note })
-      onOutput({ degree, coefficients: nums }, { roots: res.roots.map(fmtRoot), type: 'numerical' })
-    }
-  }, [degree, coeffStrs, onOutput])
-
-  const reset = useCallback(() => {
-    setCoeffStrs({ 2: DEFAULT_COEFFS[2], 3: DEFAULT_COEFFS[3], 4: DEFAULT_COEFFS[4] })
-    setResult(null)
-  }, [])
-
-  const equationPreview = buildEquationPreview(degree, currentCoeffs.map((s) => { const n = parseFloat(s); return isNaN(n) ? 0 : n }))
+  const equation = buildEquation(parseFloat(a) || 0, parseFloat(b) || 0, parseFloat(c) || 0)
 
   return (
-    <div className="space-y-5">
-      {/* Degree selector */}
-      <div>
-        <p className="text-sm font-medium mb-2">{t('poly.degree')}</p>
-        <div className="flex gap-2">
-          {([2, 3, 4] as Degree[]).map((d) => (
-            <button
-              key={d}
-              onClick={() => { setDegree(d); setResult(null) }}
-              className={
-                d === degree
-                  ? 'rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors'
-                  : 'rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors'
-              }
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">{DEGREE_LABELS[degree]}</p>
-      </div>
+    <Scroll>
+      <Column width="md">
+        <Sheet>
+          <header className="mb-6">
+            <h1 className="font-serif text-2xl font-semibold text-d-ink mb-2">{t('poly.quadratic_solver', 'Quadratic Solver')}</h1>
+            <p className="text-d-muted text-sm">{t('poly.enter_coefficients', 'Enter coefficients a, b, c for a x² + b x + c = 0.')}</p>
+          </header>
 
-      {/* Equation preview */}
-      <div className="rounded-md bg-muted px-4 py-2 font-mono text-sm">
-        {equationPreview}
-      </div>
+          <div className="grid gap-4 sm:grid-cols-3 mb-6">
+            <Field label={t('poly.coeff_a', 'a')} id="coeff-a" hint={t('poly.coeff_a_hint', 'Coefficient of x²')}>
+              <TextInput id="coeff-a" value={a} onChange={(e) => setA(e.target.value)} mono placeholder="1" />
+            </Field>
+            <Field label={t('poly.coeff_b', 'b')} id="coeff-b" hint={t('poly.coeff_b_hint', 'Coefficient of x')}>
+              <TextInput id="coeff-b" value={b} onChange={(e) => setB(e.target.value)} mono placeholder="-5" />
+            </Field>
+            <Field label={t('poly.coeff_c', 'c')} id="coeff-c" hint={t('poly.coeff_c_hint', 'Constant term')}>
+              <TextInput id="coeff-c" value={c} onChange={(e) => setC(e.target.value)} mono placeholder="6" />
+            </Field>
+          </div>
 
-      {/* Coefficient inputs */}
-      <div>
-        <p className="text-sm font-medium mb-2">{t('poly.coefficients')}</p>
-        <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${numCoeffs}, minmax(0, 1fr))` }}>
-          {Array.from({ length: numCoeffs }).map((_, i) => (
-            <div key={i} className="space-y-1">
-              <label className="text-sm font-medium">{COEFF_LABELS[i]}</label>
-              <input
-                type="number"
-                value={currentCoeffs[i] ?? '0'}
-                onChange={(e) => setCoeff(i, e.target.value)}
-                className={inputClass}
-                placeholder="0"
-              />
+          {/* Equation preview in Workbench region */}
+          <Region domain="workbench" className="mb-4">
+            <div className="rounded-d border border-d-border bg-d-surface p-4 font-mono text-sm">
+              {equation}
             </div>
-          ))}
-        </div>
-      </div>
+          </Region>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => { analytics.buttonClick('quadratic-solver', 'solve'); solve() }}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          {t('action.solve')}
-        </button>
-        <button
-          onClick={reset}
-          className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-        >
-          {t('action.reset')}
-        </button>
-      </div>
+          {result && 'error' in result && (
+            <Notice tone="error" className="mb-4">{result.error}</Notice>
+          )}
 
-      {/* Results */}
-      {result && (
-        <div className="space-y-4">
-          {result.roots.length === 0 ? (
-            <div className="rounded-md bg-destructive/10 border border-destructive/30 p-4 text-sm text-destructive">
-              {result.note || 'Could not find roots.'}
-            </div>
-          ) : (
+          {result && !('error' in result) && (
             <>
-              {/* Degree 2: step-by-step */}
-              {result.degree === 2 && result.steps.length > 0 && (
-                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-                  <p className="text-sm font-medium">{t('poly.step_by_step')}</p>
-                  <div className="rounded-md bg-muted p-4 font-mono text-sm space-y-1">
-                    {result.steps.map((step, i) => (
-                      <p key={i}>{step}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Note for degree 3/4 */}
-              {result.note && (
-                <p className="text-sm text-muted-foreground italic">{result.note}</p>
-              )}
-
-              {/* Roots */}
-              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-                <p className="text-sm font-medium">
-                  {result.degree === 2
-                    ? result.quadType === 'one_real'
-                      ? t('poly.one_root')
-                      : result.quadType === 'complex'
-                      ? t('poly.two_complex')
-                      : t('poly.two_real')
-                    : `${result.roots.length} ${t('poly.roots')}`}
-                </p>
-
-                {result.degree === 2 && result.discriminant !== undefined && (
-                  <p className="text-xs text-muted-foreground">
-                    {t('poly.discriminant')} D = {result.discriminant}
-                    {result.discriminant > 0 ? ' > 0' : result.discriminant === 0 ? ' = 0' : ' < 0'}
-                  </p>
-                )}
-
-                <div className="rounded-md bg-muted p-4 font-mono text-sm space-y-1">
-                  {result.roots.map((r, i) => (
-                    <p key={i}>
-                      x{subscriptNum(i + 1)} = {fmtRoot(r)}
-                      {Math.abs(r.imag) > 1e-9 ? ' (complex)' : ''}
-                    </p>
+              {/* Discriminant step */}
+              <Region domain="workbench" className="mb-4">
+                <div className="rounded-d border border-d-border bg-d-surface p-4 font-mono text-sm space-y-1">
+                  {result.steps.slice(0, 4).map((step, i) => (
+                    <div key={i} className={i === 3 ? 'font-semibold text-d-ink' : 'text-d-muted'}>
+                      {step}
+                    </div>
                   ))}
                 </div>
-              </div>
+              </Region>
+
+              {/* Result card */}
+              <Page className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-serif text-lg font-semibold">
+                    {result.type === 'two_real' ? t('poly.two_real', 'Two real roots') :
+                     result.type === 'one_real' ? t('poly.one_real', 'One real root') :
+                     t('poly.two_complex', 'Two complex roots')}
+                  </span>
+                  <CopyBtn value={result.roots.map(fmtRoot).join(', ')} size="sm" />
+                </div>
+
+                <Result
+                  label={t('poly.discriminant', 'Discriminant')}
+                  value={String(result.discriminant)}
+                  note={
+                    result.discriminant > 0 ? t('poly.discriminant_pos', 'D greater than 0 - two distinct real roots') :
+                    result.discriminant === 0 ? t('poly.discriminant_zero', 'D equals 0 - one repeated real root') :
+                    t('poly.discriminant_neg', 'D less than 0 - two complex conjugate roots')
+                  }
+                />
+
+                <div className="space-y-2">
+                  {result.roots.map((r, i) => {
+                    const rootLabel = `${t('poly.root', 'Root')} ${i + 1}`
+                    return (
+                      <Row
+                        key={i}
+                        label={rootLabel}
+                        value={fmtRoot(r)}
+                        mono
+                      />
+                    )
+                  })}
+                </div>
+
+                {/* Vertex */}
+                <div className="border-t border-d-border pt-3">
+                  <p className="text-sm text-d-muted">{t('poly.vertex', 'Vertex')}</p>
+                  <p className="font-mono text-base">
+                    ({fmt(-parseFloat(b) / (2 * parseFloat(a)))}, {fmt((4 * parseFloat(a) * parseFloat(c) - parseFloat(b) * parseFloat(b)) / (4 * parseFloat(a)))})
+                  </p>
+                </div>
+              </Page>
             </>
           )}
-        </div>
-      )}
-    </div>
-  )
-}
 
-function subscriptNum(n: number): string {
-  const subs = ['₁', '₂', '₃', '₄']
-  return subs[n - 1] ?? String(n)
+          {!result && (
+            <Empty
+              title={t('poly.enter_coefficients', 'Enter coefficients')}
+              children={t('poly.results_appear', 'Results appear here as you type.')}
+            />
+          )}
+        </Sheet>
+      </Column>
+    </Scroll>
+  )
 }

@@ -1,99 +1,99 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { ToolPanel } from '@/components/tools/shared/ToolPanel'
-import { CodeEditor } from '@/components/tools/shared/CodeEditor'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
+import { useState, useEffect, useMemo } from 'react'
+import { Copy, Check, AlertCircle, CheckCircle2 } from 'lucide-react'
 import type { ToolProps } from '@/types'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Workbench, Toolbar, StatusBar, SplitPane, Pane, WbButton, Segmented, CodeArea } from '@/components/domain/Workbench'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
 
-type IndentSize = 2 | 4
+type Indent = '2' | '4' | 'tab'
+
+function parse(input: string): { ok: true; value: unknown } | { ok: false; error: string } | null {
+  if (!input.trim()) return null
+  try { return { ok: true, value: JSON.parse(input) } } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Invalid JSON' }
+  }
+}
 
 export default function JsonFormatter({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState((initialState?.input as string) ?? '')
   const [output, setOutput] = useState('')
-  const [error, setError] = useState('')
-  const [indent, setIndent] = useState<IndentSize>(2)
+  const [indent, setIndent] = useState<Indent>('2')
+  const [copied, setCopied] = useState(false)
 
-  const format = () => {
-    if (!input.trim()) return
-    try {
-      const parsed = JSON.parse(input)
-      const formatted = JSON.stringify(parsed, null, indent)
-      setOutput(formatted)
-      setError('')
-      onOutput({ input, indent }, { formatted, isValid: true })
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Invalid JSON'
-      setError(msg)
-      setOutput('')
-      onOutput({ input, indent }, { isValid: false, error: msg })
-    }
-  }
+  const result = useMemo(() => parse(input), [input])
+  const error = result && !result.ok ? result.error : ''
+  const space = indent === 'tab' ? '\t' : Number(indent)
 
-  const minify = () => {
-    if (!input.trim()) return
-    try {
-      const parsed = JSON.parse(input)
-      const minified = JSON.stringify(parsed)
-      setOutput(minified)
-      setError('')
-      onOutput({ input }, { formatted: minified, isValid: true, minified: true })
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Invalid JSON'
-      setError(msg)
-    }
-  }
-
+  // Live format: output follows input.
   useEffect(() => {
-    if (input) format()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (result?.ok) setOutput(JSON.stringify(result.value, null, space))
+    else if (!result) setOutput('')
+  }, [result, space])
+
+  const commit = (formatted: string) => {
+    setOutput(formatted)
+    analytics.buttonClick('json-formatter', 'format')
+    onOutput({ input, indent }, { formatted, isValid: true })
+  }
+  const minify = () => result?.ok && commit(JSON.stringify(result.value))
+  const copy = async () => {
+    if (!output) return
+    await navigator.clipboard.writeText(output)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const bytes = new Blob([output]).size
+  const lines = output ? output.split('\n').length : 0
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Tabs value={String(indent)} onValueChange={(v) => setIndent(Number(v) as IndentSize)}>
-          <TabsList>
-            <TabsTrigger value="2">{t('encoding.indent_2', '2 spaces')}</TabsTrigger>
-            <TabsTrigger value="4">{t('encoding.indent_4', '4 spaces')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <Button size="sm" onClick={() => { analytics.buttonClick('json-formatter', 'format'); format() }}>{t('common.format', 'Format')}</Button>
-        <Button size="sm" variant="outline" onClick={() => { analytics.buttonClick('json-formatter', 'minify'); minify() }}>{t('common.minify', 'Minify')}</Button>
-      </div>
-      {error && <ErrorAlert message={error} />}
-      <ToolPanel
-        left={
-          <CodeEditor
-            value={input}
-            onChange={setInput}
-            language={t('encoding.json_input', 'JSON input')}
-            placeholder='{"key": "value"}'
-            rows={16}
+    <Workbench
+      toolbar={
+        <Toolbar>
+          <Segmented<Indent>
+            label={t('encoding.indent', 'Indent')}
+            value={indent}
+            onChange={setIndent}
+            options={[{ value: '2', label: '2 spaces' }, { value: '4', label: '4 spaces' }, { value: 'tab', label: 'Tab' }]}
           />
+          <WbButton primary disabled={!result?.ok} onClick={() => result?.ok && commit(JSON.stringify(result.value, null, space))}>
+            {t('common.format', 'Format')}
+          </WbButton>
+          <WbButton disabled={!result?.ok} onClick={minify}>{t('common.minify', 'Minify')}</WbButton>
+        </Toolbar>
+      }
+      status={
+        <StatusBar>
+          {!result && <span>Paste JSON to begin</span>}
+          {result?.ok && <span className="flex items-center gap-1 text-d-accent"><CheckCircle2 className="h-3 w-3" aria-hidden />Valid JSON</span>}
+          {error && <span role="alert" className="flex min-w-0 items-center gap-1 text-red-600 dark:text-red-400"><AlertCircle className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{error}</span></span>}
+          {output && <span className="ml-auto">{lines} lines · {bytes} B</span>}
+        </StatusBar>
+      }
+    >
+      <SplitPane
+        left={
+          <Pane label={t('encoding.json_input', 'Input')}>
+            <CodeArea label="JSON input" value={input} onChange={setInput} placeholder='{"key": "value"}' />
+          </Pane>
         }
         right={
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('action.output', 'Output')}</span>
-              <CopyButton value={output} />
-            </div>
-            <CodeEditor
-              value={output}
-              onChange={() => {}}
-              readOnly
-              rows={16}
-              placeholder={t('encoding.formatted', 'Formatted JSON appears here…')}
-            />
-          </div>
+          <Pane
+            label={t('action.output', 'Output')}
+            actions={
+              <WbButton onClick={copy} disabled={!output} className="h-6">
+                {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+                {copied ? 'Copied' : 'Copy'}
+              </WbButton>
+            }
+          >
+            <CodeArea label="Formatted JSON" value={output} readOnly placeholder={t('encoding.formatted', 'Formatted JSON appears here')} />
+          </Pane>
         }
       />
-    </div>
+    </Workbench>
   )
 }

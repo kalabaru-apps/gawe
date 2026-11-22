@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Caveat } from 'next/font/google'
-import { Button } from '@/components/ui/button'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
-import { FileDropzone } from '@/components/tools/shared/FileDropzone'
+import { FileUp, PenTool, Type, Upload, Loader2, Download, Trash2, X, Move, ChevronLeft, ChevronRight, MousePointerClick } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
 import { usePdfPages } from './usePdfPages'
 import { downloadPdf } from './downloadPdf'
+import { DropHero, StudioWorkspace, PrimaryAction, Btn, IconBtn, Section, Empty, Chip } from '@/components/domain/kit'
 
 const caveat = Caveat({ subsets: ['latin'], weight: ['600'] })
 
@@ -78,7 +78,7 @@ async function rasterizeTypedSignature(text: string): Promise<string> {
 
 export default function SignTab({ onOutput }: ToolProps) {
   const { t } = useTranslation()
-  const { pages, loading, error: loadError, load } = usePdfPages()
+  const { pages, loading, error: loadError, load, reset } = usePdfPages()
   const [pdfBuffer, setPdfBuffer] = useState<ArrayBuffer | null>(null)
   const [fileName, setFileName] = useState('')
   const [pageIndex, setPageIndex] = useState(0)
@@ -117,8 +117,6 @@ export default function SignTab({ onOutput }: ToolProps) {
   }, [sigMode, sigText, hasDrawn, uploadDataUrl])
 
   const handlePageClick = useCallback(async (e: React.MouseEvent<HTMLDivElement>) => {
-    // Ignore clicks that bubble up from the placement box/resize handle (e.g. the
-    // synthetic click the browser fires after a drag) — only place on empty page space.
     if (e.target !== e.currentTarget) return
     if (!isReady || dragStateRef.current) return
     const rect = pageContainerRef.current!.getBoundingClientRect()
@@ -169,8 +167,6 @@ export default function SignTab({ onOutput }: ToolProps) {
             yPct: Math.min(Math.max(drag.start.yPct + dyPct, 0), 1 - prev.hPct),
           }
         }
-        // Resize keeps the signature's original aspect ratio — driven by horizontal
-        // drag distance only, height follows so the image never gets distorted.
         const startWPx = drag.start.wPct * bounds.width
         const startHPx = drag.start.hPct * bounds.height
         const aspect = startWPx / startHPx
@@ -257,6 +253,7 @@ export default function SignTab({ onOutput }: ToolProps) {
       const bytes = await doc.save()
       downloadPdf(bytes, fileName.replace(/\.pdf$/i, '') + '-signed.pdf')
       onOutput({ mode: 'sign', page: placement.page }, {})
+      analytics.buttonClick('pdf-tools', 'sign')
     } catch (e) {
       setError(`${t('image.failed_convert', 'Failed to sign PDF')}: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -264,93 +261,77 @@ export default function SignTab({ onOutput }: ToolProps) {
     }
   }, [pdfBuffer, placement, fileName, onOutput, t])
 
+  const clearSignature = () => {
+    setPlacement(null)
+  }
+
+  const MODE_OPTS: { value: SigMode; label: string; icon: React.ReactNode }[] = [
+    { value: 'type', label: t('image.sign_type', 'Type'), icon: <Type className="h-4 w-4" aria-hidden /> },
+    { value: 'draw', label: t('image.sign_draw', 'Draw'), icon: <PenTool className="h-4 w-4" aria-hidden /> },
+    { value: 'upload', label: t('common.upload', 'Upload'), icon: <Upload className="h-4 w-4" aria-hidden /> },
+  ]
+
+  if (pages.length === 0) {
+    return (
+      <div className="flex h-full flex-col">
+        {(loadError || error) && <div className="p-4 pb-0" role="alert"><Empty title={loadError || error} /></div>}
+        {loading ? (
+          <p className="m-auto text-sm text-d-muted" role="status">{t('common.processing', 'Loading pages…')}</p>
+        ) : (
+          <DropHero
+            accept=".pdf"
+            onFiles={loadFile}
+            title={t('image.sign', 'Sign PDF')}
+            hint="Drop a PDF here. It stays on your device."
+          />
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      {(loadError || error) && <ErrorAlert message={loadError || error} />}
-
-      {pages.length === 0 && (
-        <FileDropzone onFile={(f) => loadFile([f])} accept=".pdf" label={t('image.drop_pdf', 'Drop a PDF to sign')} />
-      )}
-      {loading && <div className="text-sm text-muted-foreground">{t('common.processing', 'Loading pages…')}</div>}
-
-      {pages.length > 0 && (
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <Button size="sm" variant="outline" disabled={pageIndex === 0} onClick={() => setPageIndex((p) => p - 1)}>
-                ‹ {t('common.previous', 'Prev')}
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                {t('image.pages', 'Page')} {pageIndex + 1} / {pages.length}
-              </span>
-              <Button size="sm" variant="outline" disabled={pageIndex === pages.length - 1} onClick={() => setPageIndex((p) => p + 1)}>
-                {t('common.next', 'Next')} ›
-              </Button>
-            </div>
-            <div
-              ref={pageContainerRef}
-              onClick={handlePageClick}
-              className={`relative border border-border rounded-md overflow-hidden select-none ${isReady ? 'cursor-crosshair' : ''}`}
-            >
-              <img src={pages[pageIndex].dataUrl} alt={`Page ${pageIndex + 1}`} className="w-full h-auto block pointer-events-none" />
-              {placement && placement.page === pageIndex && (
-                <div
-                  onPointerDown={startMove}
-                  style={{
-                    position: 'absolute',
-                    left: `${placement.xPct * 100}%`,
-                    top: `${placement.yPct * 100}%`,
-                    width: `${placement.wPct * 100}%`,
-                    height: `${placement.hPct * 100}%`,
-                  }}
-                  className="border-2 border-blue-500 bg-blue-500/10 cursor-move touch-none shadow-[0_0_0_1px_rgba(255,255,255,0.6)]"
-                >
-                  <img src={placement.dataUrl} alt="Signature" className="w-full h-full object-contain pointer-events-none" />
-                  <div
-                    onPointerDown={startResize}
-                    className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-sm bg-blue-500 border border-white cursor-nwse-resize touch-none"
-                  />
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {placement
-                ? t('image.sign_drag_hint', 'Drag to move, drag the corner to resize.')
-                : t('image.sign_click_hint', 'Click the page to place your signature.')}
-            </p>
+    <StudioWorkspace
+      rail={
+        <div className="flex h-full flex-col gap-5">
+          <div>
+            <h2 className="font-display text-lg font-semibold">{t('image.sign', 'Sign')}</h2>
+            <p className="mt-1 break-all text-sm text-d-muted">{fileName}</p>
+            <p className="mt-1 text-xs text-d-muted">{t('image.page', 'Page')} {pageIndex + 1} {t('common.of', 'of')} {pages.length}</p>
           </div>
-
-          <div className="w-full lg:w-64 shrink-0 space-y-3">
-            <div className="flex gap-1 border border-input rounded-md p-0.5 w-fit">
-              {(['type', 'draw', 'upload'] as SigMode[]).map((m) => (
+          <Section title={t('image.signature', 'Signature')}>
+            <div className="flex gap-1 border border-d-border rounded-d p-0.5">
+              {MODE_OPTS.map((m) => (
                 <button
-                  key={m}
-                  onClick={() => setSigMode(m)}
-                  className={`px-3 py-1.5 rounded text-sm capitalize transition-colors ${sigMode === m ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}
+                  key={m.value}
+                  onClick={() => { setSigMode(m.value); setPlacement(null) }}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-[calc(var(--d-radius)-2px)] px-3 py-1.5 text-xs font-medium transition-colors',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-d-accent',
+                    sigMode === m.value ? 'bg-d-accent text-d-accent-ink' : 'text-d-muted hover:bg-d-border/40 hover:text-d-ink',
+                  )}
                 >
-                  {m === 'type' ? t('image.sign_type', 'Type') : m === 'draw' ? t('image.sign_draw', 'Draw') : t('common.upload', 'Upload')}
+                  {m.icon}
+                  <span>{m.label}</span>
                 </button>
               ))}
             </div>
-
             {sigMode === 'type' && (
-              <div className="space-y-2">
+              <div className="space-y-2 mt-3">
                 <input
                   value={sigText}
                   onChange={(e) => setSigText(e.target.value)}
                   placeholder={t('image.sign_placeholder', 'Your name')}
-                  className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-d border border-d-border bg-d-raised px-3 py-2 text-sm text-d-ink placeholder:text-d-muted/70 focus-visible:outline-2 focus-visible:outline-d-accent"
                 />
                 {sigText.trim() && (
-                  <div className={`${caveat.className} text-4xl border border-border rounded-md px-3 py-2 bg-card`}>
+                  <div className={`${caveat.className} text-4xl border border-d-border rounded-d px-3 py-2 bg-d-raised text-d-ink`}>
                     {sigText}
                   </div>
                 )}
               </div>
             )}
-
             {sigMode === 'draw' && (
-              <div className="space-y-2">
+              <div className="space-y-2 mt-3">
                 <canvas
                   ref={drawCanvasRef}
                   width={280}
@@ -359,33 +340,143 @@ export default function SignTab({ onOutput }: ToolProps) {
                   onPointerMove={onDrawMove}
                   onPointerUp={onDrawEnd}
                   onPointerLeave={onDrawEnd}
-                  className="w-full border border-border rounded-md bg-card touch-none cursor-crosshair"
+                  className="w-full rounded-d border border-d-border bg-d-raised touch-none cursor-crosshair"
                 />
-                <Button size="sm" variant="outline" onClick={clearDraw}>{t('action.clear', 'Clear')}</Button>
+                <Btn variant="secondary" size="sm" onClick={clearDraw}>
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                  <span>{t('action.clear', 'Clear')}</span>
+                </Btn>
               </div>
             )}
-
             {sigMode === 'upload' && (
-              <div className="space-y-2">
-                <FileDropzone compact onFile={onUpload} accept="image/*" label={t('image.drop_image', 'Drop an image to convert')} />
+              <div className="space-y-2 mt-3">
+                <DropHero
+                  accept="image/*"
+                  onFiles={async (files) => { if (files[0]) await onUpload(files[0]) }}
+                  title={t('image.drop_image', 'Drop signature image')}
+                  hint="PNG, JPG, or SVG"
+                />
                 {uploadDataUrl && (
-                  <img src={uploadDataUrl} alt="Uploaded signature" className="max-h-24 rounded-md border border-border bg-card p-1" />
+                  <div className="relative rounded-d border border-d-border bg-d-raised p-1">
+                    <img src={uploadDataUrl} alt="Uploaded signature" className="max-h-24 w-auto rounded-sm" />
+                    <button
+                      onClick={() => setUploadDataUrl(null)}
+                      className="absolute top-1 right-1 rounded bg-d-border/80 text-d-ink p-0.5 hover:bg-d-border"
+                      aria-label={t('common.remove', 'Remove signature')}
+                    >
+                      <X className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  </div>
                 )}
               </div>
             )}
+          </Section>
+          {placement && (
+            <Section title={t('image.placement', 'Placement')}>
+              <div className="flex gap-2">
+                <IconBtn label={t('image.remove_signature', 'Remove signature')} onClick={clearSignature} className="text-d-muted hover:text-red-500">
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                </IconBtn>
+                <span className="flex-1 text-xs text-d-muted self-center">
+                  {t('image.drag_resize_hint', 'Drag to move, corner to resize')}
+                </span>
+              </div>
+            </Section>
+          )}
+          {error && <div role="alert"><Empty title={error} /></div>}
+          <div className="mt-auto flex flex-col gap-2">
+            <PrimaryAction onClick={() => void apply()} disabled={applying || !placement}>
+              {applying ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                  <span>{t('common.processing', 'Applying…')}</span>
+                </>
+              ) : (
+                <>
+                  <Download className="h-5 w-5" aria-hidden />
+                  <span>{t('image.sign_apply', 'Apply signature')} & {t('common.download', 'Download')}</span>
+                </>
+              )}
+            </PrimaryAction>
+            <Btn variant="quiet" onClick={() => { setPdfBuffer(null); reset() }}>
+              {t('common.choose_another', 'Choose another file')}
+            </Btn>
           </div>
         </div>
-      )}
-
-      {pages.length > 0 && (
-        <button
-          onClick={() => { analytics.buttonClick('pdf-tools', 'sign'); void apply() }}
-          disabled={applying || !placement}
-          className="px-6 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+      }
+    >
+      <div className="flex min-h-0 flex-col">
+        <div className="flex items-center justify-between border-b border-d-border px-2 py-2">
+          <div className="flex items-center gap-2">
+            <IconBtn label={t('common.previous', 'Previous page')} onClick={() => setPageIndex((p) => Math.max(0, p - 1))} disabled={pageIndex === 0} className="text-d-muted hover:text-d-ink">
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+            </IconBtn>
+            <span className="text-sm text-d-muted">{t('image.page', 'Page')} {pageIndex + 1} / {pages.length}</span>
+            <IconBtn label={t('common.next', 'Next page')} onClick={() => setPageIndex((p) => Math.min(pages.length - 1, p + 1))} disabled={pageIndex === pages.length - 1} className="text-d-muted hover:text-d-ink">
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </IconBtn>
+          </div>
+          {placement && placement.page === pageIndex && (
+            <Chip on={true} onClick={clearSignature} title={t('image.remove_signature', 'Remove signature')}>
+              <Move className="h-3 w-3 mr-1" aria-hidden />
+              {t('image.signature_placed', 'Signature placed')}
+            </Chip>
+          )}
+        </div>
+        <div
+          ref={pageContainerRef}
+          onClick={handlePageClick}
+          className={cn(
+            'relative flex-1 border border-d-border rounded-d overflow-hidden select-none',
+            isReady ? 'cursor-crosshair' : '',
+          )}
+          role="img"
+          aria-label={placement && placement.page === pageIndex
+            ? t('image.signature_on_page', 'Signature placed on page')
+            : isReady
+              ? t('image.click_to_place', 'Click to place signature')
+              : t('image.create_signature_first', 'Create a signature first')}
         >
-          {applying ? t('common.processing', 'Processing…') : `${t('image.sign_apply', 'Apply signature')} & ${t('common.download', 'Download')}`}
-        </button>
-      )}
-    </div>
+          <img src={pages[pageIndex].dataUrl} alt={`${t('image.page', 'Page')} ${pageIndex + 1}`} className="w-full h-auto block pointer-events-none" />
+          {placement && placement.page === pageIndex && (
+            <div
+              onPointerDown={startMove}
+              style={{
+                position: 'absolute',
+                left: `${placement.xPct * 100}%`,
+                top: `${placement.yPct * 100}%`,
+                width: `${placement.wPct * 100}%`,
+                height: `${placement.hPct * 100}%`,
+              }}
+              className="border-2 border-d-accent bg-d-accent/10 cursor-move touch-none shadow-[0_0_0_1px_rgba(255,255,255,0.6)]"
+              role="dialog"
+              aria-label={t('image.signature_placed', 'Signature placed on page')}
+            >
+              <img src={placement.dataUrl} alt="Signature" className="w-full h-full object-contain pointer-events-none" />
+              <div
+                onPointerDown={startResize}
+                className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-sm bg-d-accent border border-white cursor-nwse-resize touch-none"
+                aria-label={t('image.resize_signature', 'Resize signature')}
+              />
+            </div>
+          )}
+          {!placement && isReady && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="rounded-full bg-d-accent/20 border-2 border-dashed border-d-accent p-6 text-center">
+                <MousePointerClick className="h-8 w-8 mx-auto text-d-accent mb-2" aria-hidden />
+                <p className="text-sm font-medium text-d-accent">{t('image.click_to_place', 'Click to place signature')}</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-d-muted mt-2 px-2 text-center">
+          {placement && placement.page === pageIndex
+            ? t('image.sign_drag_hint', 'Drag to move, drag the corner to resize.')
+            : isReady
+              ? t('image.sign_click_hint', 'Click the page to place your signature.')
+              : t('image.sign_create_first', 'Create a signature using the panel on the right.')}
+        </p>
+      </div>
+    </StudioWorkspace>
   )
 }

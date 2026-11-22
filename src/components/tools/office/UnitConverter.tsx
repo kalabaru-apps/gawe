@@ -1,10 +1,16 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+/**
+ * UnitConverter — Paper domain (category = office).
+ * Type in any unit, see all in the category live; category as Seg/tabs.
+ * Nested Workbench region for result table (code-like density).
+ */
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { Copy, Check, ArrowRightLeft } from 'lucide-react'
 import type { ToolProps } from '@/types'
-import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Region, Column, Scroll, Field, TextInput, Seg, Btn, CopyBtn, Notice, Empty, Row, Stat } from '@/components/domain'
 
 interface Unit {
   label: string
@@ -71,9 +77,12 @@ const CATEGORIES: Record<string, Category> = {
 }
 
 function formatNum(n: number): string {
+  if (!isFinite(n)) return '—'
   if (Math.abs(n) >= 1e9 || (Math.abs(n) < 0.0001 && n !== 0)) return n.toExponential(4)
   return Number(n.toPrecision(8)).toString()
 }
+
+const CATEGORY_ORDER = ['length', 'weight', 'temperature', 'data', 'speed'] as const
 
 export default function UnitConverter({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
@@ -98,6 +107,7 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
         key,
         label: u.label,
         result: key === fromUnit ? value : formatNum(u.fromBase(baseVal)),
+        isFrom: key === fromUnit,
       }))
     } catch {
       return []
@@ -119,70 +129,83 @@ export default function UnitConverter({ onOutput, initialState }: ToolProps) {
   function handleCategoryChange(c: string) {
     setCategory(c)
     setFromUnit(Object.keys(CATEGORIES[c].units)[0])
+    firedRef.current = false
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(CATEGORIES).map(([key, cat]) => (
-          <button
-            key={key}
-            onClick={() => handleCategoryChange(key)}
-            className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-              category === key
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'border-input hover:bg-muted/50'
-            }`}
-          >
-            {cat.name}
-          </button>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              {t('office.unit_value', 'Value')}
-            </label>
-            <input
-              type="number"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring font-mono"
-            />
+    <div className="h-full flex flex-col">
+      <div className="flex flex-col gap-6">
+        {/* Category selector */}
+        <Field id="unit-cat" label={t('office.unit_category', 'Category')}>
+          <Seg<string>
+            value={category}
+            onChange={handleCategoryChange}
+            label={t('office.unit_category', 'Category')}
+            options={CATEGORY_ORDER.map(key => ({ value: key, label: CATEGORIES[key].name }))}
+          />
+        </Field>
+
+        {/* Input area */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <Field id="unit-value" label={t('office.unit_value', 'Value')}>
+              <TextInput
+                type="number"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="font-mono"
+                placeholder="0"
+              />
+            </Field>
+            <Field id="unit-from" label={t('office.unit_from', 'From unit')}>
+              <select
+                value={fromUnit}
+                onChange={(e) => setFromUnit(e.target.value)}
+                className="w-full rounded-d border border-d-border bg-d-raised px-3 py-2 text-sm text-d-ink outline-none focus:ring-2 focus:ring-d-accent cursor-pointer"
+              >
+                {units.map(([key, u]) => (
+                  <option key={key} value={key}>{u.label}</option>
+                ))}
+              </select>
+            </Field>
           </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              {t('office.unit_from', 'From Unit')}
-            </label>
-            <select
-              value={fromUnit}
-              onChange={(e) => setFromUnit(e.target.value)}
-              className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-            >
-              {units.map(([key, u]) => (
-                <option key={key} value={key}>
-                  {u.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {results.map((r) => (
-            <div
-              key={r.key}
-              className={`flex items-center justify-between rounded-md border p-2.5 ${
-                r.key === fromUnit ? 'border-primary/50 bg-primary/5' : 'border-input'
-              }`}
-            >
-              <div>
-                <p className="text-xs text-muted-foreground">{r.label}</p>
-                <p className="font-mono text-sm mt-0.5">{r.result}</p>
-              </div>
-              <CopyButton value={r.result} />
+
+          {/* Results table - nested Workbench region */}
+          <Region domain="workbench" className="flex-1 min-h-0">
+            <div className="h-full overflow-auto">
+              <table className="w-full border-collapse font-mono text-sm">
+                <thead>
+                  <tr className="border-b border-d-border text-left text-xs text-d-muted">
+                    <th className="pb-2 pr-4 font-medium">{t('office.unit_unit', 'Unit')}</th>
+                    <th className="pb-2 pr-4 font-medium">{t('office.unit_result', 'Result')}</th>
+                    <th className="pb-2 text-right font-medium w-16"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((r) => (
+                    <tr
+                      key={r.key}
+                      className={`border-b border-d-border/50 transition-colors ${r.isFrom ? 'bg-d-accent/5' : ''}`}
+                    >
+                      <td className="py-2 pr-4 text-d-muted">{r.label}</td>
+                      <td className="py-2 pr-4 font-medium tabular-nums">
+                        {r.result}
+                      </td>
+                      <td className="py-2 text-right">
+                        <CopyBtn value={r.result} size="sm" label="" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {results.length === 0 && (
+                <Empty
+                  title={t('office.unit_enter_value', 'Enter a value')}
+                  children={t('office.unit_enter_value_desc', 'Type a number above to see conversions across all units in this category.')}
+                />
+              )}
             </div>
-          ))}
+          </Region>
         </div>
       </div>
     </div>

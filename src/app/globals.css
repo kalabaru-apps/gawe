@@ -103,3 +103,142 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 }
+
+/* ── Domain system ────────────────────────────────────────────────────────────
+   Each tool container sets data-domain. Tokens use a d- prefix so they never
+   collide with the shadcn tokens above. See DESIGN.md. */
+@layer base {
+  [data-domain] {
+    background: hsl(var(--d-surface));
+    color: hsl(var(--d-ink));
+    border-color: hsl(var(--d-border));
+  }
+
+  /* Workbench: dev, encoding, crypto */
+  [data-domain="workbench"] {
+    --d-surface: 0 0% 98%;
+    --d-raised: 0 0% 100%;
+    --d-border: 0 0% 86%;
+    --d-ink: 0 0% 12%;
+    --d-muted: 0 0% 40%;
+    --d-accent: 162 94% 24%;
+    --d-accent-ink: 0 0% 100%;
+    --d-radius: 4px;
+  }
+  .dark [data-domain="workbench"] {
+    --d-surface: 0 0% 6%;
+    --d-raised: 0 0% 9%;
+    --d-border: 0 0% 17%;
+    --d-ink: 0 0% 86%;
+    --d-muted: 0 0% 62%;
+    --d-accent: 160 70% 50%;
+    --d-accent-ink: 0 0% 4%;
+  }
+
+  /* Paper: office, education */
+  [data-domain="paper"] {
+    --d-surface: 40 22% 96%;
+    --d-raised: 40 30% 99%;
+    --d-border: 38 14% 84%;
+    --d-ink: 30 12% 12%;
+    --d-muted: 30 8% 38%;
+    --d-accent: 199 89% 28%;
+    --d-accent-ink: 0 0% 100%;
+    --d-radius: 2px;
+  }
+  .dark [data-domain="paper"] {
+    --d-surface: 30 8% 8%;
+    --d-raised: 30 8% 11%;
+    --d-border: 30 6% 20%;
+    --d-ink: 40 15% 90%;
+    --d-muted: 30 8% 64%;
+    --d-accent: 199 80% 62%;
+    --d-accent-ink: 30 8% 6%;
+  }
+
+  /* Studio: image, pdf */
+  [data-domain="studio"] {
+    --d-surface: 220 14% 96%;
+    --d-raised: 0 0% 100%;
+    --d-border: 220 12% 86%;
+    --d-ink: 222 20% 12%;
+    --d-muted: 220 8% 40%;
+    --d-accent: 346 80% 42%;
+    --d-accent-ink: 0 0% 100%;
+    --d-radius: 12px;
+  }
+  .dark [data-domain="studio"] {
+    --d-surface: 225 12% 9%;
+    --d-raised: 225 12% 13%;
+    --d-border: 225 10% 22%;
+    --d-ink: 220 15% 92%;
+    --d-muted: 220 8% 65%;
+    --d-accent: 346 90% 66%;
+    --d-accent-ink: 225 12% 6%;
+  }
+
+  /* Instrument: timers, calculators. Paper palette, device attitude. */
+  [data-domain="instrument"] {
+    --d-surface: 40 14% 93%;
+    --d-raised: 40 30% 99%;
+    --d-border: 38 14% 80%;
+    --d-ink: 30 12% 12%;
+    --d-muted: 30 8% 38%;
+    --d-accent: 14 80% 38%;
+    --d-accent-ink: 0 0% 100%;
+    --d-radius: 14px;
+  }
+  .dark [data-domain="instrument"] {
+    --d-surface: 30 8% 7%;
+    --d-raised: 30 8% 12%;
+    --d-border: 30 6% 22%;
+    --d-ink: 40 15% 90%;
+    --d-muted: 30 8% 64%;
+    --d-accent: 14 85% 62%;
+    --d-accent-ink: 30 8% 6%;
+  }
+
+  /* Stage: visual */
+  [data-domain="stage"] {
+    --d-surface: 240 6% 90%;
+    --d-raised: 0 0% 100%;
+    --d-border: 240 6% 80%;
+    --d-ink: 240 10% 10%;
+    --d-muted: 240 5% 38%;
+    --d-accent: 268 70% 46%;
+    --d-accent-ink: 0 0% 100%;
+    --d-radius: 8px;
+  }
+  .dark [data-domain="stage"] {
+    --d-surface: 240 8% 5%;
+    --d-raised: 240 8% 11%;
+    --d-border: 240 6% 20%;
+    --d-ink: 240 10% 92%;
+    --d-muted: 240 5% 65%;
+    --d-accent: 268 90% 72%;
+    --d-accent-ink: 240 8% 5%;
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-display: var(--font-familjen), var(--font-public-sans), sans-serif;
+
+  --color-d-surface: hsl(var(--d-surface));
+  --color-d-raised: hsl(var(--d-raised));
+  --color-d-border: hsl(var(--d-border));
+  --color-d-ink: hsl(var(--d-ink));
+  --color-d-muted: hsl(var(--d-muted));
+  --color-d-accent: hsl(var(--d-accent));
+  --color-d-accent-ink: hsl(var(--d-accent-ink));
+  --radius-d: var(--d-radius);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

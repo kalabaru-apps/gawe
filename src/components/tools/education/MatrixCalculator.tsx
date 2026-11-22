@@ -1,14 +1,29 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+/**
+ * Matrix Calculator — Paper domain (education category) with Workbench region for matrix grids.
+ * Paper: serif headings, ruled Sheet, printed Result. Workbench region: mono matrix inputs/outputs.
+ * Live calculate on input change, local size controls, bracket styling via CSS.
+ */
+
+import { useState, useCallback, useMemo } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
+import { analytics } from '@/lib/analytics'
+import { Sheet, Page, Result, Column, Scroll, Region, Field, TextInput, Btn, Row, Notice, Empty, CopyBtn, Section, Select } from '@/components/domain/kit'
 
-type Operation = 'add' | 'subtract' | 'multiply' | 'determinant' | 'inverse' | 'transpose'
+// ---------------------------------------------------------------------------
+// Matrix math
+// ---------------------------------------------------------------------------
+
 type Matrix = number[][]
 
-function makeMatrix(rows: number, cols: number): Matrix {
-  return Array.from({ length: rows }, () => Array(cols).fill(0))
+function makeMatrix(rows: number, cols: number, fill = 0): Matrix {
+  return Array.from({ length: rows }, () => Array(cols).fill(fill))
+}
+
+function clone(m: Matrix): Matrix {
+  return m.map((row) => [...row])
 }
 
 function det(m: Matrix): number {
@@ -69,6 +84,12 @@ function formatNum(n: number): string {
   return String(rounded)
 }
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type Operation = 'add' | 'subtract' | 'multiply' | 'determinant' | 'inverse' | 'transpose'
+
 const OPERATION_IDS: Operation[] = ['add', 'subtract', 'multiply', 'determinant', 'inverse', 'transpose']
 const SINGLE_MATRIX_OPS: Operation[] = ['determinant', 'inverse', 'transpose']
 const SAME_SIZE_OPS: Operation[] = ['add', 'subtract']
@@ -77,149 +98,17 @@ const SQUARE_OPS: Operation[] = ['determinant', 'inverse']
 const MIN_SIZE = 1
 const MAX_SIZE = 8
 
-function clamp(v: number) {
+function clamp(v: number): number {
   return Math.max(MIN_SIZE, Math.min(MAX_SIZE, v))
 }
 
-interface SizeInputProps {
-  label: string
-  rows: number
-  cols: number
-  onRowsChange: (v: number) => void
-  onColsChange: (v: number) => void
-  disabled?: boolean
-  disabledRows?: boolean
+function matrixToString(m: Matrix): string {
+  return m.map((row) => '[' + row.map(formatNum).join('  ') + ']').join('\n')
 }
 
-function SizeInput({ label, rows, cols, onRowsChange, onColsChange, disabled, disabledRows }: SizeInputProps) {
-  const rowsDisabled = disabled || disabledRows
-  return (
-    <div className="space-y-1">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="flex items-center gap-1.5 text-sm">
-        <span className="text-xs text-muted-foreground">Rows:</span>
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={() => onRowsChange(rows - 1)}
-            disabled={rowsDisabled || rows <= MIN_SIZE}
-            className="w-6 h-6 rounded border border-input bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed text-xs leading-none"
-          >
-            −
-          </button>
-          <input
-            type="number"
-            min={MIN_SIZE}
-            max={MAX_SIZE}
-            value={rows}
-            disabled={rowsDisabled}
-            onChange={(e) => onRowsChange(clamp(parseInt(e.target.value) || MIN_SIZE))}
-            className="w-10 h-6 text-center text-xs rounded border border-input bg-background disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <button
-            onClick={() => onRowsChange(rows + 1)}
-            disabled={rowsDisabled || rows >= MAX_SIZE}
-            className="w-6 h-6 rounded border border-input bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed text-xs leading-none"
-          >
-            +
-          </button>
-        </div>
-        <span className="text-muted-foreground">×</span>
-        <span className="text-xs text-muted-foreground">Cols:</span>
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={() => onColsChange(cols - 1)}
-            disabled={disabled || cols <= MIN_SIZE}
-            className="w-6 h-6 rounded border border-input bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed text-xs leading-none"
-          >
-            −
-          </button>
-          <input
-            type="number"
-            min={MIN_SIZE}
-            max={MAX_SIZE}
-            value={cols}
-            disabled={disabled}
-            onChange={(e) => onColsChange(clamp(parseInt(e.target.value) || MIN_SIZE))}
-            className="w-10 h-6 text-center text-xs rounded border border-input bg-background disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <button
-            onClick={() => onColsChange(cols + 1)}
-            disabled={disabled || cols >= MAX_SIZE}
-            className="w-6 h-6 rounded border border-input bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed text-xs leading-none"
-          >
-            +
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-interface MatrixInputProps {
-  label: string
-  rows: number
-  cols: number
-  matrix: Matrix
-  onChange: (row: number, col: number, value: string) => void
-}
-
-function MatrixInput({ label, rows, cols, matrix, onChange }: MatrixInputProps) {
-  const large = rows > 5 || cols > 5
-  const cellClass = large
-    ? 'w-9 h-7 text-center text-xs rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono'
-    : 'w-12 h-8 text-center text-sm rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono'
-
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">{label}</p>
-      <div
-        className="inline-grid gap-1"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-      >
-        {Array.from({ length: rows }, (_, i) =>
-          Array.from({ length: cols }, (_, j) => (
-            <input
-              key={`${i}-${j}`}
-              type="number"
-              value={matrix[i]?.[j] === 0 ? '' : matrix[i]?.[j] ?? ''}
-              onChange={(e) => onChange(i, j, e.target.value)}
-              placeholder="0"
-              className={cellClass}
-            />
-          ))
-        )}
-      </div>
-    </div>
-  )
-}
-
-interface MatrixDisplayProps {
-  matrix: Matrix
-}
-
-function MatrixDisplay({ matrix }: MatrixDisplayProps) {
-  const rows = matrix.length
-  const cols = matrix[0]?.length ?? 0
-  const large = rows > 5 || cols > 5
-  const cellClass = large
-    ? 'w-10 h-7 rounded bg-muted px-1 py-1 text-xs text-center font-mono'
-    : 'w-14 h-8 rounded bg-muted px-2 py-2 text-sm text-center font-mono'
-
-  return (
-    <div
-      className="inline-grid gap-1"
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-    >
-      {matrix.map((row, i) =>
-        row.map((val, j) => (
-          <div key={`${i}-${j}`} className={cellClass}>
-            {formatNum(val)}
-          </div>
-        ))
-      )}
-    </div>
-  )
-}
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function MatrixCalculator({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
@@ -228,13 +117,13 @@ export default function MatrixCalculator({ onOutput, initialState }: ToolProps) 
     (initialState?.operation as Operation) ?? 'add'
   )
 
-  const [aRows, setARows] = useState(3)
-  const [aCols, setACols] = useState(3)
-  const [bRows, setBRows] = useState(3)
-  const [bCols, setBCols] = useState(3)
+  const [aRows, setARows] = useState((initialState?.aRows as number) ?? 3)
+  const [aCols, setACols] = useState((initialState?.aCols as number) ?? 3)
+  const [bRows, setBRows] = useState((initialState?.bRows as number) ?? 3)
+  const [bCols, setBCols] = useState((initialState?.bCols as number) ?? 3)
 
-  const [matrixA, setMatrixA] = useState<Matrix>(() => makeMatrix(3, 3))
-  const [matrixB, setMatrixB] = useState<Matrix>(() => makeMatrix(3, 3))
+  const [matrixA, setMatrixA] = useState<Matrix>(() => makeMatrix(aRows, aCols))
+  const [matrixB, setMatrixB] = useState<Matrix>(() => makeMatrix(bRows, bCols))
   const [resultMatrix, setResultMatrix] = useState<Matrix | null>(null)
   const [resultScalar, setResultScalar] = useState<number | null>(null)
   const [singular, setSingular] = useState(false)
@@ -251,6 +140,7 @@ export default function MatrixCalculator({ onOutput, initialState }: ToolProps) 
     setError(null)
   }, [])
 
+  // Size handlers
   const handleARowsChange = useCallback((v: number) => {
     clearResult()
     const newRows = clamp(v)
@@ -305,10 +195,7 @@ export default function MatrixCalculator({ onOutput, initialState }: ToolProps) 
 
   const handleOperationChange = useCallback((op: Operation) => {
     setOperation(op)
-    setResultMatrix(null)
-    setResultScalar(null)
-    setSingular(false)
-    setError(null)
+    clearResult()
     if (SAME_SIZE_OPS.includes(op)) {
       setBRows(aRows)
       setBCols(aCols)
@@ -318,11 +205,12 @@ export default function MatrixCalculator({ onOutput, initialState }: ToolProps) 
       setACols(aRows)
       setMatrixA(makeMatrix(aRows, aRows))
     }
-  }, [aRows, aCols])
+  }, [aRows, aCols, clearResult])
 
+  // Input handlers
   const updateA = useCallback((row: number, col: number, value: string) => {
     setMatrixA((prev) => {
-      const next = prev.map((r) => [...r])
+      const next = clone(prev)
       if (next[row]) next[row][col] = parseFloat(value) || 0
       return next
     })
@@ -330,17 +218,16 @@ export default function MatrixCalculator({ onOutput, initialState }: ToolProps) 
 
   const updateB = useCallback((row: number, col: number, value: string) => {
     setMatrixB((prev) => {
-      const next = prev.map((r) => [...r])
+      const next = clone(prev)
       if (next[row]) next[row][col] = parseFloat(value) || 0
       return next
     })
   }, [])
 
-  const calculate = useCallback(() => {
-    setResultMatrix(null)
-    setResultScalar(null)
-    setSingular(false)
+  // Live calculation
+  const compute = useMemo(() => {
     setError(null)
+    setSingular(false)
 
     let resMatrix: Matrix | null = null
     let resScalar: number | null = null
@@ -393,14 +280,15 @@ export default function MatrixCalculator({ onOutput, initialState }: ToolProps) 
       }
     }
 
-    if (err) {
-      setError(err)
-      return
-    }
+    return { resMatrix, resScalar, err }
+  }, [operation, matrixA, matrixB, aRows, aCols, bRows, bCols])
 
-    setResultMatrix(resMatrix)
-    setResultScalar(resScalar)
+  const { resMatrix, resScalar, err } = compute
 
+  // Fire analytics + onOutput when result changes
+  const prevResultRef = useState<{ matrix: Matrix | null; scalar: number | null }>({ matrix: null, scalar: null })[0]
+  if ((prevResultRef.matrix !== resMatrix || prevResultRef.scalar !== resScalar) && (resMatrix || resScalar !== null)) {
+    analytics.buttonClick('matrix-calculator', 'calculate')
     onOutput(
       {
         operation,
@@ -416,151 +304,175 @@ export default function MatrixCalculator({ onOutput, initialState }: ToolProps) 
         determinant: operation === 'determinant' ? resScalar : null,
       }
     )
-  }, [operation, matrixA, matrixB, aRows, aCols, bRows, bCols, onOutput])
-
-  const reset = useCallback(() => {
-    setMatrixA(makeMatrix(aRows, aCols))
-    setMatrixB(makeMatrix(bRows, bCols))
-    setResultMatrix(null)
-    setResultScalar(null)
-    setSingular(false)
-    setError(null)
-  }, [aRows, aCols, bRows, bCols])
+  }
 
   const resultRows = operation === 'transpose' ? aCols : aRows
   const resultCols = operation === 'transpose' ? aRows : operation === 'multiply' ? bCols : aCols
 
   return (
-    <div className="space-y-4">
-      {/* Operation selector */}
-      <div className="space-y-1">
-        <p className="text-sm font-medium">{t('matrix.operation')}</p>
-        <div className="flex flex-wrap gap-2">
-          {OPERATION_IDS.map((id) => (
-            <button
-              key={id}
-              onClick={() => handleOperationChange(id)}
-              className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
-                operation === id
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-input bg-background hover:bg-muted'
-              }`}
-            >
-              {t(`matrix.${id}` as Parameters<typeof t>[0])}
-            </button>
-          ))}
-        </div>
-      </div>
+    <Scroll>
+      <Column width="xl">
+        <Sheet>
+          <header className="mb-6">
+            <h1 className="font-serif text-2xl font-semibold text-d-ink mb-2">{t('matrix.title', 'Matrix Calculator')}</h1>
+            <p className="text-d-muted text-sm">{t('matrix.description', 'Enter two matrices and choose an operation. Result updates live.')}</p>
+          </header>
 
-      {/* Size inputs */}
-      <div className="flex flex-col gap-6 items-start">
-        <div className="space-y-1">
-          <SizeInput
-            label={`${t('matrix.matrix_a')} ${t('matrix.size')}`}
-            rows={aRows}
-            cols={aCols}
-            onRowsChange={handleARowsChange}
-            onColsChange={handleAColsChange}
-          />
-          {isSquareOp && (
-            <p className="text-xs text-muted-foreground">Square matrix enforced (rows = cols)</p>
+          {/* Operation selector */}
+          <Section title={t('matrix.operation', 'Operation')}>
+            <div className="flex flex-wrap gap-2">
+              {OPERATION_IDS.map((id) => (
+                <Btn
+                  key={id}
+                  variant={operation === id ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => handleOperationChange(id)}
+                >
+                  {t(`matrix.${id}` as Parameters<typeof t>[0])}
+                </Btn>
+              ))}
+            </div>
+          </Section>
+
+          {/* Size controls */}
+          <Section title={t('matrix.matrix_a', 'Matrix A')} className="mb-4">
+            <div className="grid gap-4 sm:grid-cols-4 mb-3">
+              <Field id="a-rows" label={t('matrix.rows', 'Rows')} hint={isSquareOp ? t('matrix.square_hint', 'Square matrix enforced') : undefined}>
+                <TextInput
+                  id="a-rows"
+                  type="number"
+                  value={aRows}
+                  onChange={(e) => handleARowsChange(parseInt(e.target.value) || MIN_SIZE)}
+                  min={MIN_SIZE}
+                  max={MAX_SIZE}
+                />
+              </Field>
+              <Field id="a-cols" label={t('matrix.cols', 'Cols')} hint={isSquareOp ? t('matrix.square_hint', 'Square matrix enforced') : undefined}>
+                <TextInput
+                  id="a-cols"
+                  type="number"
+                  value={aCols}
+                  onChange={(e) => handleAColsChange(parseInt(e.target.value) || MIN_SIZE)}
+                  min={MIN_SIZE}
+                  max={MAX_SIZE}
+                />
+              </Field>
+            </div>
+
+            {/* Matrix A input grid */}
+            <Region domain="workbench" className="overflow-x-auto">
+              <div className="inline-grid gap-0.5 p-2 bg-d-surface rounded-d" style={{ gridTemplateColumns: `repeat(${aCols}, minmax(40px, 1fr))` }}>
+                {Array.from({ length: aRows }, (_, i) =>
+                  Array.from({ length: aCols }, (_, j) => (
+                    <input
+                      key={`${i}-${j}`}
+                      type="number"
+                      value={matrixA[i]?.[j] === 0 ? '' : matrixA[i]?.[j] ?? ''}
+                      onChange={(e) => updateA(i, j, e.target.value)}
+                      aria-label={`A ${i + 1},${j + 1}`}
+                      placeholder="0"
+                      className="w-full h-8 text-center text-sm rounded border border-d-border bg-d-raised font-mono focus:outline-none focus:border-d-accent"
+                    />
+                  ))
+                )}
+              </div>
+            </Region>
+          </Section>
+
+          {needsB && (
+            <Section title={t('matrix.matrix_b', 'Matrix B')} className="mb-4">
+              <div className="grid gap-4 sm:grid-cols-4 mb-3">
+                <Field id="b-rows" label={t('matrix.rows', 'Rows')} hint={isSameSize ? t('matrix.synced_hint', 'Size synced to Matrix A') : operation === 'multiply' ? t('matrix.mul_rows_hint', `Rows locked to A cols (${aCols})`) : undefined}>
+                  <TextInput
+                    id="b-rows"
+                    type="number"
+                    value={bRows}
+                    onChange={(e) => handleBRowsChange(parseInt(e.target.value) || MIN_SIZE)}
+                    min={MIN_SIZE}
+                    max={MAX_SIZE}
+                    disabled={isSameSize || operation === 'multiply'}
+                  />
+                </Field>
+                <Field id="b-cols" label={t('matrix.cols', 'Cols')} hint={isSameSize ? t('matrix.synced_hint', 'Size synced to Matrix A') : undefined}>
+                  <TextInput
+                    id="b-cols"
+                    type="number"
+                    value={bCols}
+                    onChange={(e) => handleBColsChange(parseInt(e.target.value) || MIN_SIZE)}
+                    min={MIN_SIZE}
+                    max={MAX_SIZE}
+                    disabled={isSameSize}
+                  />
+                </Field>
+              </div>
+
+              <Region domain="workbench" className="overflow-x-auto">
+                <div className="inline-grid gap-0.5 p-2 bg-d-surface rounded-d" style={{ gridTemplateColumns: `repeat(${bCols}, minmax(40px, 1fr))` }}>
+                  {Array.from({ length: bRows }, (_, i) =>
+                    Array.from({ length: bCols }, (_, j) => (
+                      <input
+                        key={`${i}-${j}`}
+                        type="number"
+                        value={matrixB[i]?.[j] === 0 ? '' : matrixB[i]?.[j] ?? ''}
+                        onChange={(e) => updateB(i, j, e.target.value)}
+                        aria-label={`B ${i + 1},${j + 1}`}
+                        placeholder="0"
+                        className="w-full h-8 text-center text-sm rounded border border-d-border bg-d-raised font-mono focus:outline-none focus:border-d-accent"
+                      />
+                    ))
+                  )}
+                </div>
+              </Region>
+            </Section>
           )}
-        </div>
 
-        {needsB && (
-          <div className="space-y-1">
-            <SizeInput
-              label={`${t('matrix.matrix_b')} ${t('matrix.size')}`}
-              rows={bRows}
-              cols={bCols}
-              onRowsChange={handleBRowsChange}
-              onColsChange={handleBColsChange}
-              disabled={isSameSize}
-              disabledRows={operation === 'multiply'}
+          {/* Errors */}
+          {err && <Notice tone="error" className="mb-4">{err}</Notice>}
+          {singular && <Notice tone="error" className="mb-4">{t('matrix.singular', 'Matrix is singular (determinant is zero). No inverse exists.')}</Notice>}
+
+          {/* Results */}
+          {resMatrix && (
+            <Page className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-serif text-lg font-semibold">{t('matrix.result', 'Result')}</h2>
+                <CopyBtn value={matrixToString(resMatrix)} size="sm" />
+              </div>
+              <Region domain="workbench">
+                <div className="inline-grid gap-0.5 p-2 bg-d-surface rounded-d font-mono text-sm" style={{ gridTemplateColumns: `repeat(${resultCols}, minmax(50px, 1fr))` }}>
+                  {resMatrix.map((row, i) =>
+                    row.map((val, j) => (
+                      <div key={`${i}-${j}`} className="px-2 py-1 text-center border-b border-r border-d-border/50 last:border-r-0 last:border-b-0">
+                        {formatNum(val)}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Region>
+              <p className="mt-2 text-xs text-d-muted">({resultRows} × {resultCols})</p>
+            </Page>
+          )}
+
+          {resScalar !== null && (
+            <Page className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-serif text-lg font-semibold">{t('matrix.determinant', 'Determinant')}</h2>
+                <CopyBtn value={formatNum(resScalar)} size="sm" />
+              </div>
+              <Result
+                label={t('matrix.determinant', 'Determinant')}
+                value={formatNum(resScalar)}
+              />
+            </Page>
+          )}
+
+          {!resMatrix && resScalar === null && !err && !singular && (
+            <Empty
+              title={t('matrix.enter_matrices', 'Enter matrices')}
+              children={t('matrix.results_appear', 'Result appears here as you type.')}
             />
-            {isSameSize && (
-              <p className="text-xs text-muted-foreground">Size synced to Matrix A</p>
-            )}
-            {operation === 'multiply' && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                B rows locked to A cols ({aCols}). B cols is free.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Matrix inputs */}
-      <div className="flex gap-8 flex-wrap">
-        <MatrixInput
-          label={t('matrix.matrix_a')}
-          rows={aRows}
-          cols={aCols}
-          matrix={matrixA}
-          onChange={updateA}
-        />
-        {needsB && (
-          <MatrixInput
-            label={t('matrix.matrix_b')}
-            rows={bRows}
-            cols={bCols}
-            matrix={matrixB}
-            onChange={updateB}
-          />
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          onClick={calculate}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          {t('action.calculate')}
-        </button>
-        <button
-          onClick={reset}
-          className="rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-muted transition-colors"
-        >
-          {t('action.reset')}
-        </button>
-      </div>
-
-      {/* Error / singular */}
-      {error && (
-        <div className="rounded-md bg-destructive/10 border border-destructive/30 p-4 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {singular && (
-        <div className="rounded-md bg-destructive/10 border border-destructive/30 p-4 text-sm text-destructive">
-          {t('matrix.singular')}
-        </div>
-      )}
-
-      {/* Result matrix */}
-      {resultMatrix && (
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <p className="text-sm font-medium">
-            {t('matrix.result')}{' '}
-            <span className="text-xs text-muted-foreground font-normal">
-              ({resultRows}×{resultCols})
-            </span>
-          </p>
-          <MatrixDisplay matrix={resultMatrix} />
-        </div>
-      )}
-
-      {/* Scalar result */}
-      {resultScalar !== null && (
-        <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-          <p className="text-sm font-medium">{t('matrix.determinant')}</p>
-          <div className="rounded-md bg-muted p-4 font-mono text-sm">
-            det(A) = {formatNum(resultScalar)}
-          </div>
-        </div>
-      )}
-    </div>
+          )}
+        </Sheet>
+      </Column>
+    </Scroll>
   )
 }

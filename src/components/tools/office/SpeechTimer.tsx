@@ -1,31 +1,27 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { X, Play, Pause } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Page, Section, Field, TextInput, TextArea, Seg, Btn, CopyBtn, Stat, Column, Scroll } from '@/components/domain'
 
-interface Pace {
-  key: string
-  label: string
-  wpm: number
-}
+type Pace = 'slow' | 'normal' | 'conversational' | 'fast'
 
-const PACES: Pace[] = [
-  { key: 'slow', label: 'Slow / Deliberate', wpm: 100 },
+const PACES: { key: Pace; label: string; wpm: number }[] = [
+  { key: 'slow', label: 'Slow', wpm: 100 },
   { key: 'normal', label: 'Normal', wpm: 130 },
-  { key: 'conversational', label: 'Conversational', wpm: 150 },
-  { key: 'fast', label: 'Fast / Energetic', wpm: 180 },
+  { key: 'conversational', label: 'Chatty', wpm: 150 },
+  { key: 'fast', label: 'Fast', wpm: 180 },
 ]
 
 const READING_WPM = 250
 
 function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = Math.round(seconds % 60)
-  if (m === 0) return `${s}s`
-  return `${m}m ${s}s`
+  const s = Math.max(0, Math.round(seconds))
+  const m = Math.floor(s / 60)
+  return m === 0 ? `${s}s` : `${m}m ${s % 60}s`
 }
 
 function countSentences(text: string): number {
@@ -34,123 +30,147 @@ function countSentences(text: string): number {
 }
 
 function countWordySentences(text: string): number {
-  const sentences = text.split(/[.?!]+/).filter((s) => s.trim())
-  return sentences.filter((s) => s.trim().split(/\s+/).filter(Boolean).length > 40).length
+  return text.split(/[.?!]+/).filter((s) => s.trim().split(/\s+/).filter(Boolean).length > 40).length
 }
 
 export default function SpeechTimer({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [text, setText] = useState((initialState?.text as string) ?? '')
-  const [paceKey, setPaceKey] = useState('normal')
-  const [targetMinutes, setTargetMinutes] = useState('')
+  const [paceKey, setPaceKey] = useState<Pace>('normal')
+  const [targetMin, setTargetMin] = useState((initialState?.targetMinutes as string) ?? '')
+  const [elapsed, setElapsed] = useState(0)
+  const [running, setRunning] = useState(false)
+  const valueRef = useRef('')
+  valueRef.current = text
 
   const pace = PACES.find((p) => p.key === paceKey) ?? PACES[1]
 
+  useEffect(() => {
+    if (!running) return
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(id)
+  }, [running])
+
   const stats = useMemo(() => {
-    const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean) : []
-    const wordCount = words.length
-    const charCount = text.length
-    const sentenceCount = countSentences(text)
-    const wordySentences = countWordySentences(text)
-    const speakSeconds = wordCount > 0 ? (wordCount / pace.wpm) * 60 : 0
-    const readSeconds = wordCount > 0 ? (wordCount / READING_WPM) * 60 : 0
-    return { wordCount, charCount, sentenceCount, wordySentences, speakSeconds, readSeconds }
+    const wordCount = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0
+    return {
+      wordCount,
+      charCount: text.length,
+      sentenceCount: countSentences(text),
+      wordySentences: countWordySentences(text),
+      speakSeconds: wordCount > 0 ? (wordCount / pace.wpm) * 60 : 0,
+      readSeconds: wordCount > 0 ? (wordCount / READING_WPM) * 60 : 0,
+    }
   }, [text, pace.wpm])
 
   const target = useMemo(() => {
-    const mins = parseFloat(targetMinutes)
-    if (isNaN(mins) || mins <= 0) return null
-    const targetSecs = mins * 60
-    const diff = stats.speakSeconds - targetSecs
-    const diffWords = Math.round(Math.abs(diff / 60) * pace.wpm)
-    return { targetSecs, diff, diffWords }
-  }, [targetMinutes, stats.speakSeconds, pace.wpm])
+    const mins = parseFloat(targetMin)
+    if (isNaN(mins) || mins <= 0 || stats.wordCount === 0) return null
+    const diff = stats.speakSeconds - mins * 60
+    return { diff, diffWords: Math.round(Math.abs(diff / 60) * pace.wpm) }
+  }, [targetMin, stats, pace.wpm])
 
-  const firedRef = useRef(false)
+  const remaining = stats.speakSeconds - elapsed
+  const over = stats.speakSeconds > 0 && remaining < 0
+  const pct = stats.speakSeconds > 0 ? Math.min(100, (elapsed / stats.speakSeconds) * 100) : 0
+
   const handleChange = (val: string) => {
+    if (!valueRef.current && val.trim()) analytics.buttonClick('speech-timer', 'input')
     setText(val)
-    if (!firedRef.current && val.trim()) { analytics.buttonClick('speech-timer', 'start'); firedRef.current = true }
     onOutput({ text: val, pace: paceKey }, { wordCount: val.trim().split(/\s+/).filter(Boolean).length })
   }
 
+  const toggle = () => {
+    if (!running) analytics.buttonClick('speech-timer', 'start')
+    setRunning((r) => !r)
+  }
+
+  const reset = () => {
+    setRunning(false)
+    setElapsed(0)
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Textarea */}
-      <textarea
-        className="w-full min-h-[200px] rounded-lg border border-border bg-background text-foreground text-sm p-3 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-        value={text}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder={t('office.paste_text', 'Paste your speech or script here…')}
-        rows={12}
-      />
+    <Scroll>
+      <Column width="lg">
+        <header>
+          <h1 className="font-serif text-3xl font-semibold">{t('office.speech_timer', 'Speech Timer')}</h1>
+        </header>
 
-      {/* Pace selector */}
-      <div className="flex flex-wrap gap-2">
-        {PACES.map((p) => (
-          <Button
-            key={p.key}
-            size="sm"
-            variant={paceKey === p.key ? 'default' : 'outline'}
-            onClick={() => setPaceKey(p.key)}
-          >
-            {p.label}
-            <span className="ml-1.5 opacity-70 text-xs">{p.wpm} WPM</span>
-          </Button>
-        ))}
-      </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_20rem]">
+          <Page>
+            <Field id="speech-timer-text" label={t('office.script', 'Script')}>
+              <TextArea
+                id="speech-timer-text"
+                value={text}
+                onChange={(e) => handleChange(e.target.value)}
+                placeholder={t('office.paste_text', 'Paste your speech or script here')}
+                className="min-h-[22rem]"
+              />
+            </Field>
+            <div className="mt-3 flex justify-end">
+              <CopyBtn value={text} label={t('common.copy', 'Copy')} />
+            </div>
+          </Page>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <StatCard label={t('office.words', 'Words')} value={stats.wordCount.toLocaleString()} />
-        <StatCard label={t('office.characters', 'Characters')} value={stats.charCount.toLocaleString()} />
-        <StatCard label={t('office.sentences', 'Sentences')} value={stats.sentenceCount.toLocaleString()} />
-        <StatCard label={t('office.reading_time', 'Reading time')} value={stats.wordCount > 0 ? formatTime(stats.readSeconds) : '—'} sub="at 250 WPM" />
-        {stats.wordySentences > 0 && (
-          <StatCard label={t('office.speech_duration', 'Long sentences')} value={String(stats.wordySentences)} sub=">40 words" warn />
-        )}
-      </div>
+          <div className="flex flex-col gap-5">
+            <Page className="flex flex-col gap-4">
+              <div role="timer" aria-label={t('office.speech_duration', 'Time remaining')} className="rounded-d bg-d-surface px-4 py-5 text-center">
+                <p className={`font-display text-5xl font-semibold tabular-nums ${over ? 'text-red-700 dark:text-red-300' : ''}`}>
+                  {over ? '+' : ''}{formatTime(Math.abs(remaining))}
+                </p>
+                <p className="mt-1 text-xs text-d-muted">
+                  {over ? t('office.speech_complete', 'Over time') : running ? t('office.speech_duration', 'Remaining') : elapsed > 0 ? t('office.speech_paused', 'Paused') : t('office.speech_ready', 'Estimated length')}
+                </p>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-d-border" role="progressbar" aria-label="Progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)}>
+                <div className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${over ? 'bg-red-600' : pct >= 80 ? 'bg-amber-500' : 'bg-d-accent'}`} style={{ width: `${pct}%` }} />
+              </div>
+              <div className="flex gap-2">
+                <Btn variant="primary" onClick={toggle} disabled={stats.wordCount === 0} className="flex-1">
+                  {running ? <Pause className="h-3.5 w-3.5" aria-hidden /> : <Play className="h-3.5 w-3.5" aria-hidden />}
+                  {running ? t('common.pause', 'Pause') : elapsed > 0 ? t('common.resume', 'Resume') : t('common.start', 'Start')}
+                </Btn>
+                <Btn onClick={reset}>
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                  {t('common.reset', 'Reset')}
+                </Btn>
+              </div>
+            </Page>
 
-      {/* Big time display */}
-      <div className="rounded-xl border border-border bg-muted/20 p-6 text-center">
-        <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('office.speech_duration', 'Estimated speaking time')}</div>
-        <div className="text-5xl font-bold text-foreground tabular-nums">
-          {stats.wordCount > 0 ? formatTime(stats.speakSeconds) : '—'}
+            <Page>
+              <Section title={t('office.speech_pace', 'Speaking pace')}>
+                <Seg<Pace> value={paceKey} onChange={setPaceKey} label={t('office.speech_pace', 'Speaking pace')} options={PACES.map((p) => ({ value: p.key, label: p.label }))} className="w-full [&>button]:flex-1 [&>button]:px-1" />
+                <p className="text-xs text-d-muted">{pace.wpm} words per minute</p>
+                <Field id="speech-target" label={`${t('office.speech_target', 'Target duration')} (${t('office.minutes', 'min')})`}>
+                  <TextInput id="speech-target" type="number" min={0} step={0.5} value={targetMin} onChange={(e) => setTargetMin(e.target.value)} placeholder="5" />
+                </Field>
+                {target && (
+                  <p className="text-sm font-medium" aria-live="polite">
+                    {Math.abs(target.diff) < 5
+                      ? t('office.speech_on_target', 'On target')
+                      : target.diff > 0
+                        ? `${t('office.speech_too_long', 'Too long')}: about ${target.diffWords} words over`
+                        : `${t('office.speech_too_short', 'Too short')}: about ${target.diffWords} words short`}
+                  </p>
+                )}
+              </Section>
+            </Page>
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground mt-1">{pace.label} · {pace.wpm} WPM</div>
-      </div>
 
-      {/* Target duration */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm text-muted-foreground shrink-0">{t('office.speech_duration', 'Target duration')} ({t('office.minutes', 'min')}):</label>
-        <input
-          type="number"
-          min={0}
-          step={0.5}
-          value={targetMinutes}
-          onChange={(e) => setTargetMinutes(e.target.value)}
-          className="w-24 rounded border border-border bg-background text-foreground text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="e.g. 5"
-        />
-        {target && (
-          <span className={`text-sm font-medium ${Math.abs(target.diff) < 5 ? 'text-green-500' : target.diff > 0 ? 'text-destructive' : 'text-yellow-500'}`}>
-            {Math.abs(target.diff) < 5
-              ? t('office.speech_pace', 'On target')
-              : target.diff > 0
-              ? `~${target.diffWords} ${t('office.words', 'words')} too many (${formatTime(target.diff)} over)`
-              : `~${target.diffWords} ${t('office.words', 'words')} short (${formatTime(-target.diff)} under)`}
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function StatCard({ label, value, sub, warn }: { label: string; value: string; sub?: string; warn?: boolean }) {
-  return (
-    <div className={`rounded-lg border p-3 text-center ${warn ? 'border-yellow-500/40 bg-yellow-500/5' : 'border-border bg-muted/10'}`}>
-      <div className={`text-xl font-semibold ${warn ? 'text-yellow-500' : 'text-foreground'}`}>{value}</div>
-      <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
-      {sub && <div className="text-xs text-muted-foreground/60">{sub}</div>}
-    </div>
+        <Page>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
+            <Stat label={t('office.words', 'Words')} value={stats.wordCount.toLocaleString()} tone="serif" />
+            <Stat label={t('office.characters', 'Characters')} value={stats.charCount.toLocaleString()} tone="serif" />
+            <Stat label={t('office.sentences', 'Sentences')} value={stats.sentenceCount.toLocaleString()} tone="serif" />
+            <Stat label={t('office.reading_time', 'Reading time')} value={stats.wordCount > 0 ? formatTime(stats.readSeconds) : '-'} note={`${READING_WPM} WPM`} tone="serif" />
+            {stats.wordySentences > 0 && (
+              <Stat label={t('office.long_sentences', 'Long sentences')} value={String(stats.wordySentences)} note="over 40 words" tone="serif" />
+            )}
+          </div>
+        </Page>
+      </Column>
+    </Scroll>
   )
 }

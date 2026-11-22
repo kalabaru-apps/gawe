@@ -1,133 +1,145 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { faker } from '@faker-js/faker'
-import type { ToolProps } from '@/types'
-import { ToolPanel } from '../shared/ToolPanel'
-import { CopyButton } from '../shared/CopyButton'
-import { CodeEditor } from '../shared/CodeEditor'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Region, Column, Row, CopyBtn, Stat, Section, Field, TextInput, Select, Btn, Notice, Scroll, Chip } from '@/components/domain'
 
-const FIELD_DEFS = [
+const LOCALES = ['en', 'zh_CN', 'ja', 'ko', 'de', 'fr', 'es', 'pt_BR', 'ru', 'ar']
+const TEMPLATES = [
   { key: 'name', label: 'Full Name', fn: () => faker.person.fullName() },
   { key: 'email', label: 'Email', fn: () => faker.internet.email() },
   { key: 'phone', label: 'Phone', fn: () => faker.phone.number() },
-  { key: 'company', label: 'Company', fn: () => faker.company.name() },
   { key: 'address', label: 'Address', fn: () => faker.location.streetAddress() },
-  { key: 'city', label: 'City', fn: () => faker.location.city() },
-  { key: 'country', label: 'Country', fn: () => faker.location.country() },
-  { key: 'username', label: 'Username', fn: () => faker.internet.username() },
+  { key: 'company', label: 'Company', fn: () => faker.company.name() },
+  { key: 'job', label: 'Job Title', fn: () => faker.person.jobTitle() },
   { key: 'uuid', label: 'UUID', fn: () => faker.string.uuid() },
-  { key: 'date', label: 'Date', fn: () => faker.date.recent({ days: 365 }).toISOString().slice(0, 10) },
-  { key: 'number', label: 'Number', fn: () => faker.number.int({ min: 1, max: 10000 }) },
+  { key: 'ip', label: 'IPv4', fn: () => faker.internet.ip() },
+  { key: 'url', label: 'URL', fn: () => faker.internet.url() },
+  { key: 'lorem', label: 'Lorem', fn: () => faker.lorem.sentence() },
+  { key: 'date', label: 'Date', fn: () => faker.date.recent().toISOString().slice(0, 10) },
+  { key: 'price', label: 'Price', fn: () => faker.commerce.price() },
+  { key: 'credit', label: 'Credit Card', fn: () => faker.finance.creditCardNumber() },
 ]
 
-type Format = 'json' | 'csv'
-
-export default function FakeDataGenerator({ onOutput, initialState }: ToolProps) {
+export default function FakeDataGenerator({ onOutput, initialState }: any) {
   const { t } = useTranslation()
-  const [selectedFields, setSelectedFields] = useState<string[]>(
-    (initialState?.selectedFields as string[]) ?? ['name', 'email', 'company']
-  )
-  const [count, setCount] = useState<number>((initialState?.count as number) ?? 10)
-  const [format, setFormat] = useState<Format>((initialState?.format as Format) ?? 'json')
-  const [output, setOutput] = useState('')
+  const [count, setCount] = useState((initialState?.count as number) ?? 10)
+  const [locale, setLocale] = useState((initialState?.locale as string) ?? 'en')
+  const [selected, setSelected] = useState<string[]>((initialState?.selected as string[]) ?? ['name', 'email', 'phone'])
+  const [rows, setRows] = useState<any[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const firedRef = useRef(false)
 
-  function toggleField(key: string) {
-    setSelectedFields((prev) => prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key])
-  }
-
-  function generate() {
-    if (selectedFields.length === 0) return
-    const rows = Array.from({ length: count }, () => {
-      const row: Record<string, string | number> = {}
-      for (const key of selectedFields) {
-        const def = FIELD_DEFS.find((f) => f.key === key)
-        if (def) row[key] = def.fn()
+  useEffect(() => {
+    try {
+      faker.seed(Math.floor(Math.random() * 1e9))
+      const result: any[] = []
+      for (let i = 0; i < count; i++) {
+        const obj: Record<string, string> = {}
+        for (const key of selected) {
+          const tmpl = TEMPLATES.find(t => t.key === key)
+          if (tmpl) obj[key] = tmpl.fn()
+        }
+        result.push(obj)
       }
-      return row
-    })
-    let result: string
-    if (format === 'json') {
-      result = JSON.stringify(rows, null, 2)
-    } else {
-      const header = selectedFields.join(',')
-      const csvRows = rows.map((r) =>
-        selectedFields.map((k) => `"${String(r[k]).replace(/"/g, '""')}"`).join(',')
-      )
-      result = [header, ...csvRows].join('\n')
+      setRows(result)
+      setError(null)
+      if (!firedRef.current) { analytics.buttonClick('fake-data-generator', 'generate'); firedRef.current = true }
+      onOutput({ count, locale, fields: selected }, { rows: result })
+    } catch (e) {
+      setError((e as Error).message)
+      setRows([])
     }
-    setOutput(result)
-    onOutput({ fields: selectedFields, count, format }, { rowCount: count, output: result })
-  }
+  }, [count, locale, selected])
 
   return (
-    <ToolPanel
-      left={
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('dev.fake_schema', 'Fields')}</label>
-            <div className="grid grid-cols-2 gap-1.5">
-              {FIELD_DEFS.map((f) => (
-                <label key={f.key} className="flex items-center gap-2 cursor-pointer text-sm">
-                  <input
-                    type="checkbox"
-                    checked={selectedFields.includes(f.key)}
-                    onChange={() => toggleField(f.key)}
-                    className="rounded"
-                  />
-                  {f.label}
-                </label>
+    <Region domain="workbench">
+      <Scroll>
+        <Column width="lg">
+          <Section title={t('dev.fake_data', 'Fake Data Generator')}>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field id="count" label={t('dev.count', 'Count')}>
+                <input
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value={count}
+                  onChange={e => setCount(Math.max(1, Math.min(1000, Number(e.target.value))))}
+                  className="w-full rounded-d border border-d-border bg-d-raised px-3 py-2 text-sm text-d-ink focus:border-d-accent outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-d-accent"
+                />
+              </Field>
+              <Field id="locale" label={t('dev.locale', 'Locale')}>
+                <Select value={locale} onChange={e => setLocale(e.target.value)}>
+                  {LOCALES.map(l => <option key={l} value={l}>{l}</option>)}
+                </Select>
+              </Field>
+            </div>
+          </Section>
+
+          <Section title={t('dev.fields', 'Fields')}>
+            <div className="flex flex-wrap gap-2">
+              {TEMPLATES.map(t => (
+                <Chip
+                  key={t.key}
+                  on={selected.includes(t.key)}
+                  onClick={() => setSelected(s => s.includes(t.key) ? s.filter(x => x !== t.key) : [...s, t.key])}
+                >
+                  {t.label}
+                </Chip>
               ))}
             </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('dev.fake_count', 'Row Count')}</label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={count}
-              onChange={(e) => setCount(Math.min(100, Math.max(1, Number(e.target.value))))}
-              className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
-          <div className="flex gap-2">
-            {(['json', 'csv'] as Format[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFormat(f)}
-                className={`flex-1 py-2 rounded-md text-sm border uppercase transition-colors ${
-                  format === f ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => { analytics.buttonClick('fake-data-generator', 'generate'); generate() }}
-            disabled={selectedFields.length === 0}
-            className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {t('action.generate', 'Generate')} {count} {t('dev.fake_count', 'rows')}
-          </button>
-        </div>
-      }
-      right={
-        <div className="space-y-2">
-          <div className="flex justify-end">
-            <CopyButton value={output} />
-          </div>
-          <CodeEditor
-            value={output || `// ${t('action.generate', 'Generate')} ${count} ${t('dev.fake_count', 'rows')}`}
-            onChange={() => {}}
-            language={format}
-            readOnly
-          />
-        </div>
-      }
-    />
+            {selected.length === 0 && <Notice tone="error">{t('dev.select_field', 'Select at least one field')}</Notice>}
+          </Section>
+
+          {error && <Notice tone="error">{error}</Notice>}
+
+          {rows.length > 0 && (
+            <Section title={t('action.result', 'Generated Data')}>
+              <Stat label={t('dev.rows', 'Rows')} value={rows.length} />
+              <div className="overflow-auto max-h-96">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-d-border text-d-muted">
+                      <th className="p-2 font-mono">#</th>
+                      {selected.map(k => <th key={k} className="p-2">{TEMPLATES.find(t => t.key === k)?.label}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, i) => (
+                      <tr key={i} className="border-b border-d-border/50">
+                        <td className="p-2 font-mono text-d-muted">{i + 1}</td>
+                        {selected.map(k => (
+                          <td key={k} className="p-2 font-mono text-sm">{row[k]}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <Btn variant="primary" onClick={() => { faker.seed(Math.floor(Math.random() * 1e9)); setRows(rows.map(r => { const o: any = {}; for (const k of selected) { const t = TEMPLATES.find(x => x.key === k); if (t) o[k] = t.fn() } return o })) }}>
+                  {t('dev.regenerate', 'Regenerate')}
+                </Btn>
+                <Btn variant="secondary" onClick={() => navigator.clipboard.writeText(JSON.stringify(rows, null, 2))}>
+                  {t('action.copy_json', 'Copy JSON')}
+                </Btn>
+                <Btn variant="secondary" onClick={() => {
+                  const csv = [selected, ...rows.map(r => selected.map(k => r[k]))].map(r => r.join(',')).join('\n')
+                  navigator.clipboard.writeText(csv)
+                }}>
+                  {t('action.copy_csv', 'Copy CSV')}
+                </Btn>
+              </div>
+            </Section>
+          )}
+
+          {rows.length === 0 && !error && (
+            <Notice tone="info">{t('dev.fake_hint', 'Choose fields and count, then generate')}</Notice>
+          )}
+        </Column>
+      </Scroll>
+    </Region>
   )
 }

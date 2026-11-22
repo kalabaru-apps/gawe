@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
-import { FileDropzone } from '@/components/tools/shared/FileDropzone'
+import { DropHero, StudioWorkspace, PrimaryAction } from '@/components/domain/Studio'
+import { cn } from '@/lib/utils'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
@@ -12,7 +12,7 @@ import { downloadPdf } from './downloadPdf'
 
 export default function SplitTab({ onOutput }: ToolProps) {
   const { t } = useTranslation()
-  const { pages: thumbs, loading, error, load } = usePdfPages()
+  const { pages: thumbs, loading, error, load, reset } = usePdfPages()
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null)
   const [fileName, setFileName] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -67,39 +67,67 @@ export default function SplitTab({ onOutput }: ToolProps) {
 
   const busy = loading || extracting
 
+  if (thumbs.length === 0) {
+    return (
+      <div className="flex h-full flex-col">
+        {(error || extractError) && <div className="p-4 pb-0"><ErrorAlert message={error || extractError} /></div>}
+        {loading
+          ? <p className="m-auto text-sm text-d-muted" role="status">{t('common.processing', 'Reading pages')}</p>
+          : <DropHero accept=".pdf" onFiles={loadFile} title={t('image.drop_pdf', 'Split a PDF')} hint="Drop a PDF here. It stays on your device." />}
+      </div>
+    )
+  }
+
+  const btn = 'flex-1 cursor-pointer rounded-d border border-d-border px-3 py-2 text-sm hover:bg-d-border/40 focus-visible:outline-2 focus-visible:outline-d-accent'
+
   return (
-    <div className="flex flex-col gap-4">
-      {(error || extractError) && <ErrorAlert message={error || extractError} />}
-      <FileDropzone onFile={(f) => loadFile([f])} accept=".pdf" label={t('image.drop_pdf', 'Drop a PDF to split')} />
-      {loading && <div className="text-sm text-muted-foreground">{t('common.processing', 'Loading pages…')}</div>}
-      {thumbs.length > 0 && (
-        <>
-          <div className="flex gap-2 flex-wrap items-center">
-            <Button size="sm" variant="outline" onClick={selectAll}>{t('common.select_all', 'Select all')}</Button>
-            <Button size="sm" variant="outline" onClick={deselectAll}>{t('common.deselect_all', 'Deselect all')}</Button>
-            <span className="text-xs text-muted-foreground ml-auto">
-              {selected.size} / {thumbs.length} {t('image.pages', 'pages selected')}
-            </span>
+    <StudioWorkspace
+      rail={
+        <div className="flex h-full flex-col gap-5">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Split</h2>
+            <p className="mt-1 break-all text-sm text-d-muted">{fileName}</p>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[400px] overflow-y-auto pr-1">
-            {thumbs.map((th) => (
+          <p className="text-sm" aria-live="polite">
+            <span className="font-display text-3xl font-semibold tabular-nums">{selected.size}</span>
+            <span className="text-d-muted"> of {thumbs.length} {t('image.pages', 'pages selected')}</span>
+          </p>
+          <div className="flex gap-2">
+            <button onClick={selectAll} className={btn}>{t('common.select_all', 'Select all')}</button>
+            <button onClick={deselectAll} className={btn}>{t('common.deselect_all', 'Clear')}</button>
+          </div>
+          {(error || extractError) && <ErrorAlert message={error || extractError} />}
+          <div className="mt-auto flex flex-col gap-2">
+            <PrimaryAction onClick={() => { analytics.buttonClick('pdf-tools', 'split'); void extractPages() }} disabled={busy || selected.size === 0}>
+              {extracting ? t('common.processing', 'Working') : t('image.extract', 'Extract selected pages')}
+            </PrimaryAction>
+            <button onClick={() => { setBuffer(null); setSelected(new Set()); reset() }} className={btn}>Choose another file</button>
+          </div>
+        </div>
+      }
+    >
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-4">
+        {thumbs.map((th) => {
+          const on = selected.has(th.index)
+          return (
+            <li key={th.index}>
               <button
-                key={th.index}
                 onClick={() => toggleThumb(th.index)}
-                className={`flex flex-col items-center gap-1 rounded-lg border-2 p-1 transition-colors ${
-                  selected.has(th.index) ? 'border-primary' : 'border-border'
-                }`}
+                aria-pressed={on}
+                className={cn(
+                  'flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-d border-2 bg-d-raised p-1.5 transition-colors',
+                  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-d-accent',
+                  on ? 'border-d-accent' : 'border-d-border hover:border-d-muted',
+                )}
               >
-                <img src={th.dataUrl} alt={`Page ${th.index + 1}`} className="w-full rounded" />
-                <span className="text-xs text-muted-foreground">{th.index + 1}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={th.dataUrl} alt={`Page ${th.index + 1}`} className="w-full rounded-sm bg-white" />
+                <span className={cn('text-xs tabular-nums', on ? 'font-semibold text-d-accent' : 'text-d-muted')}>{th.index + 1}</span>
               </button>
-            ))}
-          </div>
-          <Button onClick={() => { analytics.buttonClick('pdf-tools', 'split'); void extractPages() }} disabled={busy} className="w-full">
-            {extracting ? t('common.processing', 'Processing…') : t('image.extract', 'Extract selected pages')}
-          </Button>
-        </>
-      )}
-    </div>
+            </li>
+          )
+        })}
+      </ul>
+    </StudioWorkspace>
   )
 }

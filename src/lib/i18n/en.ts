@@ -100,6 +100,7 @@ export const en = {
   'molar.element': 'Element',
   'molar.count': 'Count',
   'molar.atomic_mass': 'Atomic Mass',
+  'molar.copy_result': 'Copy Results',
   'molar.contribution': 'Contribution',
   'molar.percentage': 'Mass %',
   'molar.breakdown': 'Element Breakdown',

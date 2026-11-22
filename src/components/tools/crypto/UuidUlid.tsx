@@ -1,23 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { Copy, Check, AlertCircle, RefreshCw } from 'lucide-react'
 import { v1, v4, v5, NIL, validate, version } from 'uuid'
 import { ulid } from 'ulid'
 import type { ToolProps } from '@/types'
-import { CopyButton } from '../shared/CopyButton'
-import { ErrorAlert } from '../shared/ErrorAlert'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Workbench, SplitPane, Pane, CodeArea, WbButton, StatusBar, Toolbar, Segmented } from '@/components/domain/Workbench'
+import { CopyBtn, Notice, Row, Empty, TextInput } from '@/components/domain/kit'
 
 type UuidVersion = 'v1' | 'v4' | 'v5' | 'ulid'
 
 const DNS_NS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 const URL_NS = '6ba7b811-9dad-11d1-80b4-00c04fd430c8'
 
+/** UuidUlid: Workbench with live generation, bulk copy, validate pane. */
 export default function UuidUlid({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
   const [uuidVersion, setUuidVersion] = useState<UuidVersion>((initialState?.uuidVersion as UuidVersion) ?? 'v4')
-  const [count, setCount] = useState<number>((initialState?.count as number) ?? 5)
+  const [count, setCount] = useState((initialState?.count as number) ?? 5)
   const [v5Name, setV5Name] = useState((initialState?.v5Name as string) ?? 'example.com')
   const [v5Ns, setV5Ns] = useState<'dns' | 'url'>('dns')
   const [generated, setGenerated] = useState<string[]>([])
@@ -25,7 +27,7 @@ export default function UuidUlid({ onOutput, initialState }: ToolProps) {
   const [validateResult, setValidateResult] = useState<{ valid: boolean; version?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  function generate() {
+  const generate = useCallback(() => {
     setError(null)
     try {
       const ids = Array.from({ length: count }, () => {
@@ -39,100 +41,129 @@ export default function UuidUlid({ onOutput, initialState }: ToolProps) {
       setGenerated(ids)
       onOutput({ type: uuidVersion, count }, { ids })
     } catch (e) {
-      setError((e as Error).message)
+      setError(e instanceof Error ? e.message : 'Generation failed')
     }
-  }
+  }, [uuidVersion, count, v5Name, v5Ns, onOutput])
 
-  function checkValidate() {
+  useEffect(() => { generate() }, [uuidVersion, count, v5Name, v5Ns, generate])
+
+  const checkValidate = useCallback(() => {
     const raw = validateInput.trim()
     if (!raw) return
     const isValid = validate(raw)
     setValidateResult({ valid: isValid, version: isValid ? version(raw) : undefined })
-  }
+  }, [validateInput])
 
-  const TYPE_OPTIONS: { value: UuidVersion; label: string; desc: string }[] = [
-    { value: 'v1', label: 'UUID v1', desc: 'Time-based' },
-    { value: 'v4', label: 'UUID v4', desc: 'Random' },
-    { value: 'v5', label: 'UUID v5', desc: 'Name-based (SHA-1)' },
-    { value: 'ulid', label: 'ULID', desc: 'Sortable' },
+  const TYPE_OPTIONS = [
+    { value: 'v1' as UuidVersion, label: 'UUID v1', desc: t('crypto.uuid_v1', 'Time-based') },
+    { value: 'v4' as UuidVersion, label: 'UUID v4', desc: t('crypto.uuid_v4', 'Random') },
+    { value: 'v5' as UuidVersion, label: 'UUID v5', desc: t('crypto.uuid_v5', 'Name-based (SHA-1)') },
+    { value: 'ulid' as UuidVersion, label: 'ULID', desc: t('crypto.ulid_desc', 'Sortable') },
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            {TYPE_OPTIONS.map((o) => (
-              <button key={o.value} onClick={() => setUuidVersion(o.value)}
-                className={`rounded-md border p-2.5 text-left transition-colors ${uuidVersion === o.value ? 'bg-primary/10 border-primary' : 'border-input hover:bg-muted/50'}`}>
-                <div className="text-sm font-medium">{o.label}</div>
-                <div className="text-xs text-muted-foreground">{o.desc}</div>
-              </button>
-            ))}
-          </div>
-          {uuidVersion === 'v5' && (
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.text', 'Name')}</label>
-                <input value={v5Name} onChange={(e) => setV5Name(e.target.value)}
-                  className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
+    <Workbench
+      toolbar={
+        <Toolbar>
+          <Segmented<UuidVersion>
+            label={t('crypto.type', 'Type')}
+            value={uuidVersion}
+            onChange={setUuidVersion}
+            options={TYPE_OPTIONS}
+          />
+        </Toolbar>
+      }
+      status={
+        <StatusBar>
+          {generated.length > 0 && <span className="text-xs font-mono text-d-muted">{generated.length} generated</span>}
+        </StatusBar>
+      }
+    >
+      <SplitPane
+        left={
+          <Pane label={t('crypto.options', 'Options')}>
+            {uuidVersion === 'v5' && (
+              <div className="mb-3 space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-d-ink mb-1 block">{t('common.text', 'Name')}</label>
+                  <TextInput
+                    value={v5Name}
+                    onChange={e => setV5Name(e.target.value)}
+                    className="w-full"
+                    placeholder="example.com"
+                    mono
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {(['dns', 'url'] as const).map((ns) => (
+                    <WbButton
+                      key={ns}
+                      primary={v5Ns === ns}
+                      onClick={() => setV5Ns(ns)}
+                      className="flex-1 h-7 text-xs"
+                    >
+                      {ns.toUpperCase()}
+                    </WbButton>
+                  ))}
+                </div>
               </div>
+            )}
+            <div className="mb-3">
+              <label className="text-xs font-medium text-d-ink mb-1 block">{t('crypto.count', 'Count')} (1-50)</label>
+              <input
+                type="number" min={1} max={50} value={count} onChange={e => setCount(Math.min(50, Math.max(1, Number(e.target.value))))}
+                className="w-full text-sm border border-d-border rounded-d px-3 py-2 bg-d-raised outline-none focus-visible:border-d-accent font-mono"
+              />
+            </div>
+            <WbButton onClick={() => { analytics.buttonClick('uuid-ulid', 'regenerate'); generate() }} className="w-full">
+              <RefreshCw className="h-3 w-3 inline mr-1" aria-hidden /> {t('common.regenerate', 'Regenerate')}
+            </WbButton>
+            {error && (
+              <Notice tone="error" className="mt-3">
+                <AlertCircle className="h-4 w-4" aria-hidden />
+                {error}
+              </Notice>
+            )}
+            <div className="mt-4 border-t border-d-border pt-4">
+              <label className="text-xs font-medium text-d-ink mb-2 block">{t('crypto.uuid_validate', 'Validate UUID')}</label>
               <div className="flex gap-2">
-                {(['dns', 'url'] as const).map((ns) => (
-                  <button key={ns} onClick={() => setV5Ns(ns)}
-                    className={`flex-1 py-1.5 rounded text-xs border uppercase transition-colors ${v5Ns === ns ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50'}`}>
-                    {ns} {t('crypto.uuid_version', 'namespace')}
-                  </button>
+                <TextInput
+                  value={validateInput}
+                  onChange={e => setValidateInput(e.target.value)}
+                  className="flex-1"
+                  placeholder={t('crypto.input_placeholder', 'Paste UUID to validate...')}
+                  mono
+                />
+                <WbButton onClick={checkValidate} className="h-7">Check</WbButton>
+              </div>
+              {validateResult && (
+                <Notice tone={validateResult.valid ? 'ok' : 'error'} className="mt-2">
+                  {validateResult.valid ? <Check className="h-4 w-4" aria-hidden /> : <AlertCircle className="h-4 w-4" aria-hidden />}
+                  {validateResult.valid
+                    ? `${t('crypto.uuid_valid', 'Valid UUID')} v${validateResult.version}`
+                    : t('action.error', 'Invalid UUID')}
+                </Notice>
+              )}
+            </div>
+          </Pane>
+        }
+        right={
+          <Pane
+            label={t('action.output', 'Generated')}
+            actions={generated.length > 0 && <CopyBtn value={generated.join('\n')} label="Copy all" />}
+          >
+            {generated.length > 0 ? (
+              <div className="space-y-1 font-mono text-sm">
+                {generated.map((id, i) => (
+                  <Row key={i} label={`${i + 1}`} value={id} copy mono />
                 ))}
               </div>
-            </div>
-          )}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.count', 'Count')} (1-50)</label>
-            <input type="number" min={1} max={50} value={count} onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value))))}
-              className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
-          </div>
-          <button onClick={() => { analytics.buttonClick('uuid-ulid', 'generate'); generate() }}
-            className="w-full py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-            {t('crypto.uuid_generate', 'Generate')}
-          </button>
-          {error && <ErrorAlert message={error} />}
-          <div className="border-t border-border pt-4">
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('crypto.uuid_version', 'Validate UUID')}</label>
-            <div className="flex gap-2">
-              <input value={validateInput} onChange={(e) => setValidateInput(e.target.value)}
-                className="flex-1 font-mono text-xs border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-                placeholder={t('crypto.input_placeholder', 'Paste UUID to validate...')} spellCheck={false} />
-              <button onClick={checkValidate} className="px-3 py-2 rounded-md border border-input text-sm hover:bg-muted/50 transition-colors">
-                {t('action.result', 'Check')}
-              </button>
-            </div>
-            {validateResult && (
-              <p className={`text-xs mt-1 ${validateResult.valid ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {validateResult.valid ? `✓ ${t('crypto.uuid_version', 'Valid UUID')} v${validateResult.version}` : `✗ ${t('action.error', 'Invalid UUID')}`}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground">{generated.length} {t('action.result', 'generated')}</span>
-            <CopyButton value={generated.join('\n')} />
-          </div>
-          <div className="space-y-1 font-mono text-sm">
-            {generated.length > 0 ? (
-              generated.map((id, i) => (
-                <div key={i} className="flex items-center gap-2 rounded border border-input px-3 py-2 hover:bg-muted/30">
-                  <span className="flex-1 text-xs break-all">{id}</span>
-                  <CopyButton value={id} />
-                </div>
-              ))
             ) : (
-              <p className="text-sm text-muted-foreground">{t('crypto.empty_prompt', 'Click Generate to produce IDs')}</p>
+              <Empty title={t('crypto.empty_prompt', 'Click Generate to produce IDs')} />
             )}
-          </div>
-        </div>
-      </div>
-    </div>
+          </Pane>
+        }
+      />
+    </Workbench>
   )
 }

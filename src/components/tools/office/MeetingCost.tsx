@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
-import { FormattedNumberInput } from '@/components/tools/shared/FormattedNumberInput'
+import { Instrument, Readout, Key } from '@/components/domain/Instrument'
+import { Users, DollarSign, Clock, RotateCcw, Play, Pause } from 'lucide-react'
 
 export default function MeetingCost({ onOutput, initialState }: ToolProps) {
   const { t } = useTranslation()
@@ -43,45 +44,77 @@ export default function MeetingCost({ onOutput, initialState }: ToolProps) {
   }, [isRunning, elapsed])
 
   return (
-    <div className="max-w-lg mx-auto space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.attendees', 'Attendees')}</label>
-          <input type="number" min={1} max={100} value={attendees} onChange={(e) => setAttendees(Math.max(1, Number(e.target.value)))}
-            className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring" />
+    <Instrument>
+      <h1 className="font-display text-sm font-semibold text-center text-d-muted mb-6">{t('office.meeting_cost', 'Meeting Cost')}</h1>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-d-muted block">{t('office.attendees', 'Attendees')}</label>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={attendees}
+            onChange={(e) => setAttendees(Math.max(1, Math.min(100, Number(e.target.value))))}
+            className="w-full text-center text-lg font-mono border border-d-border rounded-d bg-d-raised px-3 py-2 outline-none focus-visible:border-d-accent focus-visible:outline-2 focus-visible:outline-d-accent"
+          />
         </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('office.hourly_rate', 'Avg Hourly Rate')} (USD)</label>
-          <FormattedNumberInput value={hourlyRate} onChange={setHourlyRate} min={1} />
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-d-muted block">{t('office.hourly_rate', 'Avg Hourly Rate')} (USD)</label>
+          <input
+            type="number"
+            min={1}
+            step={0.01}
+            value={hourlyRate}
+            onChange={(e) => setHourlyRate(Math.max(0, Number(e.target.value)))}
+            className="w-full text-center text-lg font-mono border border-d-border rounded-d bg-d-raised px-3 py-2 outline-none focus-visible:border-d-accent focus-visible:outline-2 focus-visible:outline-d-accent"
+          />
         </div>
       </div>
-      <div className="rounded-xl border border-input bg-muted/30 p-8 text-center space-y-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider">{t('office.meeting_cost', 'Meeting Cost')}</p>
-        <p className={`font-mono text-5xl font-bold tabular-nums transition-colors ${isRunning ? 'text-rose-400' : 'text-foreground'}`}>
-          ${totalCost.toFixed(2)}
-        </p>
-        <p className="font-mono text-lg text-muted-foreground">{formatTime(elapsed)}</p>
-        <div className="flex gap-3 justify-center">
-          <button onClick={() => { if (!isRunning) analytics.buttonClick('meeting-cost', 'start'); setIsRunning((r) => !r) }}
-            className={`px-8 py-3 rounded-full font-medium text-sm transition-colors ${isRunning ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
-            {isRunning ? t('common.pause', 'Pause') : elapsed > 0 ? t('common.resume', 'Resume') : t('common.start', 'Start')}
-          </button>
-          <button onClick={reset} className="px-6 py-3 rounded-full border border-input hover:bg-muted/50 transition-colors text-sm">{t('office.timer_reset', 'Reset')}</button>
+
+      <div className="space-y-3 mb-4">
+        <Readout label={t('office.meeting_cost', 'Meeting Cost')}>{`$${totalCost.toFixed(2)}`}</Readout>
+        <div className="text-center">
+          <span className="font-display text-2xl font-semibold tabular-nums text-d-muted">{formatTime(elapsed)}</span>
+          <p className="text-xs text-d-muted">{t('office.elapsed', 'Elapsed')}</p>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-d-border">
+          <div className="h-full bg-d-accent transition-[width] duration-1000 ease-linear" style={{ width: `${Math.min((elapsed / 3600) * 100, 100)}%` }} />
         </div>
       </div>
-      <div className="rounded-md border border-input p-4 space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">{t('action.result', 'Breakdown')}</p>
-        {[
-          { label: t('office.rate', 'Cost per second'), value: `$${costPerSecond.toFixed(4)}` },
-          { label: t('office.duration', 'Cost per minute'), value: `$${(costPerSecond * 60).toFixed(2)}` },
-          { label: t('office.attendees', 'Cost per person (so far)'), value: `$${(totalCost / attendees).toFixed(2)}` },
-        ].map((r) => (
-          <div key={r.label} className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{r.label}</span>
-            <span className="font-mono">{r.value}</span>
+
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <Key accent onClick={() => { if (!isRunning) analytics.buttonClick('meeting-cost', 'start'); setIsRunning((r) => !r) }}>
+          {isRunning ? <Pause className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
+          <span>{isRunning ? t('common.pause', 'Pause') : elapsed > 0 ? t('common.resume', 'Resume') : t('common.start', 'Start')}</span>
+        </Key>
+        <Key onClick={reset}>
+          <RotateCcw className="h-4 w-4" aria-hidden />
+          {t('office.timer_reset', 'Reset')}
+        </Key>
+      </div>
+
+      <div className="space-y-2 p-3 rounded-d border border-d-border bg-d-surface">
+        <p className="text-xs font-medium text-d-muted text-center">{t('action.result', 'Breakdown')}</p>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <div>
+            <p className="text-xs text-d-muted">{t('office.per_second', 'Per second')}</p>
+            <p className="font-mono text-sm tabular-nums">${costPerSecond.toFixed(4)}</p>
           </div>
-        ))}
+          <div>
+            <p className="text-xs text-d-muted">{t('office.per_minute', 'Per minute')}</p>
+            <p className="font-mono text-sm tabular-nums">${(costPerSecond * 60).toFixed(2)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-d-muted">{t('office.per_hour', 'Per hour')}</p>
+            <p className="font-mono text-sm tabular-nums">${(costPerSecond * 3600).toFixed(2)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-d-muted">{t('office.per_person', 'Per person (so far)')}</p>
+            <p className="font-mono text-sm tabular-nums">${(totalCost / Math.max(1, attendees)).toFixed(2)}</p>
+          </div>
+        </div>
       </div>
-    </div>
+    </Instrument>
   )
 }

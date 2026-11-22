@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { CopyButton } from '@/components/tools/shared/CopyButton'
+import { useState, useMemo } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Page, Btn, Chip, CopyBtn, Notice, Column, Scroll, Field, TextArea } from '@/components/domain'
+import { ArrowRightLeft, Play, X } from 'lucide-react'
 
 const ARTICLES = new Set(['a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'but', 'nor', 'yet', 'so', 'and', 'or'])
 
@@ -20,8 +20,7 @@ function toTitleCase(text: string): string {
 }
 
 function toSentenceCase(text: string): string {
-  return text
-    .replace(/(^|[.?!]\s+|[\r\n]+)([a-z])/g, (_, pre, char) => pre + char.toUpperCase())
+  return text.replace(/(^|[.?!]\s+|[\r\n]+)([a-z])/g, (_, pre, char) => pre + char.toUpperCase())
 }
 
 function joinBrokenLines(text: string): string {
@@ -36,21 +35,18 @@ interface Operation {
 }
 
 const OPERATIONS: Operation[] = [
-  // Case
   { key: 'title-case', label: 'Title Case', group: 'Case', fn: toTitleCase },
   { key: 'sentence-case', label: 'Sentence case', group: 'Case', fn: toSentenceCase },
   { key: 'uppercase', label: 'UPPERCASE', group: 'Case', fn: (t) => t.toUpperCase() },
   { key: 'lowercase', label: 'lowercase', group: 'Case', fn: (t) => t.toLowerCase() },
-  // Spacing
   { key: 'double-space', label: 'Remove double spaces', group: 'Spacing', fn: (t) => t.replace(/ {2,}/g, ' ') },
   { key: 'trim-lines', label: 'Trim line whitespace', group: 'Spacing', fn: (t) => t.split('\n').map((l) => l.trim()).join('\n') },
   { key: 'remove-empty', label: 'Remove empty lines', group: 'Spacing', fn: (t) => t.split('\n').filter((l) => l.trim() !== '').join('\n') },
   { key: 'join-lines', label: 'Join broken lines', group: 'Spacing', fn: joinBrokenLines },
   { key: 'normalize-lb', label: 'Normalize line breaks', group: 'Spacing', fn: (t) => t.replace(/\r\n/g, '\n').replace(/\r/g, '\n') },
-  // Characters
   { key: 'remove-special', label: 'Remove special chars', group: 'Characters', fn: (t) => t.replace(/[^a-zA-Z0-9\s.,!?;:'"()\-]/g, '') },
   { key: 'smart-quotes', label: 'Replace smart quotes', group: 'Characters', fn: (t) => t.replace(/[“”]/g, '"').replace(/[‘’]/g, "'") },
-  { key: 'em-dash', label: 'Replace em-dashes', group: 'Characters', fn: (t) => t.replace(/—/g, ' - ') },
+  { key: 'em-dash', label: 'Replace long dashes', group: 'Characters', fn: (t) => t.replace(/—/g, ' - ') },
   { key: 'bullets', label: 'Replace bullet variants', group: 'Characters', fn: (t) => t.replace(/[•·▪▸►]/g, '-') },
   { key: 'non-ascii', label: 'Remove non-ASCII', group: 'Characters', fn: (t) => t.replace(/[^\x00-\x7F]/g, '') },
 ]
@@ -61,6 +57,12 @@ export default function TextCleaner({ onOutput }: ToolProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
+  const [activeOps, setActiveOps] = useState<Set<string>>(new Set())
+
+  const stats = useMemo(() => {
+    const words = input.trim() ? input.trim().split(/\s+/).filter(Boolean).length : 0
+    return { words, chars: input.length }
+  }, [input])
 
   const apply = (fn: (text: string) => string, key: string) => {
     analytics.buttonClick('text-cleaner', 'clean')
@@ -69,69 +71,90 @@ export default function TextCleaner({ onOutput }: ToolProps) {
     onOutput({ input, operation: key }, { output: result })
   }
 
+  const applyAll = () => {
+    let result = input
+    activeOps.forEach((key) => {
+      const op = OPERATIONS.find((o) => o.key === key)
+      if (op) result = op.fn(result)
+    })
+    setOutput(result)
+    onOutput({ input, operations: Array.from(activeOps) }, { output: result })
+  }
+
   const copyOutputToInput = () => {
     setInput(output)
     setOutput('')
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Operations toolbar */}
-      <div className="flex flex-col gap-2">
-        {GROUPS.map((group) => (
-          <div key={group} className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-xs text-muted-foreground w-20 shrink-0">{group}</span>
-            {OPERATIONS.filter((o) => o.group === group).map((op) => (
-              <Button
-                key={op.key}
-                size="sm"
-                variant="outline"
-                onClick={() => apply(op.fn, op.key)}
-              >
-                {op.label}
-              </Button>
-            ))}
-          </div>
-        ))}
-      </div>
+    <Scroll>
+      <Column width="xl">
+        <header>
+          <h1 className="font-serif text-3xl font-semibold">{t('office.text_cleaner', 'Text Cleaner')}</h1>
+          <p className="mt-1 text-sm text-d-muted">{t('office.text_cleaner_desc', 'Paste text, pick cleanups, get live output. Combine multiple operations.')}</p>
+        </header>
 
-      {/* Two-column panels */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{t('action.input', 'Input')}</span>
-            <span>{input ? input.split(/\s+/).filter(Boolean).length : 0} words</span>
-          </div>
-          <textarea
-            className="w-full min-h-[300px] rounded-lg border border-border bg-background text-foreground text-sm p-3 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Paste your text here…"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center text-xs text-muted-foreground">
-            <span>{t('action.output', 'Output')}</span>
-            <div className="flex gap-2 items-center">
-              {output && (
-                <button
-                  onClick={copyOutputToInput}
-                  className="text-xs underline text-primary hover:text-primary/80"
+        <Page className="flex flex-col gap-4">
+          {GROUPS.map((group) => (
+            <div key={group} role="group" aria-label={group} className="flex flex-wrap items-center gap-2">
+              <span className="w-24 shrink-0 text-sm text-d-muted">{group}</span>
+              {OPERATIONS.filter((o) => o.group === group).map((op) => (
+                <Chip
+                  key={op.key}
+                  on={activeOps.has(op.key)}
+                  onClick={() => {
+                    const next = new Set(activeOps)
+                    if (next.has(op.key)) next.delete(op.key); else next.add(op.key)
+                    setActiveOps(next)
+                    apply(op.fn, op.key)
+                  }}
                 >
-                  {t('action.copy', 'Copy')} to {t('action.input', 'input')}
-                </button>
-              )}
-              <CopyButton value={output} />
+                  {op.label}
+                </Chip>
+              ))}
             </div>
-          </div>
-          <textarea
-            className="w-full min-h-[300px] rounded-lg border border-border bg-muted/30 text-foreground text-sm p-3 font-mono resize-y focus:outline-none"
-            value={output}
-            readOnly
-            placeholder="Result appears here…"
-          />
+          ))}
+          {activeOps.size > 0 && (
+            <div className="flex flex-wrap gap-2 border-t border-d-border pt-3">
+              <Btn variant="primary" size="sm" onClick={applyAll}>
+                <Play className="h-3.5 w-3.5" aria-hidden />
+                {t('action.apply', 'Apply all')} ({activeOps.size})
+              </Btn>
+              <Btn variant="quiet" size="sm" onClick={() => setActiveOps(new Set())}>
+                <X className="h-3.5 w-3.5" aria-hidden />
+                {t('action.clear', 'Clear')}
+              </Btn>
+            </div>
+          )}
+        </Page>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Page>
+            <Field id="tc-in" label={t('action.input', 'Input')} hint={`${stats.words} words, ${stats.chars} chars`}>
+              <TextArea id="tc-in" mono value={input} onChange={(e) => setInput(e.target.value)} placeholder="Paste your text here" className="min-h-[20rem]" />
+            </Field>
+          </Page>
+          <Page>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="tc-out" className="text-sm font-medium">{t('action.output', 'Output')}</label>
+                <div className="flex items-center gap-2">
+                  {output && (
+                    <Btn variant="quiet" size="sm" onClick={copyOutputToInput}>
+                      <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden />
+                      Use as input
+                    </Btn>
+                  )}
+                  <CopyBtn value={output} label={t('action.copy', 'Copy')} />
+                </div>
+              </div>
+              <TextArea id="tc-out" mono readOnly value={output} placeholder="Result appears here" className="min-h-[20rem]" />
+            </div>
+          </Page>
         </div>
-      </div>
-    </div>
+
+        {!input && !output && <Notice tone="info">Paste text and choose cleanups above. Results update live.</Notice>}
+      </Column>
+    </Scroll>
   )
 }

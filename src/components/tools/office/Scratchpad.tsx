@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
+import { Page, Section, Btn, IconBtn, Seg, TextInput, TextArea, Notice, Column, Scroll } from '@/components/domain'
+import { Plus, Trash2 } from 'lucide-react'
 
 interface TodoItem { id: string; text: string; done: boolean }
 
@@ -15,29 +16,30 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
   const [notes, setNotes] = useState('')
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [newTodo, setNewTodo] = useState('')
+  const [loaded, setLoaded] = useState(false)
   const saveTimer = useRef<NodeJS.Timeout | null>(null)
 
-  // Load from localStorage on mount
   useEffect(() => {
-    const savedNotes = localStorage.getItem('gawe-scratchpad-notes') ?? ''
-    const savedTodos = JSON.parse(localStorage.getItem('gawe-scratchpad-todos') ?? '[]') as TodoItem[]
-    setNotes(savedNotes)
-    setTodos(savedTodos)
+    try {
+      setNotes(localStorage.getItem('gawe-scratchpad-notes') ?? '')
+      setTodos(JSON.parse(localStorage.getItem('gawe-scratchpad-todos') ?? '[]') as TodoItem[])
+    } catch { /* corrupt storage: start empty */ }
+    setLoaded(true)
   }, [])
 
-  // Auto-save notes
   useEffect(() => {
+    if (!loaded) return
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       localStorage.setItem('gawe-scratchpad-notes', notes)
     }, 500)
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
-  }, [notes])
+  }, [notes, loaded])
 
-  // Save todos immediately
   useEffect(() => {
+    if (!loaded) return
     localStorage.setItem('gawe-scratchpad-todos', JSON.stringify(todos))
-  }, [todos])
+  }, [todos, loaded])
 
   function addTodo() {
     if (!newTodo.trim()) return
@@ -45,69 +47,83 @@ export default function Scratchpad({ onOutput: _onOutput, initialState: _initial
     setNewTodo('')
   }
 
-  function toggleTodo(id: string) {
-    setTodos((prev) => prev.map((t) => t.id === id ? { ...t, done: !t.done } : t))
-  }
+  const toggleTodo = (id: string) => setTodos((prev) => prev.map((x) => x.id === id ? { ...x, done: !x.done } : x))
+  const deleteTodo = (id: string) => setTodos((prev) => prev.filter((x) => x.id !== id))
 
-  function deleteTodo(id: string) {
-    setTodos((prev) => prev.filter((t) => t.id !== id))
-  }
+  const pending = todos.filter((x) => !x.done)
+  const done = todos.filter((x) => x.done)
 
-  const doneCount = todos.filter((t) => t.done).length
+  const row = (todo: TodoItem) => (
+    <li key={todo.id} className="flex items-center gap-3 rounded-d border border-d-border px-3 py-1.5">
+      <input type="checkbox" checked={todo.done} onChange={() => toggleTodo(todo.id)} className="h-4 w-4 cursor-pointer accent-[hsl(var(--d-accent))]" aria-label={todo.text} />
+      <span className={todo.done ? 'min-w-0 flex-1 break-words text-sm text-d-muted line-through' : 'min-w-0 flex-1 break-words text-sm'}>{todo.text}</span>
+      <IconBtn label={`${t('action.delete', 'Delete')} ${todo.text}`} onClick={() => deleteTodo(todo.id)}>
+        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+      </IconBtn>
+    </li>
+  )
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
-      <div className="flex items-center gap-2">
-        <div className="flex gap-1 border border-input rounded-md p-0.5">
-          {(['notes', 'todo'] as Tab[]).map((tabItem) => (
-            <button key={tabItem} onClick={() => setTab(tabItem)}
-              className={`px-4 py-1.5 rounded text-sm transition-colors ${tab === tabItem ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-muted-foreground'}`}>
-              {tabItem === 'notes' ? t('office.note_placeholder', 'Notes') : `${t('office.task_title', 'To-Do')} ${todos.length > 0 ? `(${doneCount}/${todos.length})` : ''}`}
-            </button>
-          ))}
+    <Scroll>
+      <Column width="md">
+        <header>
+          <h1 className="font-serif text-3xl font-semibold">{t('office.scratchpad', 'Scratchpad')}</h1>
+          <p className="mt-1 text-sm text-d-muted">{t('office.scratchpad_desc', 'Notes and tasks. Auto-saved locally. Nothing leaves your device.')}</p>
+        </header>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Seg<Tab>
+            label={t('office.scratchpad', 'Scratchpad')}
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: 'notes', label: t('office.note_placeholder', 'Notes') },
+              { value: 'todo', label: `${t('office.task_title', 'To-Do')}${todos.length > 0 ? ` (${done.length}/${todos.length})` : ''}` },
+            ]}
+          />
+          <span className="text-xs text-d-muted">Auto-saved locally</span>
         </div>
-        <span className="text-xs text-muted-foreground ml-auto">{t('action.save', 'Auto-saved')} locally</span>
-      </div>
-      {tab === 'notes' ? (
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className="flex-1 min-h-[500px] text-sm border border-input rounded-md p-4 bg-background resize-none outline-none focus:ring-1 focus:ring-ring leading-relaxed"
-          placeholder={t('office.note_placeholder', 'Start typing your notes... Everything is saved automatically.')}
-        />
-      ) : (
-        <div className="space-y-3 flex-1">
-          <div className="flex gap-2">
-            <input value={newTodo} onChange={(e) => setNewTodo(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') addTodo() }}
-              className="flex-1 text-sm border border-input rounded-md px-3 py-2 bg-background outline-none focus:ring-1 focus:ring-ring"
-              placeholder="New task... (press Enter to add)" />
-            <button onClick={() => { analytics.buttonClick('scratchpad', 'save'); addTodo() }} className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors">{t('action.add', 'Add')}</button>
-          </div>
-          <div className="space-y-1">
-            {todos.filter((t) => !t.done).map((todo) => (
-              <div key={todo.id} className="flex items-center gap-3 rounded-md border border-input px-3 py-2.5 hover:bg-muted/20">
-                <input type="checkbox" checked={false} onChange={() => toggleTodo(todo.id)} className="rounded" />
-                <span className="flex-1 text-sm">{todo.text}</span>
-                <button onClick={() => deleteTodo(todo.id)} className="text-xs text-muted-foreground hover:text-rose-400 transition-colors">✕</button>
-              </div>
-            ))}
-            {todos.some((t) => t.done) && (
-              <>
-                <p className="text-xs text-muted-foreground px-1 pt-2">{t('office.task_done', 'Completed')}</p>
-                {todos.filter((t) => t.done).map((todo) => (
-                  <div key={todo.id} className="flex items-center gap-3 rounded-md border border-border/30 px-3 py-2.5 opacity-60">
-                    <input type="checkbox" checked onChange={() => toggleTodo(todo.id)} className="rounded" />
-                    <span className="flex-1 text-sm line-through text-muted-foreground">{todo.text}</span>
-                    <button onClick={() => deleteTodo(todo.id)} className="text-xs text-muted-foreground hover:text-rose-400 transition-colors">✕</button>
-                  </div>
-                ))}
-              </>
+
+        {tab === 'notes' ? (
+          <Page>
+            <TextArea
+              aria-label={t('office.note_placeholder', 'Notes')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Start typing your notes. Everything is saved automatically."
+              className="min-h-[24rem] font-sans"
+            />
+          </Page>
+        ) : (
+          <Page className="flex flex-col gap-5">
+            <div className="flex gap-2">
+              <TextInput
+                aria-label={t('office.task_title', 'To-Do')}
+                value={newTodo}
+                onChange={(e) => setNewTodo(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') addTodo() }}
+                placeholder="New task, press Enter to add"
+              />
+              <Btn variant="primary" onClick={addTodo} disabled={!newTodo.trim()}>
+                <Plus className="h-4 w-4" aria-hidden />
+                {t('action.add', 'Add')}
+              </Btn>
+            </div>
+
+            {pending.length > 0 && (
+              <Section title={t('office.task_pending', 'Pending')}>
+                <ul className="flex flex-col gap-2">{pending.map(row)}</ul>
+              </Section>
             )}
-            {todos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">{t('office.task_pending', 'No tasks yet')} : {t('office.task_add', 'add one above')}</p>}
-          </div>
-        </div>
-      )}
-    </div>
+            {done.length > 0 && (
+              <Section title={t('office.task_done', 'Completed')}>
+                <ul className="flex flex-col gap-2">{done.map(row)}</ul>
+              </Section>
+            )}
+            {todos.length === 0 && <Notice tone="info">No tasks yet. Add one above.</Notice>}
+          </Page>
+        )}
+      </Column>
+    </Scroll>
   )
 }

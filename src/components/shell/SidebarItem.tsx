@@ -10,9 +10,10 @@ interface SidebarItemProps {
   tool: ToolDefinition
   category: CategoryDefinition
   collapsed: boolean
+  onNavigate?: () => void
 }
 
-export function SidebarItem({ tool, category, collapsed }: SidebarItemProps) {
+export function SidebarItem({ tool, category, collapsed, onNavigate }: SidebarItemProps) {
   const pathname = usePathname()
   const href = `/tools/${tool.category}/${tool.slug}`
   const isActive = pathname === href
@@ -21,24 +22,19 @@ export function SidebarItem({ tool, category, collapsed }: SidebarItemProps) {
     <Link
       href={href}
       title={collapsed ? tool.name : undefined}
-      onClick={() => analytics.toolSidebarClick(tool.category, tool.slug)}
+      aria-current={isActive ? 'page' : undefined}
+      onClick={() => { analytics.toolSidebarClick(tool.category, tool.slug); onNavigate?.() }}
       className={cn(
-        'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-        'hover:bg-accent hover:text-accent-foreground',
-        isActive && [
-          category.accentSubtle,
-          category.accentText,
-          'font-medium',
-        ],
-        !isActive && 'text-muted-foreground',
-        collapsed && 'justify-center px-0'
+        'flex h-8 items-center gap-2 rounded-md pl-6 pr-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring',
+        isActive ? 'bg-foreground font-medium text-background' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        collapsed && 'justify-center px-0',
       )}
     >
-      <span className={cn('shrink-0 text-base', isActive && category.accentText)}>
-        {/* Icon rendered by parent via lucide-react dynamic lookup */}
-        <span className="h-4 w-4 inline-block" aria-hidden>•</span>
-      </span>
-      {!collapsed && <span className="truncate">{tool.name}</span>}
+      {collapsed ? (
+        <span className={cn('h-2 w-2 rounded-full', category.accentBg)} aria-hidden />
+      ) : (
+        <span className="truncate">{tool.name}</span>
+      )}
     </Link>
   )
 }

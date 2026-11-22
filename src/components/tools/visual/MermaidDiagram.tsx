@@ -2,17 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCcw, Download,
-  Upload, Shuffle, Palette, PanelRightClose, PanelRightOpen, X,
+  ZoomIn, ZoomOut, RotateCcw, Download, Copy,
+  Upload, Shuffle, Palette, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
-import { ToolPanel } from '../shared/ToolPanel'
-import { CopyButton } from '../shared/CopyButton'
-import { CodeEditor } from '../shared/CodeEditor'
-import { ErrorAlert } from '../shared/ErrorAlert'
+import { Stage, FloatingPanel } from '@/components/domain/Stage'
 
 const SAMPLES: Record<string, string> = {
   flowchart: `flowchart TD
@@ -70,8 +67,7 @@ export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [transformOrigin, setTransformOrigin] = useState('center center')
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showEditorDrawer, setShowEditorDrawer] = useState(true)
+    const [showEditorDrawer, setShowEditorDrawer] = useState(true)
   const [showExportMenu, setShowExportMenu] = useState(false)
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -148,17 +144,6 @@ export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
     }
   }, [isDragging])
 
-  useEffect(() => {
-    if (!isFullscreen) return
-    document.body.style.overflow = 'hidden'
-    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullscreen(false) }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.body.style.overflow = ''
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isFullscreen])
-
   const handleShuffle = useCallback(() => {
     const keys = Object.keys(SAMPLES)
     const others = keys.filter((k) => SAMPLES[k] !== input)
@@ -234,129 +219,79 @@ export default function MermaidDiagram({ onOutput, initialState }: ToolProps) {
     analytics.buttonClick('mermaid', 'export_png')
   }, [svg])
 
-  const toolbar = (
-    <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 backdrop-blur px-1.5 py-1 shadow-lg">
-      <button onClick={() => setZoom((z) => clamp(z * 1.25, MIN_ZOOM, MAX_ZOOM))} title={t('visual.mermaid_zoom_in', 'Zoom in')}
-        className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-        <ZoomIn className="h-4 w-4" />
-      </button>
-      <button onClick={() => setZoom((z) => clamp(z * 0.8, MIN_ZOOM, MAX_ZOOM))} title={t('visual.mermaid_zoom_out', 'Zoom out')}
-        className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-        <ZoomOut className="h-4 w-4" />
-      </button>
-      <span className="px-1 text-[11px] tabular-nums text-muted-foreground w-10 text-center select-none">
-        {Math.round(zoom * 100)}%
-      </span>
-      <button onClick={resetView} title={t('visual.mermaid_reset_view', 'Reset view')}
-        className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-        <RotateCcw className="h-4 w-4" />
-      </button>
-      <div className="w-px h-4 bg-border mx-0.5" />
-      <button onClick={handleCycleTheme} title={t('visual.mermaid_theme', `Theme: ${theme}`)}
-        className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-        <Palette className="h-4 w-4" />
-      </button>
-      <button onClick={handleShuffle} title={t('visual.mermaid_shuffle', 'Random sample')}
-        className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-        <Shuffle className="h-4 w-4" />
-      </button>
-      <button onClick={handleImportClick} title={t('visual.mermaid_import', 'Import file')}
-        className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-        <Upload className="h-4 w-4" />
-      </button>
-      <div className="relative">
-        <button onClick={() => setShowExportMenu((v) => !v)} title={t('visual.mermaid_download', 'Download')}
-          className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-          <Download className="h-4 w-4" />
-        </button>
-        {showExportMenu && (
-          <div className="absolute bottom-full right-0 mb-2 flex flex-col rounded-md border border-border bg-popover shadow-lg overflow-hidden min-w-[100px]">
-            <button onClick={downloadSvg} className="px-3 py-1.5 text-xs text-left hover:bg-muted/70 transition-colors">SVG</button>
-            <button onClick={downloadPng} className="px-3 py-1.5 text-xs text-left hover:bg-muted/70 transition-colors">PNG</button>
-          </div>
-        )}
-      </div>
-      {isFullscreen && (
-        <button onClick={() => setShowEditorDrawer((v) => !v)} title={t('visual.mermaid_toggle_editor', 'Toggle editor')}
-          className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-          {showEditorDrawer ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-        </button>
-      )}
-      <button onClick={() => setIsFullscreen((v) => !v)} title={t('visual.mermaid_fullscreen', 'Fullscreen')}
-        className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-        {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-      </button>
-    </div>
-  )
-
-  const preview = (
-    <div
-      ref={previewRef}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onDoubleClick={resetView}
-      className={cn(
-        'relative border border-input rounded-md min-h-[300px] h-full flex items-center justify-center bg-muted/20 overflow-hidden select-none',
-        svg && (isDragging ? 'cursor-grabbing' : 'cursor-grab')
-      )}
-    >
-      {svg ? (
-        <div
-          dangerouslySetInnerHTML={{ __html: svg }}
-          className="max-w-full transition-transform duration-75 ease-out"
-          style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin }}
-        />
-      ) : (
-        <p className="text-sm text-muted-foreground">{t('visual.mermaid_preview', 'Diagram will render here')}</p>
-      )}
-      <div className="absolute bottom-3 right-3">{toolbar}</div>
-    </div>
-  )
-
-  const editor = (
-    <div className="space-y-2">
-      <label className="text-xs font-medium text-muted-foreground block">{t('visual.mermaid_code', 'Diagram Definition')}</label>
-      <CodeEditor value={input} onChange={setInput} language="mermaid" />
-      {error && <ErrorAlert message={error} />}
-    </div>
-  )
+  const iconBtn = 'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-d text-d-ink transition-colors hover:bg-d-border/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-d-accent'
 
   return (
-    <>
-      <input ref={fileInputRef} type="file" accept=".mmd,.mermaid,.txt" className="hidden" onChange={handleImportFile} />
+    <Stage>
+      <input ref={fileInputRef} type="file" accept=".mmd,.mermaid,.txt" className="hidden" onChange={handleImportFile} aria-label={t('visual.mermaid_import', 'Import file')} />
 
-      {isFullscreen ? (
-        <div className="fixed inset-0 z-50 bg-background flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-            <span className="text-sm font-medium">{t('visual.mermaid_title', 'Mermaid Diagram')}</span>
-            <button onClick={() => setIsFullscreen(false)} className="p-1.5 rounded-full hover:bg-muted/70 transition-colors">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex-1 flex min-h-0">
-            {showEditorDrawer && (
-              <div className="w-[380px] shrink-0 border-r border-border p-3 overflow-auto">
-                {editor}
-              </div>
-            )}
-            <div className="flex-1 p-3 min-w-0">
-              <div className="h-full">{preview}</div>
+      {/* Canvas: owns the whole area */}
+      <div
+        ref={previewRef}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={resetView}
+        className={cn(
+          'absolute inset-0 flex items-center justify-center overflow-hidden select-none',
+          svg && (isDragging ? 'cursor-grabbing' : 'cursor-grab'),
+        )}
+      >
+        {svg ? (
+          <div
+            dangerouslySetInnerHTML={{ __html: svg }}
+            className="max-w-full transition-transform duration-75 ease-out"
+            style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin }}
+          />
+        ) : (
+          <p className="text-sm text-d-muted">{t('visual.mermaid_preview', 'Type a diagram on the left and it draws here.')}</p>
+        )}
+      </div>
+
+      {/* Floating toolbar */}
+      <FloatingPanel label={t('visual.mermaid_tools', 'Diagram tools')} className="left-1/2 top-3 flex -translate-x-1/2 items-center gap-0.5 p-1">
+        <button className={iconBtn} aria-label={t('visual.mermaid_zoom_out', 'Zoom out')} title={t('visual.mermaid_zoom_out', 'Zoom out')} onClick={() => setZoom((z) => clamp(z * 0.8, MIN_ZOOM, MAX_ZOOM))}><ZoomOut className="h-4 w-4" aria-hidden /></button>
+        <span className="w-11 select-none text-center text-xs tabular-nums text-d-muted" aria-live="polite">{Math.round(zoom * 100)}%</span>
+        <button className={iconBtn} aria-label={t('visual.mermaid_zoom_in', 'Zoom in')} title={t('visual.mermaid_zoom_in', 'Zoom in')} onClick={() => setZoom((z) => clamp(z * 1.25, MIN_ZOOM, MAX_ZOOM))}><ZoomIn className="h-4 w-4" aria-hidden /></button>
+        <button className={iconBtn} aria-label={t('visual.mermaid_reset_view', 'Reset view')} title={t('visual.mermaid_reset_view', 'Reset view')} onClick={resetView}><RotateCcw className="h-4 w-4" aria-hidden /></button>
+        <span className="mx-1 h-5 w-px bg-d-border" aria-hidden />
+        <button className={iconBtn} aria-label={`${t('visual.mermaid_theme', 'Diagram theme')}: ${theme}`} title={`${t('visual.mermaid_theme', 'Diagram theme')}: ${theme}`} onClick={handleCycleTheme}><Palette className="h-4 w-4" aria-hidden /></button>
+        <button className={iconBtn} aria-label={t('visual.mermaid_shuffle', 'Random sample')} title={t('visual.mermaid_shuffle', 'Random sample')} onClick={handleShuffle}><Shuffle className="h-4 w-4" aria-hidden /></button>
+        <button className={iconBtn} aria-label={t('visual.mermaid_import', 'Import file')} title={t('visual.mermaid_import', 'Import file')} onClick={handleImportClick}><Upload className="h-4 w-4" aria-hidden /></button>
+        <div className="relative">
+          <button className={iconBtn} aria-label={t('visual.mermaid_download', 'Download')} aria-expanded={showExportMenu} title={t('visual.mermaid_download', 'Download')} onClick={() => setShowExportMenu((v) => !v)}><Download className="h-4 w-4" aria-hidden /></button>
+          {showExportMenu && (
+            <div className="absolute right-0 top-full mt-2 flex min-w-24 flex-col overflow-hidden rounded-d border border-d-border bg-d-raised shadow-lg">
+              <button onClick={downloadSvg} className="cursor-pointer px-3 py-2 text-left text-xs hover:bg-d-border/50">SVG</button>
+              <button onClick={downloadPng} className="cursor-pointer px-3 py-2 text-left text-xs hover:bg-d-border/50">PNG</button>
             </div>
-          </div>
+          )}
         </div>
+        <button className={iconBtn} aria-label={t('visual.mermaid_copy', 'Copy SVG')} title={t('visual.mermaid_copy', 'Copy SVG')} disabled={!svg} onClick={() => { void navigator.clipboard.writeText(svg) }}><Copy className="h-4 w-4" aria-hidden /></button>
+      </FloatingPanel>
+
+      {/* Floating editor */}
+      {showEditorDrawer ? (
+        <FloatingPanel label={t('visual.mermaid_code', 'Diagram definition')} className="bottom-3 left-3 top-3 flex w-[min(24rem,calc(100%-1.5rem))] flex-col">
+          <header className="flex h-9 shrink-0 items-center justify-between border-b border-d-border px-3">
+            <h2 className="font-display text-sm font-semibold">{t('visual.mermaid_code', 'Diagram definition')}</h2>
+            <button className={iconBtn} aria-label="Hide editor" title="Hide editor" onClick={() => setShowEditorDrawer(false)}><PanelLeftClose className="h-4 w-4" aria-hidden /></button>
+          </header>
+          <textarea
+            aria-label={t('visual.mermaid_code', 'Diagram definition')}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            spellCheck={false}
+            className="min-h-0 w-full flex-1 resize-none bg-transparent p-3 font-mono text-[13px] leading-6 text-d-ink outline-none"
+          />
+          {error && (
+            <p role="alert" className="max-h-28 shrink-0 overflow-auto border-t border-d-border bg-red-500/10 p-3 font-mono text-xs text-red-700 dark:text-red-300">{error}</p>
+          )}
+        </FloatingPanel>
       ) : (
-        <ToolPanel
-          left={editor}
-          right={
-            <div className="space-y-2">
-              <div className="flex justify-end">
-                <CopyButton value={svg} />
-              </div>
-              {preview}
-            </div>
-          }
-        />
+        <FloatingPanel label="Editor" className="left-3 top-3 p-1">
+          <button className={iconBtn} aria-label="Show editor" title="Show editor" onClick={() => setShowEditorDrawer(true)}><PanelLeftOpen className="h-4 w-4" aria-hidden /></button>
+        </FloatingPanel>
       )}
-    </>
+    </Stage>
   )
 }

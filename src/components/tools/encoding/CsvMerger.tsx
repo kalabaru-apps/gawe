@@ -1,201 +1,123 @@
 'use client'
 
-import { useRef, useState } from 'react'
+// Domain: studio (drop hero until files land, then file list + preview with a merge rail).
+import { useMemo, useRef, useState } from 'react'
+import { X, Plus, Download } from 'lucide-react'
 import Papa from 'papaparse'
-import { Button } from '@/components/ui/button'
-import { ErrorAlert } from '@/components/tools/shared/ErrorAlert'
-import { FileDropzone } from '@/components/tools/shared/FileDropzone'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
-import { analytics } from '@/lib/analytics'
+import { StudioWorkspace, PrimaryAction, DropHero, Btn, IconBtn, Notice, Stat, Field, TextInput, Section } from '@/components/domain'
 
-interface FileEntry {
-  id: string
-  name: string
-  rows: Record<string, string>[]
-  headers: string[]
+interface FileEntry { id: string; name: string; rows: Record<string, string>[]; headers: string[] }
+
+async function parseFile(file: File) {
+  const result = Papa.parse<Record<string, string>>(await file.text(), { header: true, skipEmptyLines: true })
+  return { rows: result.data, headers: result.meta.fields ?? [] }
 }
 
-function uniqueId(): string {
-  return Math.random().toString(36).slice(2)
-}
-
-async function parseFile(file: File): Promise<{ rows: Record<string, string>[]; headers: string[] }> {
-  const text = await file.text()
-  const result = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true })
-  const headers = result.meta.fields ?? []
-  return { rows: result.data, headers }
-}
-
-function mergeFiles(entries: FileEntry[]): Record<string, string>[] {
-  // Union of all headers, preserving first-seen order
-  const allHeaders: string[] = []
-  for (const entry of entries) {
-    for (const h of entry.headers) {
-      if (!allHeaders.includes(h)) allHeaders.push(h)
-    }
-  }
-
-  const merged: Record<string, string>[] = []
-  for (const entry of entries) {
-    for (const row of entry.rows) {
-      const normalized: Record<string, string> = {}
-      for (const h of allHeaders) {
-        normalized[h] = h in row ? String(row[h]) : ''
-      }
-      merged.push(normalized)
-    }
-  }
-  return merged
-}
-
-function headersMatch(entries: FileEntry[]): boolean {
-  if (entries.length < 2) return true
-  const first = entries[0].headers.join('|')
-  return entries.every((e) => e.headers.join('|') === first)
-}
-
-function downloadCsv(rows: Record<string, string>[], filename: string) {
-  const csv = Papa.unparse(rows)
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
+function mergeFiles(entries: FileEntry[]) {
+  const headers: string[] = []
+  for (const e of entries) for (const h of e.headers) if (!headers.includes(h)) headers.push(h)
+  const rows = entries.flatMap((e) => e.rows.map((r) => Object.fromEntries(headers.map((h) => [h, h in r ? String(r[h]) : '']))))
+  return { headers, rows }
 }
 
 export default function CsvMerger({ onOutput }: ToolProps) {
   const { t } = useTranslation()
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [filename, setFilename] = useState('merged.csv')
+  const picker = useRef<HTMLInputElement>(null)
 
-  const handleFile = async (file: File) => {
+  const addFiles = async (files: File[]) => {
     setError('')
-    setLoading(true)
-    try {
-      const { rows, headers } = await parseFile(file)
-      if (headers.length === 0) {
-        setError(`"${file.name}" has no headers or could not be parsed.`)
-        return
+    const added: FileEntry[] = []
+    for (const f of files) {
+      if (!/\.csv$/i.test(f.name)) { setError(`"${f.name}" is not a .csv file. Export it as CSV and drop it again.`); continue }
+      try {
+        const { rows, headers } = await parseFile(f)
+        if (!headers.length) { setError(`"${f.name}" has no header row. Add column names on the first line.`); continue }
+        added.push({ id: crypto.randomUUID(), name: f.name, rows, headers })
+      } catch (e) {
+        setError(e instanceof Error ? e.message : `Could not parse "${f.name}".`)
       }
-      setEntries((prev) => [
-        ...prev,
-        { id: uniqueId(), name: file.name, rows, headers },
-      ])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : `Failed to parse "${file.name}"`)
-    } finally {
-      setLoading(false)
     }
+    if (added.length) setEntries((p) => [...p, ...added])
   }
 
-  const removeEntry = (id: string) => {
-    setEntries((prev) => prev.filter((e) => e.id !== id))
+  const merged = useMemo(() => mergeFiles(entries), [entries])
+  const mismatch = entries.some((e) => e.headers.join('|') !== entries[0].headers.join('|'))
+
+  const download = () => {
+    const blob = new Blob([Papa.unparse(merged.rows, { columns: merged.headers })], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename.trim() || 'merged.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+    onOutput({ files: entries.map((e) => e.name) }, { totalRows: merged.rows.length, filename })
   }
 
-  const handleMerge = () => {
-    if (entries.length < 2) return
-    const merged = mergeFiles(entries)
-    const filename = `merged_${Date.now()}.csv`
-    downloadCsv(merged, filename)
-    onOutput(
-      { files: entries.map((e) => e.name) },
-      { totalRows: merged.length, filename }
+  if (!entries.length) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="min-h-0 flex-1"><DropHero accept=".csv,text/csv" multiple onFiles={addFiles} title={t('encoding.csv_drop', 'Drop CSV files to merge')} hint="Two or more files. Columns are matched by name." /></div>
+        {error && <div className="p-4"><Notice tone="error">{error}</Notice></div>}
+      </div>
     )
   }
 
-  const totalRows = entries.reduce((sum, e) => sum + e.rows.length, 0)
-  const mismatch = !headersMatch(entries)
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* Drop zone for multiple files — we handle multiple via sequential adds */}
-      <FileDropzone
-        accept=".csv"
-        onFile={handleFile}
-        label={
-          loading
-            ? t('common.format', 'Parsing file…')
-            : t('encoding.drop_image', 'Drop CSV files here, or click to upload (add one at a time)')
-        }
-      />
-
-      {error && <ErrorAlert message={error} />}
-
-      {mismatch && entries.length > 1 && (
-        <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-600 dark:text-yellow-400">
-          {t('action.error', 'Warning: files have different headers. Missing columns will be filled with empty strings.')}
+    <StudioWorkspace
+      rail={
+        <div className="flex flex-col gap-4">
+          <Stat label="Merged rows" value={merged.rows.length.toLocaleString()} note={`${entries.length} files, ${merged.headers.length} columns`} />
+          {mismatch && <Notice tone="info">Headers differ between files. Missing cells are left empty.</Notice>}
+          {error && <Notice tone="error">{error}</Notice>}
+          <Field id="csv-out" label="Output filename"><TextInput id="csv-out" value={filename} onChange={(e) => setFilename(e.target.value)} /></Field>
+          <PrimaryAction onClick={download} disabled={entries.length < 2}>
+            <span className="inline-flex items-center justify-center gap-2"><Download className="h-5 w-5" aria-hidden />Merge and download</span>
+          </PrimaryAction>
+          {entries.length < 2 && <p className="text-sm text-d-muted">Add one more file to merge.</p>}
         </div>
-      )}
-
-      {entries.length > 0 && (
-        <>
-          {/* Stats row */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>
-              <span className="font-medium text-foreground">{entries.length}</span> file{entries.length !== 1 ? 's' : ''}
-            </span>
-            <span>
-              <span className="font-medium text-foreground">{totalRows}</span> total row{totalRows !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {/* File cards */}
-          <div className="flex flex-col gap-2">
-            {entries.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-start justify-between rounded-md border border-border bg-muted/20 px-4 py-3"
-              >
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-medium text-foreground truncate">{entry.name}</span>
-                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {entry.rows.length} rows
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {t('encoding.has_header', 'Headers')}: {entry.headers.join(', ')}
-                  </div>
+      }
+    >
+      <div className="flex flex-col gap-6">
+        <Section
+          title="Files"
+          actions={
+            <>
+              <Btn size="sm" onClick={() => picker.current?.click()}><Plus className="h-3.5 w-3.5" aria-hidden />Add files</Btn>
+              <input ref={picker} type="file" accept=".csv,text/csv" multiple className="sr-only" aria-label="Add CSV files" onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = '' }} />
+            </>
+          }
+        >
+          <ul className="flex flex-col gap-2">
+            {entries.map((e) => (
+              <li key={e.id} className="flex items-center gap-3 rounded-d border border-d-border bg-d-raised px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-mono text-sm">{e.name}</p>
+                  <p className="truncate text-xs text-d-muted">{e.rows.length.toLocaleString()} rows: {e.headers.join(', ')}</p>
                 </div>
-                <button
-                  onClick={() => removeEntry(entry.id)}
-                  className="ml-3 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  aria-label={`Remove ${entry.name}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
+                <IconBtn label={`Remove ${e.name}`} onClick={() => setEntries((p) => p.filter((x) => x.id !== e.id))}><X className="h-4 w-4" aria-hidden /></IconBtn>
+              </li>
             ))}
+          </ul>
+        </Section>
+        <Section title="Preview (first 5 rows)">
+          <div className="max-w-full overflow-auto rounded-d border border-d-border">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-d-raised"><tr>{merged.headers.map((h) => <th key={h} className="whitespace-nowrap px-3 py-2 font-medium">{h}</th>)}</tr></thead>
+              <tbody>
+                {merged.rows.slice(0, 5).map((r, i) => (
+                  <tr key={i} className="border-t border-d-border">{merged.headers.map((h) => <td key={h} className="whitespace-nowrap px-3 py-1.5 font-mono">{r[h]}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          <Button
-            onClick={() => { analytics.buttonClick('csv-merger', 'merge'); handleMerge() }}
-            disabled={entries.length < 2}
-            className="self-start"
-          >
-            {t('common.convert', 'Merge & Download CSV')}
-          </Button>
-
-          {entries.length < 2 && (
-            <p className="text-xs text-muted-foreground">{t('action.add', 'Add at least 2 files to merge.')}</p>
-          )}
-        </>
-      )}
-    </div>
+        </Section>
+      </div>
+    </StudioWorkspace>
   )
 }

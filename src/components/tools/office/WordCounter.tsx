@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useMemo, useEffect, useRef, useState } from 'react'
 import type { ToolProps } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 import { analytics } from '@/lib/analytics'
+import { Page, Stat, Notice, Section, Column, Scroll, Field, TextArea } from '@/components/domain'
 
 const STOP_WORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'was', 'are', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'it', 'its', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'we', 'they'])
 
@@ -34,55 +35,67 @@ export default function WordCounter({ onOutput, initialState }: ToolProps) {
       if (!firedRef.current) { analytics.buttonClick('word-counter', 'count'); firedRef.current = true }
       onOutput({ text: text.slice(0, 100) }, { wordCount: stats.wordCount, charCount: stats.charCount })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.wordCount, stats.charCount])
 
-  const STAT_ROWS = [
-    { label: t('office.words', 'Words'), value: stats.wordCount.toLocaleString() },
-    { label: t('office.characters', 'Characters'), value: stats.charCount.toLocaleString() },
-    { label: t('office.chars_no_spaces', 'Characters (no spaces)'), value: stats.charNoSpace.toLocaleString() },
-    { label: t('office.sentences', 'Sentences'), value: stats.sentences.toLocaleString() },
-    { label: t('office.paragraphs', 'Paragraphs'), value: stats.paragraphs.toLocaleString() },
-    { label: t('office.reading_time', 'Reading time'), value: `~${stats.readMin} min` },
-    { label: t('office.speaking_time', 'Speaking time'), value: `~${stats.speakMin} min` },
-  ]
-
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('common.text', 'Text')}</label>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="w-full min-h-[400px] text-sm border border-input rounded-md p-3 bg-background resize-y outline-none focus:ring-1 focus:ring-ring leading-relaxed"
-          placeholder={t('office.paste_text', 'Paste or type your text here...')}
-        />
-      </div>
-      <div className="space-y-4">
-        <div className="rounded-md border border-input overflow-hidden">
-          {STAT_ROWS.map((r, i) => (
-            <div key={r.label} className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? 'border-t border-border/50' : ''}`}>
-              <span className="text-sm text-muted-foreground">{r.label}</span>
-              <span className="font-mono font-semibold">{r.value}</span>
-            </div>
-          ))}
-        </div>
-        {stats.topWords.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">{t('office.top_words', 'Top Words')}</p>
-            <div className="space-y-1">
-              {stats.topWords.map(([word, count]) => (
-                <div key={word} className="flex items-center gap-2">
-                  <span className="font-mono text-sm w-32 truncate">{word}</span>
-                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: `${(count / stats.topWords[0][1]) * 100}%` }} />
-                  </div>
-                  <span className="text-xs text-muted-foreground w-8 text-right">{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+    <Scroll>
+      <Column width="md">
+        <header>
+          <h1 className="font-serif text-3xl font-semibold">{t('office.word_counter', 'Word Counter')}</h1>
+          <p className="mt-1 text-sm text-d-muted">{t('office.word_counter_desc', 'Paste text and get live statistics. Nothing leaves your device.')}</p>
+        </header>
+
+        <Page>
+          <Field id="wc-input" label={t('common.text', 'Text')}>
+            <TextArea
+              id="wc-input"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="min-h-[18rem]"
+              placeholder={t('office.paste_text', 'Paste or type your text here')}
+              spellCheck={false}
+            />
+          </Field>
+        </Page>
+
+        {stats.wordCount === 0 ? (
+          <Notice tone="info">{t('office.word_counter_empty', 'Start typing or paste text to see statistics.')}</Notice>
+        ) : (
+          <>
+            <Page>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4" aria-live="polite">
+                <Stat label={t('office.words', 'Words')} value={stats.wordCount.toLocaleString()} tone="serif" />
+                <Stat label={t('office.characters', 'Characters')} value={stats.charCount.toLocaleString()} tone="serif" />
+                <Stat label={t('office.chars_no_spaces', 'Characters (no spaces)')} value={stats.charNoSpace.toLocaleString()} tone="serif" />
+                <Stat label={t('office.sentences', 'Sentences')} value={stats.sentences.toLocaleString()} tone="serif" />
+                <Stat label={t('office.paragraphs', 'Paragraphs')} value={stats.paragraphs.toLocaleString()} tone="serif" />
+                <Stat label={t('office.reading_time', 'Reading time')} value={`~${stats.readMin} min`} tone="serif" />
+                <Stat label={t('office.speaking_time', 'Speaking time')} value={`~${stats.speakMin} min`} tone="serif" />
+              </div>
+            </Page>
+
+            {stats.topWords.length > 0 && (
+              <Page>
+                <Section title={t('office.top_words', 'Top words')}>
+                  <ol className="flex flex-col gap-2">
+                    {stats.topWords.map(([word, count], i) => (
+                      <li key={word} className="flex items-center gap-3">
+                        <span className="w-5 text-right font-mono text-xs text-d-muted">{i + 1}</span>
+                        <span className="w-24 shrink-0 truncate font-mono text-sm">{word}</span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-d-border">
+                          <div className="h-full rounded-full bg-d-accent" style={{ width: `${(count / stats.topWords[0][1]) * 100}%` }} />
+                        </div>
+                        <span className="w-8 text-right text-xs tabular-nums text-d-muted">{count}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </Section>
+              </Page>
+            )}
+          </>
         )}
-      </div>
-    </div>
+      </Column>
+    </Scroll>
   )
 }

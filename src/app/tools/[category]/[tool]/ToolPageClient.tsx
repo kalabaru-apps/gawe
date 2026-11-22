@@ -9,6 +9,7 @@ import { usePreferences } from '@/hooks/usePreferences'
 import { ToolHeader } from '@/components/shell/ToolHeader'
 import { ToolPlaceholder } from '@/components/shell/ToolPlaceholder'
 import { analytics } from '@/lib/analytics'
+import { domainOf } from '@/config/domains'
 
 type ToolLoader = () => Promise<{ default: ComponentType<ToolProps> }>
 
@@ -143,9 +144,9 @@ export function ToolPageClient({ tool, category, toolSlug, categorySlug }: ToolP
   [toolSlug, categorySlug])
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-domain={domainOf(tool.category, tool.id)} className="flex flex-col h-full">
       <ToolHeader tool={tool} category={category} />
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 min-h-0 overflow-auto">
         {ToolComponent ? (
           <ToolComponent
             onOutput={handleOutput}
